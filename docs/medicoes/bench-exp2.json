@@ -1,0 +1,27 @@
+{
+  "partidas": 200,
+  "identicas_na_segunda_execucao": 200,
+  "ms_por_partida_de_90s": 459.52,
+  "microssegundos_por_passo_4_atletas": 170.06,
+  "replay_kb_medio": 194.4,
+  "replay_kb_gzip_medio": 50.9,
+  "gols_por_partida": 0.74,
+  "segundos_cpu_por_sessao_de_treino_estimado": 11.48,
+  "projecao": [
+    {
+      "usuarios": 1000,
+      "horas_cpu_por_dia": 9.6,
+      "nucleos_se_concentrado_em_2h": 4.8
+    },
+    {
+      "usuarios": 5000,
+      "horas_cpu_por_dia": 48,
+      "nucleos_se_concentrado_em_2h": 24
+    },
+    {
+      "usuarios": 20000,
+      "horas_cpu_por_dia": 192,
+      "nucleos_se_concentrado_em_2h": 96
+    }
+  ]
+}

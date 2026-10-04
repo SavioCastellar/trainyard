@@ -1,0 +1,73 @@
+{
+  "1_contra_robo": {
+    "vitoria": 0.24,
+    "empate": 0.521,
+    "derrota": 0.24,
+    "gols_pro": 0.54,
+    "gols_contra": 0.49
+  },
+  "2_chute_de_longe": {
+    "parcela_de_chutes_de_longe_com_habilidade": 0.998,
+    "parcela_de_chutes_de_longe_sem_habilidade": 0.999,
+    "chutes_de_longe_por_partida_com": 9.45,
+    "chutes_de_longe_por_partida_sem": 15.48
+  },
+  "3_defesa_contra_chute_de_longe": {
+    "profundidade_media_contra_quem_tem": 13.284,
+    "profundidade_media_contra_quem_nao_tem": 14.008,
+    "diferenca": -0.724
+  },
+  "4_goleiro": {
+    "mergulhos_por_partida": 0.73,
+    "defesas_por_partida": 0.14,
+    "gols_sofridos_com_goleiro": 0.16,
+    "gols_sofridos_sem_goleiro": 0.32
+  },
+  "5_valor_das_habilidades": {
+    "chute_de_longe_3_vs_nada": {
+      "vitoria": 0.219,
+      "empate": 0.667,
+      "derrota": 0.115,
+      "gols_pro": 0.28,
+      "gols_contra": 0.18
+    },
+    "goleiro_3_vs_nada_contra_chute_de_longe": {
+      "vitoria": 0.156,
+      "empate": 0.74,
+      "derrota": 0.104,
+      "gols_pro": 0.21,
+      "gols_contra": 0.11
+    }
+  },
+  "6_atributos": {
+    "0.75_vs_0.45": {
+      "vitoria": 0.198,
+      "empate": 0.698,
+      "derrota": 0.104,
+      "gols_pro": 0.24,
+      "gols_contra": 0.11
+    },
+    "0.75_vs_0.25": {
+      "vitoria": 0.51,
+      "empate": 0.448,
+      "derrota": 0.042,
+      "gols_pro": 0.75,
+      "gols_contra": 0.11
+    },
+    "0.75_vs_0.60": {
+      "vitoria": 0.135,
+      "empate": 0.75,
+      "derrota": 0.115,
+      "gols_pro": 0.16,
+      "gols_contra": 0.12
+    }
+  },
+  "7_atributo_alto_vs_baixo": {
+    "vel": "0.28 V / 0.12 D",
+    "chute": "0.19 V / 0.09 D",
+    "prec": "0.25 V / 0.17 D",
+    "ctrl": "0.22 V / 0.12 D",
+    "refl": "0.14 V / 0.14 D",
+    "fol": "0.16 V / 0.05 D"
+  }
+}
