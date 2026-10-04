@@ -64,6 +64,10 @@ class SimEnv:
         """Força do robô (0 = quase parado, 1 = robô completo), para o currículo."""
         self._send(5, json.dumps({"botSkill": v}).encode())
 
+    def set_shaping(self, **shaping):
+        """Ajusta os pesos das recompensas auxiliares durante o treino."""
+        self._send(5, json.dumps({"shaping": shaping}).encode())
+
     def reset(self):
         self._send(4, b"")
         self.obs, _, _, _ = self._recv()

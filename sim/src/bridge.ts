@@ -18,7 +18,7 @@ import { Match, OBS_SIZE, PlayerSpec, randomSpec, CFG } from './soccer.js';
 import { Rng } from './rng.js';
 import { botActions } from './bot.js';
 
-interface Cfg { nEnvs: number; seed: number; maxTime: number; untilGoal: boolean; skillProb: number; botSkill: number; shaping: { progress: number; touch: number; approach: number; onTarget: number } }
+interface Cfg { nEnvs: number; seed: number; maxTime: number; untilGoal: boolean; skillProb: number; botSkill: number; liveRestart: boolean; shaping: { progress: number; touch: number; approach: number; onTarget: number; time: number } }
 type CfgIn = Pick<Cfg, 'nEnvs' | 'seed'> & Partial<Cfg>;
 interface EnvCfg { bot?: boolean; specs?: PlayerSpec[] }
 
@@ -35,7 +35,7 @@ const botRng = new Rng(12345);
 function newMatch(i: number): Match {
   const ec = envCfg[i] || {};
   const specs = ec.specs ?? [0, 1, 2, 3].map(() => randomSpec(seedRng, cfg.skillProb));
-  const m = new Match(specs, (seedRng.next() * 2 ** 32) >>> 0, { maxTime: cfg.maxTime, untilGoal: cfg.untilGoal });
+  const m = new Match(specs, (seedRng.next() * 2 ** 32) >>> 0, { maxTime: cfg.maxTime, untilGoal: cfg.untilGoal, liveRestart: cfg.liveRestart });
   prevProg[i] = m.ball.x / CFG.W;
   prevApp[i] = [approachPot(m, 0), approachPot(m, 1)];
   return m;
@@ -72,7 +72,7 @@ function respond(info: unknown[]) {
 function u32(n: number) { const b = Buffer.alloc(4); b.writeUInt32LE(n, 0); return b; }
 
 function init(c: CfgIn) {
-  cfg = { maxTime: 30, untilGoal: true, skillProb: 0.5, botSkill: 1, ...c, shaping: { progress: 0.5, touch: 0.02, approach: 0, onTarget: 0, ...(c.shaping || {}) } };
+  cfg = { maxTime: 30, untilGoal: true, skillProb: 0.5, botSkill: 1, liveRestart: false, ...c, shaping: { progress: 0.5, touch: 0.02, approach: 0, onTarget: 0, time: 0, ...(c.shaping || {}) } };
   seedRng = new Rng(cfg.seed);
   envCfg = Array.from({ length: cfg.nEnvs }, (_, i) => envCfg[i] || {});
   prevProg = new Array(cfg.nEnvs).fill(0);
@@ -104,7 +104,7 @@ function step(actions: Int32Array) {
     for (let k = 0; k < 4; k++) {
       const s = k < 2 ? 1 : -1, team = k < 2 ? 0 : 1;
       const app = approachPot(m, team);
-      let r = sh.progress * s * dProg + (m.touched[k] ? sh.touch : 0) + sh.approach * (app - prevApp[i][team]) + (shotOn[k] ? sh.onTarget : 0);
+      let r = sh.progress * s * dProg + (m.touched[k] ? sh.touch : 0) + sh.approach * (app - prevApp[i][team]) + (shotOn[k] ? sh.onTarget : 0) - sh.time;
       if (m.goalTeam === team) r += 1; else if (m.goalTeam === 1 - team) r -= 1;
       rew[i * 4 + k] = r;
     }
@@ -136,7 +136,9 @@ process.stdin.on('data', (chunk: Buffer) => {
     } else if (op === 4) {
       envs = envs.map((_, i) => newMatch(i)); writeObs(); rew.fill(0); dones.fill(0); respond([]);
     } else if (op === 5) {
-      cfg.botSkill = JSON.parse(data.toString()).botSkill;
+      const u = JSON.parse(data.toString());
+      if (u.botSkill !== undefined) cfg.botSkill = u.botSkill;
+      if (u.shaping) cfg.shaping = { ...cfg.shaping, ...u.shaping };
     } else if (op === 9) process.exit(0);
   }
 });

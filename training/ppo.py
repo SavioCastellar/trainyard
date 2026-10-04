@@ -44,6 +44,8 @@ def main():
     ap.add_argument("--out", default="runs/exp1")
     ap.add_argument("--resume", default="")
     ap.add_argument("--bot-skill", type=float, default=0.3)
+    ap.add_argument("--time-penalty", type=float, default=0.0005)
+    ap.add_argument("--anneal-after", type=float, default=0.5, help="fração do tempo a partir da qual as recompensas auxiliares diminuem")
     args = ap.parse_args()
 
     torch.set_num_threads(1)
@@ -54,7 +56,7 @@ def main():
     n, nb, T = args.n_envs, args.bot_envs, args.steps
     bot_skill = args.bot_skill
     env = SimEnv(n, seed=args.seed, maxTime=30, untilGoal=True, skillProb=0.5, botSkill=bot_skill,
-                 shaping={"progress": 1.0, "touch": 0.02, "approach": 1.0, "onTarget": 0.1})
+                 shaping={"progress": 1.0, "touch": 0.02, "approach": 1.0, "onTarget": 0.0, "time": args.time_penalty})
     env.configure([{"bot": i < nb} for i in range(n)])
     env.reset()
 
@@ -66,7 +68,7 @@ def main():
     past = Policy()
     mode = np.array(["bot" if i < nb else ("self" if random.random() < args.self_prob else "past") for i in range(n)])
 
-    t0 = time.time(); steps_done = 0; update = 0; last_bump = 0
+    t0 = time.time(); steps_done = 0; update = 0; last_bump = 0; annealed = False
     ep_hist: list[dict] = []
     while time.time() - t0 < args.minutes * 60:
         update += 1
@@ -147,6 +149,10 @@ def main():
         if rec["bot_win"] is not None and rec["bot_win"] > 0.55 and bot_skill < 1.0 and update - last_bump > 20:
             bot_skill = min(1.0, round(bot_skill + 0.1, 2)); env.set_bot_skill(bot_skill); last_bump = update
             ep_hist = [e for e in ep_hist if e["mode"] != "bot"]
+        # recompensas auxiliares diminuem na segunda metade, para o objetivo real (gol) dominar
+        frac = (time.time() - t0) / (args.minutes * 60)
+        if frac > args.anneal_after and not annealed:
+            env.set_shaping(progress=0.3, approach=0.2, touch=0.005); annealed = True
         rec["bot_skill"] = bot_skill
         log.write(json.dumps(rec) + "\n"); log.flush()
         if update % 5 == 0 or update == 1:

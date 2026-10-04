@@ -30,7 +30,7 @@ def spec(v=0.5, long=0, keeper=0, **over):
 
 def play(policy, A, B, n=96, bot=False, max_time=60, seed=7, swap=True):
     """Joga n partidas; metade com os lados trocados. Devolve resumos do ponto de vista do time A."""
-    env = SimEnv(n, seed=seed, maxTime=max_time, untilGoal=False, skillProb=0)
+    env = SimEnv(n, seed=seed, maxTime=max_time, untilGoal=False, skillProb=0, liveRestart=True)
     cfgs = []
     for i in range(n):
         flip = swap and not bot and i % 2 == 1

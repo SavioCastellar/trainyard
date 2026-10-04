@@ -1,0 +1,277 @@
+<title>Replay Oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+/*BASECSS*/
+<style>
+  .score { align-self: start; }
+  .perf { grid-column: 3; grid-row: 1; align-self: start; justify-self: end; min-width: 220px; }
+  .perf dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: 12.5px; }
+  .perf dt { color: var(--muted); }
+  .perf dd { margin: 0; text-align: right; font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .perf .fps { font: 700 30px/1 "JetBrains Mono", monospace; }
+  .perf .ok { color: #2f8a4a; } .perf .warn { color: #b9821c; } .perf .bad { color: #c03a35; }
+  .perf .note { font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .info { grid-column: 1; grid-row: 1; align-self: start; max-width: 300px; }
+  .info p { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  .skills { display: flex; flex-wrap: wrap; gap: 4px; justify-content: inherit; margin-top: 3px; }
+  .skill { font-size: 10.5px; font-weight: 600; padding: 2px 6px; border-radius: 99px; background: rgba(42,35,64,.08); white-space: nowrap; }
+  .scrub { display: flex; align-items: center; gap: 8px; min-width: 220px; flex: 1; }
+  .scrub input { flex: 1; accent-color: var(--ink); }
+  #ui { grid-template-columns: minmax(0, 300px) 1fr minmax(0, 260px); }
+  .controls { max-width: min(900px, calc(100vw - 32px)); }
+  @media (max-width: 900px) {
+    .info { display: none; }
+    .perf { grid-column: 1; grid-row: 3; justify-self: stretch; }
+    .perf .note { display: none; }
+  }
+</style>
+
+<canvas id="c" aria-label="Replay 3D de uma partida oficial gerada no servidor"></canvas>
+<div class="loading" id="loading">Montando o estádio…</div>
+
+<div id="ui">
+  <section class="panel info" aria-label="Sobre este replay">
+    <div class="eyebrow">Prova de conceito · replay oficial</div>
+    <h1 style="font-size:24px">Replay Oficial</h1>
+    <p>Esta partida foi simulada no servidor pelo cérebro treinado com PPO e gravada como replay. Aqui o navegador só reproduz o que aconteceu.</p>
+    <p id="meta" class="mono" style="font-size:11.5px"></p>
+  </section>
+
+  <section class="panel score" aria-label="Placar">
+    <div class="team a"><span class="nm">Medicina</span><span class="gn" id="gA"></span><div class="skills" id="skA" style="justify-content:flex-end"></div></div>
+    <div class="mid"><div class="goals"><span id="sA">0</span><span class="x">×</span><span id="sB">0</span></div><div class="clock mono" id="clock">00:00 / 01:30</div></div>
+    <div class="team b"><span class="nm">Engenharia</span><span class="gn" id="gB"></span><div class="skills" id="skB"></div></div>
+  </section>
+
+  <section class="panel perf" aria-label="Desempenho no seu aparelho">
+    <div class="phead"><h2>Desempenho</h2><span class="chip" id="verdict">medindo…</span></div>
+    <div class="fps mono" id="fps">–</div>
+    <dl>
+      <dt>Quadros por segundo (média de 5 s)</dt><dd id="fpsAvg">–</dd>
+      <dt>Pior quadro (ms)</dt><dd id="worst">–</dd>
+      <dt>Chamadas de desenho</dt><dd id="calls">–</dd>
+      <dt>Triângulos</dt><dd id="tris">–</dd>
+      <dt>Resolução</dt><dd id="res">–</dd>
+      <dt>Replay</dt><dd id="size">–</dd>
+    </dl>
+    <div class="note">Meta: 30 quadros por segundo ou mais num celular intermediário. Use "Copiar medição" e me envie o resultado.</div>
+  </section>
+
+  <nav class="panel controls" aria-label="Controles do replay">
+    <button id="bPlay" aria-pressed="true">Pausar</button>
+    <div class="seg" role="group" aria-label="Velocidade">
+      <button data-speed="1" aria-pressed="true">1×</button>
+      <button data-speed="2" aria-pressed="false">2×</button>
+    </div>
+    <div class="scrub"><input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Posição no replay"></div>
+    <button class="toggle" id="tLite" aria-pressed="false">Modo leve</button>
+    <button class="toggle" id="tCam" aria-pressed="true">Câmera de TV</button>
+    <button id="bCopy">Copiar medição</button>
+  </nav>
+</div>
+<div class="banner" id="banner" role="status"><div class="big" id="bBig">GOL!</div><div class="s" id="bS"></div></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const REPLAY = /*REPLAY*/;
+const TAU = Math.PI * 2;
+const CFG = { W: 15, H: 9, goalHalf: 3, goalDepth: 2, br: 0.38, speed: 6.1 };
+const W = CFG.W, H = CFG.H, GH = CFG.goalHalf, GD = CFG.goalDepth;
+const IR = 23;
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TEAM = [
+  { name: 'Medicina', css: '#1f7a4d', col: 0x1f7a4d, dark: 0x145236, p: '#1f7a4d', s: '#f4f1e8', players: ['TROVÃO', 'PASTEL'] },
+  { name: 'Engenharia', css: '#c62f2f', col: 0xc62f2f, dark: 0x8a1f1f, p: '#c62f2f', s: '#1f1d24', players: ['XERIFE', 'RAPOSA'] },
+];
+const LOOKS = [
+  { nick: 'TROVÃO', num: 10, skin: '#e8b896', hair: 'curto', hairColor: '#1d1a1f', glasses: 'nenhum', beard: 'nenhuma', expr: 'confiante', forca: .35, vel: .7 },
+  { nick: 'PASTEL', num: 1, skin: '#6e4527', hair: 'afro', hairColor: '#1d1a1f', glasses: 'redondo', beard: 'nenhuma', expr: 'neutro', forca: .8, vel: .2 },
+  { nick: 'XERIFE', num: 9, skin: '#c98e66', hair: 'bone', hairColor: '#4a2f1e', glasses: 'nenhum', beard: 'bigode', expr: 'bravo', forca: .5, vel: .5 },
+  { nick: 'RAPOSA', num: 4, skin: '#f6d7c3', hair: 'coque', hairColor: '#b5462f', glasses: 'escuro', beard: 'nenhuma', expr: 'confiante', forca: .2, vel: .8 },
+];
+
+/*STAGE*/
+
+/* =========================================================
+   Reprodução do replay
+   ========================================================= */
+const bin = atob(REPLAY.frames), bytes = new Uint8Array(bin.length);
+for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+const F = new Int16Array(bytes.buffer), PER = 18, NF = REPLAY.nFrames, DUR = (NF - 1) / REPLAY.fps;
+const SKILL_NAME = { longShot: 'Chute de longe', keeper: 'Goleiro' };
+const rating = a => Math.round(30 + 65 * Object.values(a).reduce((s, v) => s + v, 0) / 6);
+const fmtT = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const goalsEv = REPLAY.events.filter(e => e.type === 'goal');
+const kicksEv = REPLAY.events.filter(e => e.type === 'kick');
+$('meta').textContent = `semente ${REPLAY.seed} · ${NF} quadros · ${goalsEv.length} gols · ${kicksEv.length} chutes`;
+$('size').textContent = `${(JSON.stringify(REPLAY).length / 1024).toFixed(0)} KB`;
+for (const t of [0, 1]) {
+  const ps = REPLAY.specs.slice(t * 2, t * 2 + 2);
+  $(t ? 'gB' : 'gA').textContent = `notas ${ps.map(p => rating(p.attrs)).join(' e ')}`;
+  const chips = [];
+  ps.forEach((p, k) => { for (const [s, n] of Object.entries(p.skills)) if (n > 0) chips.push(`<span class="skill">${LOOKS[t * 2 + k].nick}: ${SKILL_NAME[s]} ${n}</span>`); });
+  $(t ? 'skB' : 'skA').innerHTML = chips.join('') || '<span class="skill">sem habilidades</span>';
+}
+
+let playT = 0, playing = true, speed = 1, tvCam = true;
+const state = [0, 1, 2, 3].map(i => ({ i, x: 0, z: 0, h: 0, v: 0, phase: 0, kickT: 0, flags: 0, prevFlags: 0 }));
+const ball = { x: 0, z: 0, vx: 0, vz: 0 };
+function sample(t) {
+  const fr = Math.min(NF - 1.001, Math.max(0, t * REPLAY.fps)), f0 = Math.floor(fr), a = fr - f0, o0 = f0 * PER, o1 = (f0 + 1) * PER;
+  const lerp = (k) => (F[o0 + k] * (1 - a) + F[o1 + k] * a) / 100;
+  ball.vx = (F[o1] - F[o0]) / 100 * REPLAY.fps; ball.vz = (F[o1 + 1] - F[o0 + 1]) / 100 * REPLAY.fps;
+  ball.x = lerp(0); ball.z = lerp(1);
+  state.forEach((p, k) => {
+    const q = 2 + k * 4;
+    p.x = lerp(q); p.z = lerp(q + 1);
+    let h0 = F[o0 + q + 2] / 1000, h1 = F[o1 + q + 2] / 1000, dh = Math.atan2(Math.sin(h1 - h0), Math.cos(h1 - h0));
+    p.h = h0 + dh * a;
+    const dx = (F[o1 + q] - F[o0 + q]) / 100, dz = (F[o1 + q + 1] - F[o0 + q + 1]) / 100;
+    p.v = (dx * Math.cos(p.h) + dz * Math.sin(p.h)) * REPLAY.fps;
+    p.prevFlags = p.flags; p.flags = F[o0 + q + 3];
+  });
+}
+let lastEvT = 0;
+function fireEvents(t0, t1) {
+  for (const e of REPLAY.events) {
+    if (e.t < t0 || e.t >= t1) continue;
+    if (e.type === 'kick') { burst(e.x, .15, e.z, 0xcfe8a8, 6, 1.6, 1.5, 6, .5); pViews[e.i].kick = .3; }
+    else if (e.type === 'goal') {
+      const t = TEAM[e.team], nick = e.scorer >= 0 ? LOOKS[e.scorer].nick : '';
+      const own = e.scorer >= 0 && (e.scorer < 2 ? 0 : 1) !== e.team;
+      showBanner('GOL!', own ? `Gol contra de ${nick}` : `Gol de ${nick} (${t.name})`, t.css, 2000);
+      const gx = e.team === 0 ? W + GD / 2 : -W - GD / 2;
+      for (let k = 0; k < 4; k++) burst(gx, 1.2, (Math.random() - .5) * 4, k % 2 ? t.col : 0xffffff, 18, 4, 7, 6, 1.6);
+      fans.forEach(f => { if (f.team === e.team) f.jump = 2.2 + Math.random() * .6; });
+      pViews.forEach((v, k) => { const mine = (k < 2 ? 0 : 1) === e.team; v.mood = 2.4; v.moodExpr = mine ? 'feliz' : 'triste'; v.celebrate = mine ? 2.2 : 0; });
+      goals[e.team === 0 ? 1 : 0].shake = 1;
+    } else if (e.type === 'save') { burst(ball.x, .6, ball.z, 0xffffff, 14, 3, 3, 6, .8); showBanner('DEFESAÇA!', `${LOOKS[e.i].nick} mergulhou e salvou`, TEAM[e.i < 2 ? 0 : 1].css, 1500); }
+  }
+}
+function scoreAt(t) { const s = [0, 0]; for (const e of goalsEv) if (e.t <= t) s[e.team]++; return s; }
+
+let bannerTimer = 0;
+function showBanner(big, s, color, ms) {
+  $('bBig').textContent = big; $('bBig').style.color = color || 'var(--ink)'; $('bS').textContent = s;
+  $('banner').classList.add('show'); clearTimeout(bannerTimer); if (ms) bannerTimer = setTimeout(() => $('banner').classList.remove('show'), ms);
+}
+
+/* controles */
+$('bPlay').addEventListener('click', e => { playing = !playing; e.currentTarget.textContent = playing ? 'Pausar' : 'Tocar'; e.currentTarget.setAttribute('aria-pressed', String(playing)); });
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+$('scrub').addEventListener('input', e => { playT = e.target.value / 1000 * DUR; lastEvT = playT; });
+$('tCam').addEventListener('click', e => { tvCam = !tvCam; e.currentTarget.setAttribute('aria-pressed', String(tvCam)); e.currentTarget.textContent = tvCam ? 'Câmera de TV' : 'Câmera livre'; controls.enabled = !tvCam; });
+let lite = false;
+function applyQuality() {
+  renderer.setPixelRatio(lite ? 1 : Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = !lite;
+  scene.traverse(o => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach(m => m.needsUpdate = true); } });
+  fans.forEach(f => f.g.visible = !lite || f.g.position.x % 2 < 1);
+  resize();
+}
+$('tLite').addEventListener('click', e => { lite = !lite; e.currentTarget.setAttribute('aria-pressed', String(lite)); applyQuality(); });
+
+/* medição de desempenho */
+const frameTimes = [];
+let fpsShown = 0, worst = 0;
+function perfTick(dtMs) {
+  frameTimes.push(dtMs); if (frameTimes.length > 300) frameTimes.shift();
+  worst = Math.max(...frameTimes.slice(-150));
+}
+setInterval(() => {
+  if (frameTimes.length < 10) return;
+  const recent = frameTimes.slice(-60), avg5 = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
+  const fps = 1000 / (recent.reduce((a, b) => a + b, 0) / recent.length), fpsAvg = 1000 / avg5;
+  fpsShown = fpsAvg;
+  $('fps').textContent = `${fps.toFixed(0)} fps`;
+  $('fpsAvg').textContent = fpsAvg.toFixed(1);
+  $('worst').textContent = worst.toFixed(0);
+  $('calls').textContent = renderer.info.render.calls;
+  $('tris').textContent = (renderer.info.render.triangles / 1000).toFixed(0) + ' mil';
+  const s = new THREE.Vector2(); renderer.getDrawingBufferSize(s); $('res').textContent = `${s.x}×${s.y}`;
+  const v = $('verdict');
+  v.textContent = fpsAvg >= 50 ? 'ótimo' : fpsAvg >= 30 ? 'bom' : fpsAvg >= 20 ? 'no limite' : 'pesado';
+  v.className = 'chip ' + (fpsAvg >= 30 ? 'ok' : fpsAvg >= 20 ? 'warn' : 'bad');
+}, 500);
+$('bCopy').addEventListener('click', async e => {
+  const s = new THREE.Vector2(); renderer.getDrawingBufferSize(s);
+  const txt = `Replay Oficial — ${fpsShown.toFixed(1)} fps (média), pior quadro ${worst.toFixed(0)} ms, ${renderer.info.render.calls} chamadas, ${(renderer.info.render.triangles / 1000).toFixed(0)} mil triângulos, ${s.x}×${s.y}, modo leve: ${lite ? 'sim' : 'não'}, ${navigator.userAgent}`;
+  const b = e.currentTarget;
+  try { await navigator.clipboard.writeText(txt); b.textContent = 'Copiado'; }
+  catch { b.textContent = 'Não deu para copiar'; console.log(txt); }
+  setTimeout(() => b.textContent = 'Copiar medição', 1800);
+});
+
+/* laço */
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize);
+const camTarget = new THREE.Vector3(), camPos = new THREE.Vector3(), tmpV = new THREE.Vector3(), axis = new THREE.Vector3(), qd = new THREE.Quaternion();
+let last = performance.now(), time = 0, hudT = 0;
+function frame(now) {
+  const dtMs = now - last, fdt = Math.min(.1, dtMs / 1000); last = now; time += fdt;
+  perfTick(dtMs);
+  if (playing) {
+    const prev = playT;
+    playT += fdt * speed;
+    if (playT >= DUR) { playT = 0; lastEvT = 0; }
+    else { fireEvents(prev, playT); }
+  }
+  sample(playT);
+  // bola
+  const bsp = Math.hypot(ball.vx, ball.vz);
+  ballMesh.position.set(ball.x, CFG.br, ball.z);
+  if (bsp > .01 && playing) { axis.set(ball.vz, 0, -ball.vx).normalize(); qd.setFromAxisAngle(axis, bsp * fdt * speed / CFG.br); ballMesh.quaternion.premultiply(qd); }
+  // atletas
+  state.forEach((p, i) => {
+    const v = pViews[i];
+    p.phase += Math.abs(p.v) * fdt * speed * 2.4;
+    if (v.celebrate > 0) v.celebrate -= fdt;
+    v.rig.root.position.set(p.x, 0, p.z);
+    v.rig.root.rotation.y = Math.PI / 2 - p.h;
+    animPlayer(v, p, time, fdt, v.celebrate || 0);
+    // mergulho do goleiro e queda depois dele
+    if (p.flags & 2) { v.rig.tumble.rotation.z = -.9; v.rig.tumble.position.y = .2; }
+    else if (p.flags & 4) { v.rig.tumble.rotation.z = -1.3; v.rig.tumble.position.y = .35; }
+    else { v.rig.tumble.rotation.z = 0; v.rig.tumble.position.y = 0; }
+    v.tag.position.set(p.x, 2.75, p.z);
+  });
+  fans.forEach(f => {
+    if (f.jump > 0) { f.jump -= fdt; f.g.position.y = f.baseY + Math.abs(Math.sin(f.jump * 9 + f.ph)) * .7; }
+    else f.g.position.y = f.baseY + Math.max(0, Math.sin(time * 2 + f.ph)) * .05;
+  });
+  goals.forEach(g => { if (g.shake > 0) { g.shake -= fdt * 1.5; g.lines.position.x = Math.sin(g.shake * 40) * .06 * g.shake; } });
+  for (const d of drifters) { d.a += d.sp * fdt; d.g.position.set(Math.cos(d.a) * d.d, d.y, Math.sin(d.a) * d.d); d.g.lookAt(0, d.y, 0); }
+  updateParticles(fdt);
+  if (tvCam) {
+    const bx = THREE.MathUtils.clamp(ball.x, -W, W), bz = THREE.MathUtils.clamp(ball.z, -H, H);
+    camTarget.lerp(tmpV.set(bx * .6, .6, bz * .25), 1 - Math.pow(.04, fdt));
+    const narrow = innerWidth < innerHeight;
+    camPos.set(camTarget.x * .8, narrow ? 26 : 14.5, narrow ? 30 : 19.5);
+    camera.position.lerp(camPos, 1 - Math.pow(.05, fdt));
+    camera.lookAt(camTarget); controls.target.copy(camTarget);
+  } else controls.update();
+  renderer.render(scene, camera);
+  hudT += fdt;
+  if (hudT > .2) {
+    hudT = 0;
+    const s = scoreAt(playT); $('sA').textContent = s[0]; $('sB').textContent = s[1];
+    $('clock').textContent = `${fmtT(playT)} / ${fmtT(DUR)}`;
+    if (document.activeElement !== $('scrub')) $('scrub').value = Math.round(playT / DUR * 1000);
+  }
+  requestAnimationFrame(frame);
+}
+resize();
+camera.lookAt(0, 0, 0);
+$('loading').remove();
+requestAnimationFrame(frame);
+</script>
