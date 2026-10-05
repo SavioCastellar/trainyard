@@ -1,0 +1,689 @@
+<title>Cabeçudo ou Feijão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root {
+    --bg: #f4efe7;
+    --ink: #241f33;
+    --muted: #6c6580;
+    --panel: #fffdf9;
+    --line: rgba(36, 31, 51, 0.12);
+    --accent: #e2572c;
+    --chip: rgba(36, 31, 51, 0.06);
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  body { background: var(--bg); color: var(--ink); font-family: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { margin: 4px 0 6px; font-size: clamp(30px, 5vw, 44px); line-height: 1; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
+  .lede { margin: 0; max-width: 64ch; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  .studio { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+  .stage { position: relative; border-radius: 20px; overflow: hidden; background: #ece4d8; height: clamp(420px, 66vh, 660px); box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 14px 40px rgba(36,31,51,.12); }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .tag { position: absolute; top: 14px; display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
+  .tag.a { left: 16px; } .tag.d { right: 16px; text-align: right; align-items: flex-end; }
+  .tag b { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+  .tag span { font-size: 12px; color: var(--muted); }
+  .tag i { font-style: normal; font-family: "JetBrains Mono", monospace; font-size: 11px; background: var(--ink); color: var(--panel); border-radius: 6px; padding: 2px 6px; align-self: flex-start; }
+  .tag.d i { align-self: flex-end; }
+  .anims { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; background: rgba(255, 253, 249, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 5px; border-radius: 12px; box-shadow: 0 6px 20px rgba(36,31,51,.14); max-width: calc(100% - 24px); }
+
+  button { font: 600 13px/1 "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: transparent; border: 0; border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+  button:hover { background: var(--chip); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .anims button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+
+  .panel { background: var(--panel); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 10px 30px rgba(36,31,51,.08); }
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+  .gt { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--chip); padding: 7px 10px; font-size: 12.5px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+  .team { display: inline-flex; align-items: center; gap: 6px; }
+  .team .sw { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset -7px 0 0 var(--s2); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatch { width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+  .swatch[aria-pressed="true"] { border-color: var(--ink); }
+  .row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 8px; font-size: 13px; }
+  .row label { color: var(--muted); }
+  select, input[type="text"], input[type="number"] { font: 500 13px "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: var(--chip); border: 0; border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+  .range { display: grid; grid-template-columns: 92px 1fr 34px; align-items: center; gap: 8px; font-size: 13px; }
+  .range label { color: var(--muted); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .shuffle { background: var(--accent); color: #fff; }
+  .shuffle:hover { background: #c94a22; }
+
+  .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .note { background: var(--panel); border-radius: 20px; padding: 18px 20px; }
+  .note h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
+  .note .sub { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+  .note ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; line-height: 1.45; }
+  .note .pro::marker { color: #3a9a5b; }
+  .note .con::marker { color: var(--accent); }
+  .foot { font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 80ch; }
+
+  @media (max-width: 900px) {
+    .studio { grid-template-columns: 1fr; }
+    .notes { grid-template-columns: 1fr; }
+    .stage { height: clamp(380px, 58vh, 520px); }
+  }
+  @media (max-width: 480px) {
+    .tag b { font-size: 16px; }
+    .tag span { display: none; }
+    .anims button { padding: 8px 9px; font-size: 12px; }
+  }
+</style>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">Esboços de personagem · opções A e D</div>
+    <h1>Cabeçudo ou Feijão</h1>
+    <p class="lede">Os dois conceitos lado a lado, com o mesmo visual, uniforme e progresso. Mude a aparência à direita e use os botões sobre o palco para ver como cada um corre, comemora e cai. Arraste para girar a câmera.</p>
+  </header>
+
+  <section class="studio">
+    <div class="stage">
+      <canvas id="c" aria-label="Palco 3D com o Cabeçudo à esquerda e o Feijão à direita"></canvas>
+      <div class="tag a"><i>A</i><b>Cabeçudo</b><span>Caricatura de cabeça grande</span></div>
+      <div class="tag d"><i>D</i><b>Feijão</b><span>Corpo único em macacão</span></div>
+      <div class="anims" role="group" aria-label="Animações">
+        <button data-anim="idle" aria-pressed="true">Parado</button>
+        <button data-anim="run" aria-pressed="false">Correr</button>
+        <button data-anim="celebrate" aria-pressed="false">Comemorar</button>
+        <button data-anim="fall" aria-pressed="false">Cair</button>
+        <button id="bTurn" aria-pressed="false">Ver costas</button>
+      </div>
+    </div>
+
+    <aside class="panel" aria-label="Personalização">
+      <div class="group">
+        <div class="gt">Atlética (uniforme) <button class="shuffle" id="bShuffle">Sortear visual</button></div>
+        <div class="chips" id="teams"></div>
+      </div>
+      <div class="group">
+        <div class="gt">Camisa</div>
+        <div class="row"><label for="iNick">Apelido</label><input type="text" id="iNick" maxlength="10" value="TROVÃO"></div>
+        <div class="row"><label for="iNum">Número</label><input type="number" id="iNum" min="0" max="99" value="10"></div>
+      </div>
+      <div class="group">
+        <div class="gt">Rosto</div>
+        <div class="row"><label>Pele</label><div class="swatches" id="skins"></div></div>
+        <div class="row"><label for="sHair">Cabelo</label><select id="sHair">
+          <option value="curto">Curto</option><option value="afro">Black power</option><option value="moicano">Moicano</option>
+          <option value="coque">Coque</option><option value="bone">Boné</option><option value="careca">Careca</option></select></div>
+        <div class="row"><label>Cor do cabelo</label><div class="swatches" id="hairs"></div></div>
+        <div class="row"><label for="sGlasses">Óculos</label><select id="sGlasses">
+          <option value="nenhum">Nenhum</option><option value="redondo">Redondo</option><option value="escuro">Escuro</option></select></div>
+        <div class="row"><label for="sBeard">Barba</label><select id="sBeard">
+          <option value="nenhuma">Nenhuma</option><option value="bigode">Bigode</option><option value="barba">Barba cheia</option></select></div>
+        <div class="row"><label for="sExpr">Expressão</label><select id="sExpr">
+          <option value="confiante">Confiante</option><option value="neutro">Neutro</option><option value="bravo">Bravo</option></select></div>
+      </div>
+      <div class="group">
+        <div class="gt">Progresso no corpo</div>
+        <div class="range"><label for="rF">Força</label><input type="range" id="rF" min="0" max="100" value="30"><span class="mono" id="vF">30</span></div>
+        <div class="range"><label for="rV">Velocidade</label><input type="range" id="rV" min="0" max="100" value="50"><span class="mono" id="vV">50</span></div>
+      </div>
+      <div class="group">
+        <div class="gt">Equipamento e estado</div>
+        <div class="chips">
+          <button class="chip" data-gear="tenis" aria-pressed="true">Tênis de corrida</button>
+          <button class="chip" data-gear="munhequeira" aria-pressed="false">Munhequeira</button>
+          <button class="chip" data-gear="faixa" aria-pressed="false">Faixa na cabeça</button>
+          <button class="chip" data-gear="medalha" aria-pressed="false">Medalha</button>
+          <button class="chip" data-gear="lesionado" aria-pressed="false">Lesionado</button>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="notes">
+    <article class="note">
+      <h2>A · Cabeçudo</h2>
+      <div class="sub">O rosto é o personagem.</div>
+      <ul>
+        <li class="pro">A cabeça grande deixa o rosto legível mesmo de longe, então o jogador reconhece "o seu" e o dos amigos na hora.</li>
+        <li class="pro">O balanço da cabeça e as quedas de cara no chão rendem humor físico sem esforço.</li>
+        <li class="con">O corpo pequeno mostra menos o uniforme e o progresso físico.</li>
+        <li class="con">Personalizar rostos pede mais peças de arte para ficar variado.</li>
+      </ul>
+    </article>
+    <article class="note">
+      <h2>D · Feijão</h2>
+      <div class="sub">O uniforme é o personagem.</div>
+      <ul>
+        <li class="pro">O corpo inteiro vira camisa: cores da atlética, apelido e número aparecem grandes.</li>
+        <li class="pro">É mais simples de animar e fica muito legível com vários atletas na tela.</li>
+        <li class="con">Menos espaço para o rosto, o que reduz a sensação de "esse sou eu".</li>
+        <li class="con">É um formato popular, então precisa de identidade própria para não parecer cópia.</li>
+      </ul>
+    </article>
+  </section>
+  <p class="foot">Esboços feitos inteiramente por código (formas simples e animação procedural). A queda é só visual: na simulação, o atleta continua sendo uma cápsula simples, como combinamos.</p>
+</main>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- dados ---------------- */
+const TEAMS = [
+  { id: 'med', name: 'Medicina', p: '#1f7a4d', s: '#f4f1e8' },
+  { id: 'eng', name: 'Engenharia', p: '#c62f2f', s: '#1f1d24' },
+  { id: 'dir', name: 'Direito', p: '#7b1e3a', s: '#d4a640' },
+  { id: 'comp', name: 'Computação', p: '#2459c9', s: '#36d0de' },
+  { id: 'edf', name: 'Ed. Física', p: '#f07a1a', s: '#1b2a4a' },
+];
+const SKINS = ['#f6d7c3', '#e8b896', '#c98e66', '#a0673f', '#6e4527', '#4a2d1a'];
+const HAIRS = ['#1d1a1f', '#4a2f1e', '#8a5a2b', '#d9b061', '#b5462f', '#7a4fd0', '#e9e4dc'];
+const NICKS = ['TROVÃO', 'BIGODE', 'FOGUETE', 'PASTEL', 'XERIFE', 'TANQUE', 'BALA', 'PIPOCA', 'RAPOSA', 'MURALHA'];
+const P = {
+  team: TEAMS[0], skin: SKINS[1], hair: 'curto', hairColor: HAIRS[0], glasses: 'nenhum', beard: 'nenhuma', expr: 'confiante',
+  nick: 'TROVÃO', num: 10, forca: .3, vel: .5,
+  gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false },
+};
+
+/* ---------------- cena ---------------- */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+const BG = 0xece4d8;
+scene.background = new THREE.Color(BG);
+scene.fog = new THREE.Fog(BG, 14, 30);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 1.05, 0);
+controls.enableDamping = true; controls.dampingFactor = .08;
+controls.minPolarAngle = .35; controls.maxPolarAngle = 1.5; controls.minDistance = 3.5; controls.maxDistance = 16; controls.enablePan = false;
+
+scene.add(new THREE.HemisphereLight(0xfff6ea, 0xbfae98, 1.2));
+const key = new THREE.DirectionalLight(0xfff1dc, 2.4);
+key.position.set(4, 8, 6); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 30 });
+key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02; key.shadow.radius = 4;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xd9e6ff, 1.1); rim.position.set(-5, 4, -6); scene.add(rim);
+
+const floorTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+  const g = x.createRadialGradient(256, 256, 30, 256, 256, 256);
+  g.addColorStop(0, '#f6efe4'); g.addColorStop(1, '#e3d8c8'); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const floor = new THREE.Mesh(new THREE.CircleGeometry(14, 64), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 1 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const pedestals = [];
+for (const x of [-1.7, 1.7]) {
+  const g = new THREE.Group(); g.position.x = x;
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.22, .16, 56), new THREE.MeshStandardMaterial({ color: 0xfffaf2, roughness: .7 }));
+  top.position.y = .08; top.receiveShadow = true; top.castShadow = true; g.add(top);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.225, 1.225, .05, 56, 1, true), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .5 }));
+  ring.position.y = .13; g.add(ring);
+  scene.add(g); pedestals.push({ g, ring });
+}
+
+/* ---------------- utilidades ---------------- */
+const mats = new Map();
+function M(color, o = {}) {
+  const k = color + JSON.stringify(o);
+  if (!mats.has(k)) mats.set(k, new THREE.MeshStandardMaterial({ color, roughness: .6, ...o }));
+  return mats.get(k);
+}
+function add(parent, geo, mat, pos, rot, scale) {
+  const m = new THREE.Mesh(geo, mat);
+  if (pos) m.position.set(...pos); if (rot) m.rotation.set(...rot); if (scale) m.scale.set(...scale);
+  m.castShadow = true; parent.add(m); return m;
+}
+const lum = hex => { const c = new THREE.Color(hex); return .2126 * c.r + .7152 * c.g + .0722 * c.b; };
+const darker = (hex, k) => '#' + new THREE.Color(hex).multiplyScalar(k).getHexString();
+function jerseyTex(p) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512; const x = c.getContext('2d');
+  x.fillStyle = p.team.p; x.fillRect(0, 0, 512, 512);
+  x.fillStyle = p.team.s; x.fillRect(0, 0, 512, 22); x.fillRect(0, 490, 512, 22);
+  const ink = lum(p.team.p) > .45 ? '#1f1b2a' : '#ffffff';
+  x.fillStyle = ink; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const nick = (p.nick || '').toUpperCase().slice(0, 10);
+  let fs = 74; x.font = `800 ${fs}px "Bricolage Grotesque", system-ui, sans-serif`;
+  while (x.measureText(nick).width > 440 && fs > 30) { fs -= 4; x.font = `800 ${fs}px "Bricolage Grotesque", system-ui, sans-serif`; }
+  x.fillText(nick, 256, 120);
+  x.font = `800 230px "Bricolage Grotesque", system-ui, sans-serif`;
+  x.lineWidth = 10; x.strokeStyle = p.team.s; x.strokeText(String(p.num), 256, 320);
+  x.fillText(String(p.num), 256, 320);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+function backDecal(parent, radius, height, y, tex, arc = 1.6) {
+  const geo = new THREE.CylinderGeometry(radius, radius, height, 24, 1, true, Math.PI - arc / 2, arc);
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: .7, transparent: false }));
+  m.position.y = y; parent.add(m); return m;
+}
+
+/* ---------------- rosto, cabelo e acessórios ---------------- */
+function buildFace(head, o, p) {
+  // o: { r, eyeX, eyeY, eyeR, z (superfície), browY, mouthY, noseZ?, big }
+  const f = { eyes: [], brows: [], mouths: {} };
+  const white = M('#ffffff', { roughness: .25 }), pupil = M('#1b1724', { roughness: .2 }), dark = M('#2a1e22', { roughness: .8 });
+  for (const s of [-1, 1]) {
+    const e = new THREE.Group(); e.position.set(s * o.eyeX, o.eyeY, o.z);
+    add(e, new THREE.SphereGeometry(o.eyeR, 18, 14), white, [0, 0, 0], null, [1, 1.15, .55]);
+    add(e, new THREE.SphereGeometry(o.eyeR * .5, 14, 10), pupil, [s * -o.eyeR * .08, -o.eyeR * .05, o.eyeR * .42]);
+    head.add(e); f.eyes.push(e);
+    const b = add(head, new THREE.BoxGeometry(o.eyeR * 1.7, o.eyeR * .32, o.eyeR * .4), M(darker(p.hairColor, .9)), [s * o.eyeX, o.browY, o.z + .01]);
+    b.userData.side = s; f.brows.push(b);
+  }
+  if (o.nose) add(head, new THREE.SphereGeometry(o.nose, 14, 10), M(darker(p.skin, .92)), [0, o.eyeY - o.eyeR * 1.1, o.z + o.nose * .6], null, [1, .9, 1]);
+  const mw = o.mouthW;
+  const smile = new THREE.TorusGeometry(mw, mw * .2, 8, 20, Math.PI);
+  f.mouths.confiante = add(head, smile, dark, [mw * .25, o.mouthY, o.z + .01], [0, 0, Math.PI + .3], [1, .75, 1]);
+  f.mouths.neutro = add(head, new THREE.BoxGeometry(mw * 1.4, mw * .28, mw * .3), dark, [0, o.mouthY, o.z]);
+  f.mouths.bravo = add(head, smile, dark, [0, o.mouthY - mw * .3, o.z + .01], [0, 0, 0], [1, .6, 1]);
+  f.mouths.feliz = add(head, new THREE.SphereGeometry(mw * .9, 16, 10, 0, TAU, Math.PI / 2, Math.PI / 2), M('#5a1f2c', { roughness: .8 }), [0, o.mouthY + mw * .4, o.z - .02], [Math.PI * 0.08, 0, 0], [1.2, 1.1, .5]);
+  f.mouths.triste = add(head, smile, dark, [0, o.mouthY - mw * .5, o.z + .01], [0, 0, 0], [.8, .5, 1]);
+  return f;
+}
+function setExpr(f, e) {
+  for (const k in f.mouths) f.mouths[k].visible = k === e;
+  for (const b of f.brows) {
+    const s = b.userData.side;
+    b.rotation.z = e === 'bravo' ? s * -.35 : e === 'triste' ? s * .35 : e === 'feliz' ? s * .12 : e === 'confiante' ? (s > 0 ? -.18 : .05) : 0;
+  }
+}
+function buildHair(head, style, r, color, c = [0, 0, 0], teamS) {
+  const hm = M(color, { roughness: .85 });
+  const g = new THREE.Group(); g.position.set(...c); head.add(g);
+  if (style === 'curto') {
+    add(g, new THREE.SphereGeometry(r * 1.04, 32, 16, 0, TAU, 0, Math.PI * .36), hm, [0, 0, -r * .04]);
+    add(g, new THREE.SphereGeometry(r * 1.035, 24, 12, Math.PI * .1, Math.PI * .8, Math.PI * .3, Math.PI * .22), hm, [0, 0, -r * .03], [0, Math.PI, 0]);
+  } else if (style === 'afro') {
+    const afro = add(g, new THREE.IcosahedronGeometry(r * 1.18, 2), M(color, { roughness: .95, flatShading: true }), [0, r * .42, -r * .34]);
+    afro.scale.set(1.05, .9, .95);
+  } else if (style === 'moicano') {
+    for (let i = 0; i < 6; i++) {
+      const a = -0.35 + i * .32;
+      add(g, new THREE.ConeGeometry(r * .13, r * .55, 5), hm, [0, Math.cos(a) * r * 1.08, Math.sin(a) * r * 1.08], [a, 0, 0]);
+    }
+  } else if (style === 'coque') {
+    add(g, new THREE.SphereGeometry(r * 1.04, 32, 16, 0, TAU, 0, Math.PI * .42), hm, [0, 0, -r * .03]);
+    add(g, new THREE.SphereGeometry(r * .32, 16, 12), hm, [0, r * .95, -r * .45]);
+  } else if (style === 'bone') {
+    const cap = M(teamS, { roughness: .6 });
+    add(g, new THREE.SphereGeometry(r * 1.06, 32, 16, 0, TAU, 0, Math.PI * .4), cap);
+    add(g, new THREE.CylinderGeometry(r * .7, r * .7, r * .05, 24, 1, false, -Math.PI / 2, Math.PI), cap, [0, r * .62, r * .55], [0.12, 0, 0], [1, 1, .9]);
+    add(g, new THREE.SphereGeometry(r * .08, 8, 6), cap, [0, r * 1.06, 0]);
+  }
+  return g;
+}
+function buildGlasses(head, kind, o) {
+  if (kind === 'nenhum') return;
+  const frame = M('#1d1a22', { roughness: .4 });
+  if (kind === 'redondo') {
+    for (const s of [-1, 1]) add(head, new THREE.TorusGeometry(o.eyeR * 1.25, o.eyeR * .14, 8, 24), frame, [s * o.eyeX, o.eyeY, o.z + o.eyeR * .45]);
+    add(head, new THREE.BoxGeometry(o.eyeX * .7, o.eyeR * .14, o.eyeR * .14), frame, [0, o.eyeY + o.eyeR * .2, o.z + o.eyeR * .45]);
+  } else {
+    const lens = M('#15121c', { roughness: .15, metalness: .3 });
+    for (const s of [-1, 1]) add(head, new THREE.SphereGeometry(o.eyeR * 1.3, 18, 12), lens, [s * o.eyeX, o.eyeY, o.z + o.eyeR * .4], null, [1.2, .85, .3]);
+    add(head, new THREE.BoxGeometry(o.eyeX * 2.6, o.eyeR * .2, o.eyeR * .2), frame, [0, o.eyeY + o.eyeR * .7, o.z + o.eyeR * .4]);
+  }
+}
+function buildBeard(head, kind, o, color, rHead, center = [0, 0, 0]) {
+  if (kind === 'nenhuma') return;
+  const hm = M(color, { roughness: .9 });
+  if (kind === 'bigode') {
+    for (const s of [-1, 1]) add(head, new THREE.CapsuleGeometry(o.mouthW * .22, o.mouthW * .7, 4, 8), hm, [s * o.mouthW * .5, o.mouthY + o.mouthW * .55, o.z + .02], [0, 0, Math.PI / 2 + s * .25]);
+  } else {
+    const b = add(head, new THREE.SphereGeometry(rHead * 1.02, 28, 14, Math.PI * .12, Math.PI * .76, Math.PI * .56, Math.PI * .3), M(color, { roughness: .95, flatShading: true }), center);
+  }
+}
+
+/* ---------------- personagens ---------------- */
+function newRig(kind) {
+  return {
+    kind, root: new THREE.Group(), tumble: new THREE.Group(), body: new THREE.Group(), legs: [], arms: [], headPivot: null, face: null,
+    spring: { ax: 0, vx: 0, az: 0, vz: 0 }, prevY: 0, prevVy: 0, blink: 1 + Math.random() * 2, handR: null, headTop: new THREE.Object3D(),
+  };
+}
+function buildCabecudo(p) {
+  const rig = newRig('A'), wf = 1 + p.forca * .55, af = 1 + p.forca * .7, legLen = .4 + p.vel * .14, slim = 1 - p.vel * .12;
+  rig.root.add(rig.tumble); rig.tumble.add(rig.body);
+  const skin = M(p.skin), prim = M(p.team.p, { roughness: .55 }), sec = M(p.team.s, { roughness: .55 }), shorts = M(darker(p.team.p, .55), { roughness: .7 });
+  const hipY = legLen + .1;
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Group(); leg.position.set(s * .12 * wf, hipY, 0); rig.body.add(leg); rig.legs.push(leg);
+    add(leg, new THREE.CapsuleGeometry(.07 * (1 + p.forca * .35), legLen - .12, 4, 10), skin, [0, -legLen / 2, 0]);
+    add(leg, new THREE.CylinderGeometry(.06, .06, .08, 10), M('#ffffff'), [0, -legLen + .12, 0]);
+    shoe(leg, p, [0, -legLen + .02, .05], .11);
+  }
+  add(rig.body, new THREE.CylinderGeometry(.2 * wf * slim, .22 * wf * slim, .2, 20), shorts, [0, hipY + .02, 0]);
+  const torsoY = hipY + .26;
+  add(rig.body, new THREE.CapsuleGeometry(.21 * wf * slim, .2, 6, 20), prim, [0, torsoY, 0], null, [1, 1, .82]);
+  add(rig.body, new THREE.TorusGeometry(.12, .025, 6, 20, Math.PI), sec, [0, torsoY + .22, .1 * wf], [0, 0, Math.PI]);
+  backDecal(rig.body, .215 * wf * slim * .9, .3, torsoY + .02, jerseyTex(p), 2.1);
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Group(); arm.position.set(s * (.21 * wf * slim + .06), torsoY + .17, 0); rig.body.add(arm); rig.arms.push(arm);
+    add(arm, new THREE.CylinderGeometry(.08 * af, .075 * af, .12, 12), prim, [0, -.04, 0]);
+    add(arm, new THREE.CapsuleGeometry(.055 * af, .24, 4, 10), skin, [0, -.18, 0]);
+    const hand = add(arm, new THREE.SphereGeometry(.07 * (1 + p.forca * .3), 12, 10), skin, [0, -.36, 0]);
+    if (p.gear.munhequeira) add(arm, new THREE.CylinderGeometry(.068 * af, .068 * af, .07, 12), sec, [0, -.29, 0]);
+    if (s > 0) rig.handR = hand;
+  }
+  if (p.gear.medalha) medal(rig.body, [0, torsoY + .06, .18 * wf * slim], .9);
+  add(rig.body, new THREE.CylinderGeometry(.07, .08, .12, 12), skin, [0, torsoY + .3, 0]);
+  const pivot = new THREE.Group(); pivot.position.y = torsoY + .32; rig.body.add(pivot); rig.headPivot = pivot;
+  const head = new THREE.Group(); head.position.y = .55; pivot.add(head); rig.head = head;
+  const R = .58;
+  add(head, new THREE.SphereGeometry(R, 40, 28), skin, null, null, [1, 1.04, .96]);
+  for (const s of [-1, 1]) add(head, new THREE.SphereGeometry(.11, 12, 10), skin, [s * R * .98, 0, 0], null, [.6, 1, 1]);
+  const o = { eyeX: .2, eyeY: .08, eyeR: .12, z: R * .9, browY: .27, mouthY: -.22, mouthW: .1, nose: .085 };
+  rig.face = buildFace(head, o, p);
+  buildGlasses(head, p.glasses, o);
+  buildBeard(head, p.beard, o, p.hairColor, R);
+  buildHair(head, p.hair, R, p.hairColor, [0, 0, 0], p.team.s).scale.set(1, 1.04, .96);
+  if (p.gear.faixa) add(head, new THREE.TorusGeometry(R * 1.0, .04, 8, 40), sec, [0, R * .38, 0], [Math.PI / 2 + .08, 0, 0], [1, .96, 1]);
+  if (p.gear.lesionado) injury(rig, head, [R * .55, R * .45, R * .55], R);
+  head.add(rig.headTop); rig.headTop.position.y = R + .25;
+  rig.lieLift = .58; rig.restExpr = p.expr;
+  return rig;
+}
+function buildFeijao(p) {
+  const rig = newRig('D'), r = .46 * (1 + p.forca * .28), h = .62 * (1 + p.vel * .3) / (1 + p.forca * .1), legLen = .16 + p.vel * .06;
+  rig.root.add(rig.tumble); rig.tumble.add(rig.body);
+  const skin = M(p.skin), prim = M(p.team.p, { roughness: .5 }), sec = M(p.team.s, { roughness: .5 }), shorts = M(darker(p.team.p, .55), { roughness: .7 });
+  const base = legLen;
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Group(); leg.position.set(s * r * .4, base + .06, 0); rig.body.add(leg); rig.legs.push(leg);
+    add(leg, new THREE.CapsuleGeometry(.085, legLen - .04, 4, 10), shorts, [0, -legLen / 2 + .02, 0]);
+    shoe(leg, p, [0, -legLen - .02, .05], .12);
+  }
+  const upper = new THREE.Group(); upper.position.y = base; rig.body.add(upper); rig.headPivot = upper;
+  const cy = r + h / 2;
+  add(upper, new THREE.CapsuleGeometry(r, h, 10, 32), prim, [0, cy, 0]);
+  add(upper, new THREE.SphereGeometry(r * 1.012, 32, 12, 0, TAU, Math.PI / 2, Math.PI / 2), shorts, [0, r, 0]);
+  add(upper, new THREE.CylinderGeometry(r * 1.012, r * 1.012, .14, 32, 1, true), shorts, [0, r + .07, 0]);
+  add(upper, new THREE.CylinderGeometry(r * 1.014, r * 1.014, .07, 32, 1, true), sec, [0, r + h * .52, 0]);
+  const fy = r + h * .82;
+  const faceH = .44;
+  add(upper, new THREE.CylinderGeometry(r * 1.015, r * 1.015, faceH, 32, 1, true, -.72, 1.44), skin, [0, fy, 0]);
+  backDecal(upper, r * 1.02, Math.min(.5, h * .62), r + h * .42, jerseyTex(p), 2.0);
+  const head = new THREE.Group(); upper.add(head); rig.head = head;
+  const z = r * 1.02;
+  const o = { eyeX: .13, eyeY: fy + .05, eyeR: .1, z, browY: fy + .18, mouthY: fy - .11, mouthW: .08, nose: 0 };
+  rig.face = buildFace(head, o, p);
+  buildGlasses(head, p.glasses, o);
+  if (p.beard === 'bigode') buildBeard(head, 'bigode', o, p.hairColor, r);
+  else if (p.beard === 'barba') add(head, new THREE.CylinderGeometry(r * 1.03, r * 1.03, .09, 32, 1, true, -.6, 1.2), M(p.hairColor, { roughness: .95 }), [0, fy - .21, 0]);
+  buildHair(head, p.hair, r, p.hairColor, [0, r + h, 0], p.team.s);
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Group(); arm.position.set(s * (r + .02), r + h * .4, 0); upper.add(arm); rig.arms.push(arm);
+    add(arm, new THREE.CapsuleGeometry(.07 * (1 + p.forca * .5), .18, 4, 10), prim, [0, -.12, 0]);
+    const hand = add(arm, new THREE.SphereGeometry(.08 * (1 + p.forca * .3), 12, 10), skin, [0, -.27, 0]);
+    if (p.gear.munhequeira) add(arm, new THREE.CylinderGeometry(.08 * (1 + p.forca * .5), .08 * (1 + p.forca * .5), .07, 12), sec, [0, -.2, 0]);
+    if (s > 0) rig.handR = hand;
+  }
+  if (p.gear.medalha) medal(upper, [0, r + h * .3, r * .98], 1);
+  if (p.gear.faixa) add(upper, new THREE.TorusGeometry(r * 1.0, .04, 8, 40), sec, [0, r + h + r * .32, 0], [Math.PI / 2, 0, 0], [.95, .95, 1]);
+  if (p.gear.lesionado) injury(rig, head, [r * .55, fy + .16, r * .86], r);
+  upper.add(rig.headTop); rig.headTop.position.y = r * 2 + h + .2;
+  rig.lieLift = r; rig.restExpr = p.expr;
+  return rig;
+}
+function shoe(leg, p, pos, s) {
+  const fancy = p.gear.tenis;
+  const g = new THREE.Group(); g.position.set(...pos); leg.add(g);
+  add(g, new THREE.SphereGeometry(s, 16, 10), M(fancy ? '#fbfbf8' : '#7b7680', { roughness: .5 }), [0, 0, 0], null, [.85, .62, 1.45]);
+  add(g, new THREE.BoxGeometry(s * 1.5, s * .28, s * 2.7), M(fancy ? p.team.s : '#4b4650', { roughness: .6 }), [0, -s * .42, 0]);
+  if (fancy) add(g, new THREE.BoxGeometry(s * .25, s * .5, s * 1.4), M(p.team.p), [s * .8, s * .05, 0], [0, 0, .3]);
+}
+function medal(parent, pos, k) {
+  const g = new THREE.Group(); g.position.set(...pos); parent.add(g);
+  const rib = M('#2f6fd6', { roughness: .7 });
+  add(g, new THREE.BoxGeometry(.04 * k, .2 * k, .01), rib, [-.05 * k, .1 * k, 0], [0, 0, -.45]);
+  add(g, new THREE.BoxGeometry(.04 * k, .2 * k, .01), rib, [.05 * k, .1 * k, 0], [0, 0, .45]);
+  add(g, new THREE.CylinderGeometry(.075 * k, .075 * k, .025, 20), M('#e9b43a', { metalness: .7, roughness: .3 }), [0, -.03 * k, .02], [Math.PI / 2, 0, 0]);
+}
+function injury(rig, head, pos, R) {
+  const tape = M('#f2d7b6', { roughness: .8 });
+  const g = new THREE.Group(); g.position.set(...pos); g.lookAt(pos[0] * 3, pos[1] + .1, pos[2] * 3); head.add(g);
+  add(g, new THREE.BoxGeometry(.24, .07, .02), tape, null, [0, 0, .7]);
+  add(g, new THREE.BoxGeometry(.24, .07, .02), tape, null, [0, 0, -.7]);
+  const arm = rig.arms[0];
+  add(arm, new THREE.CylinderGeometry(.1, .1, .22, 14), M('#f7f7f5', { roughness: .9 }), [0, -.27, 0]);
+  rig.sling = true;
+}
+
+/* ---------------- montagem ---------------- */
+let rigA = null, rigD = null, turned = false, turnAngle = 0;
+function disposeRig(r) { if (!r) return; scene.remove(r.root); r.root.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map) o.material.map.dispose(); }); }
+function rebuild() {
+  const keepA = rigA ? rigA.state : null, keepD = rigD ? rigD.state : null;
+  disposeRig(rigA); disposeRig(rigD);
+  rigA = buildCabecudo(P); rigD = buildFeijao(P);
+  rigA.root.position.x = -1.7; rigD.root.position.x = 1.7;
+  rigA.root.position.y = rigD.root.position.y = .16;
+  for (const r of [rigA, rigD]) { r.root.rotation.y = turnAngle; scene.add(r.root); r.state = (r === rigA ? keepA : keepD) || { mode: 'idle', t0: clock }; setExpr(r.face, P.gear.lesionado ? 'triste' : P.expr); }
+  for (const pd of pedestals) pd.ring.material.color.set(P.team.p);
+}
+
+/* ---------------- partículas ---------------- */
+const PMAX = 400, pPos = new Float32Array(PMAX * 3), pCol = new Float32Array(PMAX * 3), parts = [];
+for (let i = 0; i < PMAX; i++) { parts.push({ life: 0, vx: 0, vy: 0, vz: 0, g: 9 }); pPos[i * 3 + 1] = -99; }
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3)); pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(.6, '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; })();
+const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: .09, map: dotTex, vertexColors: true, transparent: true, depthWrite: false }));
+points.frustumCulled = false; scene.add(points);
+let pNext = 0; const tc = new THREE.Color();
+function burst(x, y, z, color, n, spd, up, grav = 9, life = 1) {
+  tc.set(color);
+  for (let i = 0; i < n; i++) {
+    const k = pNext = (pNext + 1) % PMAX, p = parts[k], a = Math.random() * TAU, s = spd * (.3 + Math.random());
+    p.life = life * (.6 + Math.random() * .6); p.vx = Math.cos(a) * s; p.vz = Math.sin(a) * s; p.vy = up * (.5 + Math.random()); p.g = grav;
+    pPos[k * 3] = x; pPos[k * 3 + 1] = y; pPos[k * 3 + 2] = z; pCol[k * 3] = tc.r; pCol[k * 3 + 1] = tc.g; pCol[k * 3 + 2] = tc.b;
+  }
+}
+function updateParticles(dt) {
+  for (let i = 0; i < PMAX; i++) {
+    const p = parts[i]; if (p.life <= 0) continue;
+    p.life -= dt; p.vy -= p.g * dt; p.vx *= .99; p.vz *= .99;
+    pPos[i * 3] += p.vx * dt; pPos[i * 3 + 1] += p.vy * dt; pPos[i * 3 + 2] += p.vz * dt;
+    if (pPos[i * 3 + 1] < .17) { pPos[i * 3 + 1] = .17; p.vy *= -.2; p.vx *= .6; p.vz *= .6; }
+    if (p.life <= 0) pPos[i * 3 + 1] = -99;
+  }
+  pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
+}
+// estrelinhas de tontura
+const starTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.font = '700 54px system-ui'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f7c22b'; x.strokeStyle = '#fff'; x.lineWidth = 5; x.strokeText('★', 32, 34); x.fillText('★', 32, 34); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+function makeStars() { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: starTex, transparent: true, depthWrite: false })); s.scale.setScalar(.2); g.add(s); } g.visible = false; scene.add(g); return g; }
+const stars = [makeStars(), makeStars()];
+
+/* ---------------- animação ---------------- */
+let clock = 0;
+const easeOut = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+const easeIn = t => { t = Math.min(1, Math.max(0, t)); return t * t; };
+const tmpV = new THREE.Vector3();
+function animate(rig, dt, idx) {
+  const st = rig.state, lt = clock - st.t0, b = rig.body, A = rig.arms, L = rig.legs, injured = P.gear.lesionado;
+  const isA = rig.kind === 'A';
+  b.position.set(0, 0, 0); b.rotation.set(0, 0, 0); b.scale.set(1, 1, 1);
+  rig.tumble.rotation.set(0, 0, 0); rig.tumble.position.set(0, 0, 0);
+  for (const l of L) l.rotation.set(0, 0, 0);
+  for (const a of A) a.rotation.set(0, 0, 0);
+  if (rig.head) rig.head.rotation.set(0, 0, 0);
+  let expr = injured ? 'triste' : rig.restExpr, drive = 0, sway = 0;
+  stars[idx].visible = false;
+  const slingPose = () => { if (rig.sling) { A[0].rotation.set(-1.25, 0, .35); } };
+
+  if (st.mode === 'run') {
+    const f = injured ? 5 : 10, ph = clock * f;
+    const amp = injured ? .45 : .95;
+    L[0].rotation.x = Math.sin(ph) * amp; L[1].rotation.x = Math.sin(ph + Math.PI) * amp * (injured ? .4 : 1);
+    A[0].rotation.x = Math.sin(ph + Math.PI) * amp * .9; A[1].rotation.x = Math.sin(ph) * amp * .9;
+    b.position.y = Math.abs(Math.sin(ph)) * (isA ? .07 : .1);
+    b.rotation.x = injured ? .05 : .16; b.rotation.z = injured ? Math.sin(ph) * .12 : 0;
+    sway = Math.cos(ph) * .5;
+    if (!isA) { const sq = Math.abs(Math.sin(ph)); b.scale.set(1 + (1 - sq) * .05, 1 - (1 - sq) * .07, 1 + (1 - sq) * .05); }
+    if (Math.random() < dt * 10) { rig.root.getWorldPosition(tmpV); burst(tmpV.x + (Math.random() - .5) * .3, .2, tmpV.z - .25, '#cdbca3', 2, .4, .8, 3, .6); }
+    if (injured) expr = 'triste'; else expr = rig.restExpr === 'neutro' ? 'confiante' : rig.restExpr;
+    slingPose();
+  } else if (st.mode === 'celebrate') {
+    const D = 2.6;
+    if (lt > D) { st.mode = 'idle'; st.t0 = clock; }
+    const jp = (lt % .65) / .65, up = Math.sin(jp * Math.PI);
+    b.position.y = up * (injured ? .15 : .55);
+    if (!isA) b.scale.set(1 - up * .06, 1 + up * .12, 1 - up * .06);
+    if (st.burstAt === undefined || Math.floor(lt / .65) !== st.burstAt) {
+      st.burstAt = Math.floor(lt / .65);
+      rig.root.getWorldPosition(tmpV);
+      burst(tmpV.x, 1.6, tmpV.z, P.team.p, 22, 1.6, 3.5, 3, 1.6); burst(tmpV.x, 1.6, tmpV.z, P.team.s, 14, 1.6, 3.5, 3, 1.6);
+    }
+    for (const [i, a] of A.entries()) { a.rotation.z = (i ? 1 : -1) * (2.6 + Math.sin(clock * 14) * .25); }
+    L[0].rotation.x = -up * .5; L[1].rotation.x = up * .3;
+    b.rotation.y = easeOut(lt / D) * TAU;
+    expr = injured ? 'triste' : 'feliz'; drive = up * 2;
+    slingPose();
+  } else if (st.mode === 'fall') {
+    const tTrip = .3, tDown = .62, tLie = 1.9, tUp = 2.7;
+    let th = 0;
+    if (lt < tTrip) { th = lt / tTrip * .35; for (const [i, a] of A.entries()) a.rotation.x = -1.5 - Math.sin(lt * 40 + i) * .6; L[1].rotation.x = -.6; expr = 'bravo'; }
+    else if (lt < tDown) { const k = easeIn((lt - tTrip) / (tDown - tTrip)); th = .35 + k * (Math.PI / 2 - .35); for (const [i, a] of A.entries()) { a.rotation.x = -2.6; a.rotation.z = (i ? 1 : -1) * .5; } L[0].rotation.x = .4; L[1].rotation.x = -.5; expr = 'bravo'; }
+    else if (lt < tLie) {
+      const k = lt - tDown; th = Math.PI / 2 - Math.abs(Math.sin(k * 9)) * .12 * Math.exp(-k * 4);
+      if (!st.hit) { st.hit = true; rig.root.getWorldPosition(tmpV); burst(tmpV.x, .25, tmpV.z + 1, '#cdbca3', 18, 1.6, 1.4, 6, .8); rig.spring.vx += isA ? 10 : 5; }
+      for (const [i, a] of A.entries()) { a.rotation.x = -2.9; a.rotation.z = (i ? 1 : -1) * .9; }
+      L[0].rotation.x = .25 + Math.sin(k * 3) * .08; L[1].rotation.x = -.2;
+      expr = 'triste';
+      stars[idx].visible = k > .25;
+    } else if (lt < tUp) {
+      const k = easeOut((lt - tLie) / (tUp - tLie)); th = (Math.PI / 2) * (1 - k);
+      for (const [i, a] of A.entries()) a.rotation.x = -2.9 * (1 - k);
+      expr = 'neutro';
+    } else { st.mode = 'idle'; st.t0 = clock; st.hit = false; }
+    rig.tumble.rotation.x = th;
+    rig.tumble.position.y = Math.sin(th) * rig.lieLift;
+    rig.tumble.position.z = Math.sin(th) * .1;
+  } else {
+    // parado ou mancando
+    const br = Math.sin(clock * 2.2 + idx);
+    if (injured) {
+      b.rotation.z = Math.sin(clock * 1.4) * .06; b.position.y = br * .005;
+      L[1].rotation.x = .25;
+    } else {
+      b.position.y = br * .008;
+      if (!isA) b.scale.set(1 + br * .012, 1 - br * .012, 1 + br * .012);
+      A[0].rotation.z = -.08 + br * .03; A[1].rotation.z = .08 - br * .03;
+    }
+    if (rig.head && isA) rig.head.rotation.y = Math.sin(clock * .7 + idx) * .35;
+    if (rig.head && !isA) rig.head.rotation.y = 0;
+    slingPose();
+  }
+  if (st.mode !== 'run' && st.mode !== 'fall' && st.mode !== 'celebrate') slingPose();
+
+  // piscar
+  rig.blink -= dt; let ey = 1;
+  if (rig.blink < 0) { ey = .1; if (rig.blink < -.12) rig.blink = 2 + Math.random() * 3.5; }
+  if (st.mode === 'fall' && clock - st.t0 > .62 && clock - st.t0 < 1.9) ey = .1;
+  for (const e of rig.face.eyes) e.scale.y = ey;
+  setExpr(rig.face, expr);
+
+  // mola da cabeça (balanço tipo bobblehead)
+  const vy = (b.position.y - rig.prevY) / Math.max(dt, 1e-3), ay = (vy - rig.prevVy) / Math.max(dt, 1e-3);
+  rig.prevY = b.position.y; rig.prevVy = vy;
+  const s = rig.spring, K = isA ? 70 : 120, C = isA ? 5 : 9, gain = isA ? .012 : .006;
+  s.vx += (-K * s.ax - C * s.vx + THREE.MathUtils.clamp(ay, -60, 60) * gain + drive * .2) * dt;
+  s.vz += (-K * s.az - C * s.vz + sway * (isA ? 2.2 : 1)) * dt;
+  s.ax = THREE.MathUtils.clamp(s.ax + s.vx * dt, -.55, .55); s.az = THREE.MathUtils.clamp(s.az + s.vz * dt, -.45, .45);
+  rig.headPivot.rotation.x = s.ax * (isA ? 1 : .35);
+  rig.headPivot.rotation.z = s.az * (isA ? 1 : .35);
+
+  // estrelas
+  if (stars[idx].visible) {
+    rig.headTop.getWorldPosition(tmpV);
+    stars[idx].children.forEach((sp, i) => { const a = clock * 4 + i * TAU / 3; sp.position.set(tmpV.x + Math.cos(a) * .32, tmpV.y + .05 + Math.sin(a * 2) * .04, tmpV.z + Math.sin(a) * .32); });
+  }
+}
+
+/* ---------------- interface ---------------- */
+function pressGroup(sel, btn) { document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', String(b === btn))); }
+$('teams').innerHTML = TEAMS.map(t => `<button class="chip team" data-team="${t.id}" aria-pressed="${t === P.team}"><span class="sw" style="background:${t.p};--s2:${t.s}"></span>${t.name}</button>`).join('');
+$('skins').innerHTML = SKINS.map(c => `<button class="swatch" data-skin="${c}" style="background:${c}" aria-label="Tom de pele ${c}" aria-pressed="${c === P.skin}"></button>`).join('');
+$('hairs').innerHTML = HAIRS.map(c => `<button class="swatch" data-haircolor="${c}" style="background:${c}" aria-label="Cor de cabelo ${c}" aria-pressed="${c === P.hairColor}"></button>`).join('');
+document.querySelectorAll('[data-team]').forEach(b => b.addEventListener('click', () => { P.team = TEAMS.find(t => t.id === b.dataset.team); pressGroup('[data-team]', b); rebuild(); }));
+document.querySelectorAll('[data-skin]').forEach(b => b.addEventListener('click', () => { P.skin = b.dataset.skin; pressGroup('[data-skin]', b); rebuild(); }));
+document.querySelectorAll('[data-haircolor]').forEach(b => b.addEventListener('click', () => { P.hairColor = b.dataset.haircolor; pressGroup('[data-haircolor]', b); rebuild(); }));
+$('sHair').addEventListener('change', e => { P.hair = e.target.value; rebuild(); });
+$('sGlasses').addEventListener('change', e => { P.glasses = e.target.value; rebuild(); });
+$('sBeard').addEventListener('change', e => { P.beard = e.target.value; rebuild(); });
+$('sExpr').addEventListener('change', e => { P.expr = e.target.value; rebuild(); });
+$('iNick').addEventListener('input', e => { P.nick = e.target.value || ' '; rebuild(); });
+$('iNum').addEventListener('input', e => { P.num = Math.max(0, Math.min(99, parseInt(e.target.value || '0', 10))); rebuild(); });
+$('rF').addEventListener('input', e => { P.forca = e.target.value / 100; $('vF').textContent = e.target.value; rebuild(); });
+$('rV').addEventListener('input', e => { P.vel = e.target.value / 100; $('vV').textContent = e.target.value; rebuild(); });
+document.querySelectorAll('[data-gear]').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.gear; P.gear[k] = !P.gear[k]; b.setAttribute('aria-pressed', String(P.gear[k])); rebuild();
+}));
+document.querySelectorAll('[data-anim]').forEach(b => b.addEventListener('click', () => {
+  pressGroup('[data-anim]', b);
+  for (const r of [rigA, rigD]) { r.state = { mode: b.dataset.anim, t0: clock }; }
+}));
+$('bTurn').addEventListener('click', e => { turned = !turned; e.currentTarget.setAttribute('aria-pressed', String(turned)); e.currentTarget.textContent = turned ? 'Ver frente' : 'Ver costas'; });
+$('bShuffle').addEventListener('click', () => {
+  const pick = a => a[(Math.random() * a.length) | 0];
+  P.team = pick(TEAMS); P.skin = pick(SKINS); P.hairColor = pick(HAIRS);
+  P.hair = pick(['curto', 'afro', 'moicano', 'coque', 'bone', 'careca']); P.glasses = pick(['nenhum', 'nenhum', 'redondo', 'escuro']);
+  P.beard = pick(['nenhuma', 'nenhuma', 'bigode', 'barba']); P.expr = pick(['confiante', 'neutro', 'bravo']);
+  P.nick = pick(NICKS); P.num = (Math.random() * 99) | 0;
+  P.forca = Math.random(); P.vel = Math.random();
+  syncInputs(); rebuild();
+});
+function syncInputs() {
+  pressGroup('[data-team]', document.querySelector(`[data-team="${P.team.id}"]`));
+  pressGroup('[data-skin]', document.querySelector(`[data-skin="${P.skin}"]`));
+  pressGroup('[data-haircolor]', document.querySelector(`[data-haircolor="${P.hairColor}"]`));
+  $('sHair').value = P.hair; $('sGlasses').value = P.glasses; $('sBeard').value = P.beard; $('sExpr').value = P.expr;
+  $('iNick').value = P.nick; $('iNum').value = P.num;
+  $('rF').value = Math.round(P.forca * 100); $('vF').textContent = Math.round(P.forca * 100);
+  $('rV').value = Math.round(P.vel * 100); $('vV').textContent = Math.round(P.vel * 100);
+}
+
+/* ---------------- laço ---------------- */
+const stage = canvas.parentElement;
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  const halfW = 3.3, fovR = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const dist = Math.max(7.2, halfW / (Math.tan(fovR) * camera.aspect) + 1.2);
+  camera.position.set(0, 1.9 + dist * .12, dist);
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(1 / 30, (now - last) / 1000); last = now; clock += dt;
+  const target = turned ? Math.PI : 0;
+  turnAngle += (target - turnAngle) * Math.min(1, dt * 6);
+  for (const [i, r] of [rigA, rigD].entries()) { r.root.rotation.y = turnAngle; animate(r, dt, i); }
+  updateParticles(dt);
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+rebuild(); resize();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => rebuild());
+requestAnimationFrame(frame);
+</script>

@@ -1,0 +1,1005 @@
+<title>Copa da Ilha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root {
+    --ink: #2a2340;
+    --muted: #6b6485;
+    --paper: rgba(255, 250, 242, 0.86);
+    --paper-solid: #fffaf2;
+    --line: rgba(42, 35, 64, 0.12);
+    --blue: #3f8fd6;
+    --orange: #ea7a2c;
+    --leaf: #4f8d47;
+    --berry: #e8575a;
+    --sky: #cfe6ee;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { background: var(--sky); color: var(--ink); font-family: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif; overflow: hidden; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  #ui {
+    position: fixed; inset: 0; pointer-events: none;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    display: grid; grid-template-columns: minmax(0, 290px) 1fr minmax(0, 290px); grid-template-rows: auto 1fr auto; gap: 12px;
+  }
+  .col { display: flex; flex-direction: column; gap: 10px; align-self: start; min-height: 0; }
+  .left { grid-column: 1; grid-row: 1 / 3; }
+  .right { grid-column: 3; grid-row: 1 / 3; }
+  .panel {
+    pointer-events: auto; background: var(--paper);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(42, 35, 64, 0.12); padding: 14px 16px;
+  }
+  .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--leaf); font-weight: 600; }
+  h1 { margin: 2px 0 6px; font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; }
+  h2 { margin: 0; font-size: 15px; font-weight: 800; }
+  .lede { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+  .phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .chip { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: rgba(42, 35, 64, 0.08); white-space: nowrap; }
+
+  /* placar */
+  .score { grid-column: 2; grid-row: 1; justify-self: center; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 4px 14px; padding: 10px 16px; min-width: 0; }
+  .team { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .team.a { align-items: flex-end; text-align: right; }
+  .team .nm { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .team.a .nm { color: var(--blue); } .team.b .nm { color: var(--orange); }
+  .team .gn { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .mid { display: flex; flex-direction: column; align-items: center; }
+  .goals { display: flex; align-items: center; gap: 10px; font: 700 34px/1 "JetBrains Mono", monospace; }
+  .goals .x { font-size: 18px; color: var(--muted); font-weight: 500; }
+  .clock { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .feed li { display: grid; grid-template-columns: 38px 10px 1fr; gap: 6px; align-items: center; }
+  .feed .t { color: var(--muted); font-size: 11.5px; }
+  .feed .d { width: 8px; height: 8px; border-radius: 50%; }
+  .feed .empty { display: block; color: var(--muted); }
+
+  .gen { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+  .trow { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .trow .sub { font-size: 11.5px; color: var(--muted); text-align: right; line-height: 1.35; }
+  .bar { height: 7px; border-radius: 99px; background: var(--line); overflow: hidden; flex: 1; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--leaf); }
+  .prow { display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+  .charts { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; gap: 8px; }
+  .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .chart { width: 100%; height: 52px; display: block; margin-top: 4px; }
+  .foot { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+  .controls { grid-column: 1 / 4; grid-row: 3; justify-self: center; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; padding: 10px 12px; }
+  .seg { display: flex; background: rgba(42, 35, 64, 0.07); border-radius: 10px; padding: 3px; gap: 2px; align-items: center; }
+  .seg .cap { font-size: 11px; color: var(--muted); padding: 0 6px 0 4px; }
+  button { font: 600 13px/1 "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: transparent; border: 0; border-radius: 8px; padding: 8px 11px; cursor: pointer; }
+  button:hover { background: rgba(42, 35, 64, 0.08); }
+  button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper-solid); }
+  .toggle[aria-pressed="true"] { background: rgba(63, 143, 214, 0.14); color: #2c6ea8; }
+  .danger.confirm { background: var(--berry); color: #fff; }
+
+  .banner {
+    position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%) scale(.9);
+    background: var(--paper-solid); color: var(--ink); border-radius: 20px; padding: 14px 26px; text-align: center;
+    box-shadow: 0 18px 50px rgba(42, 35, 64, 0.25); opacity: 0; transition: opacity .25s, transform .35s cubic-bezier(.2,1.6,.4,1); pointer-events: none; max-width: calc(100% - 32px);
+  }
+  .banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .banner .big { font-size: 44px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
+  .banner .s { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); pointer-events: none; }
+
+  @media (max-width: 900px) {
+    #ui { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; gap: 8px; }
+    .score { grid-column: 1; grid-row: 1; justify-self: stretch; }
+    .left { display: none; }
+    .right { grid-column: 1; grid-row: 3; }
+    .charts, .foot, .trow .sub { display: none; }
+    .controls { grid-column: 1; grid-row: 4; justify-self: stretch; }
+    .goals { font-size: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .banner { transition: none; } }
+</style>
+
+<canvas id="c" aria-label="Partida de futebol 2 contra 2 entre agentes em 3D"></canvas>
+<div class="loading" id="loading">Montando o estádio…</div>
+
+<div id="ui">
+  <div class="col left">
+    <header class="panel">
+      <div class="eyebrow">Self-play 2 × 2</div>
+      <h1>Copa da Ilha</h1>
+      <p class="lede">Dois times de dois jogam com o mesmo tipo de cérebro. O Azul usa sempre o campeão mais recente do treino; o Laranja é um campeão de algumas gerações atrás. Cada time aprende jogando contra versões de si mesmo.</p>
+    </header>
+    <section class="panel" aria-label="Lances da partida">
+      <div class="phead"><h2>Lances</h2><span class="chip mono" id="kicks">0 chutes</span></div>
+      <ul class="feed" id="feed"><li class="empty">Nenhum gol ainda.</li></ul>
+    </section>
+  </div>
+
+  <section class="panel score" aria-label="Placar">
+    <div class="team a"><span class="nm">Azul</span><span class="gn" id="gA">campeão atual</span></div>
+    <div class="mid"><div class="goals"><span id="sA">0</span><span class="x">×</span><span id="sB">0</span></div><div class="clock mono" id="clock">00:00 / 01:30</div></div>
+    <div class="team b"><span class="nm">Laranja</span><span class="gn" id="gB">campeão antigo</span></div>
+  </section>
+
+  <div class="col right">
+    <section class="panel" aria-label="Treino">
+      <div class="phead"><h2>Treino</h2><span class="chip mono" id="epsChip">– partidas/s</span></div>
+      <div class="trow">
+        <div><div style="font-size:12px;color:var(--muted)">Geração</div><div class="gen mono" id="gen">1</div></div>
+        <div class="sub">32 cérebros × 4 partidas<br>até o primeiro gol</div>
+      </div>
+      <div class="prow"><div class="bar"><i id="gBar"></i></div><span class="mono" id="gVal">0%</span></div>
+      <div class="charts">
+        <div>
+          <div class="chart-head"><span><i class="swatch" style="background:var(--blue)"></i>Vitórias contra a geração 1</span><span class="mono" id="vWin">–</span></div>
+          <canvas class="chart" id="chWin"></canvas>
+        </div>
+        <div>
+          <div class="chart-head"><span><i class="swatch" style="background:var(--orange)"></i>Gols por partida de treino</span><span class="mono" id="vGoals">–</span></div>
+          <canvas class="chart" id="chGoals"></canvas>
+        </div>
+        <div class="foot" id="chartFoot">Os gráficos aparecem após a primeira geração.</div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="panel controls" aria-label="Controles">
+    <div class="seg" role="group" aria-label="Velocidade da partida">
+      <span class="cap">Partida</span>
+      <button data-speed="0" aria-pressed="false">Pausar</button>
+      <button data-speed="1" aria-pressed="true">1×</button>
+      <button data-speed="2" aria-pressed="false">2×</button>
+      <button data-speed="4" aria-pressed="false">4×</button>
+    </div>
+    <button id="bNew">Nova partida</button>
+    <button class="toggle" id="tTrain" aria-pressed="true">Treino ligado</button>
+    <button class="toggle" id="tCam" aria-pressed="true">Câmera de TV</button>
+    <button class="danger" id="bReset">Recomeçar treino</button>
+  </nav>
+</div>
+<div class="banner" id="banner" role="status"><div class="big" id="bBig">GOL!</div><div class="s" id="bS"></div></div>
+
+<script id="sim-src">
+var SIM = (function () {
+  'use strict';
+  const TAU = Math.PI * 2;
+  const CFG = {
+    W: 15, H: 9, goalHalf: 3, goalDepth: 2, dt: 1 / 30,
+    pr: 0.6, speed: 5.5, back: 0.5, turn: 5.5,
+    br: 0.38, friction: 0.9, wallBounce: 0.75, kickMin: 6, kickMax: 15, kickRange: 0.4, kickCd: 0.4,
+    trainT: 20, hidden: 24, pop: 32, matches: 4, elite: 3, hof: 30, bench: 10,
+  };
+  const DIAG = Math.hypot(2 * CFG.W, 2 * CFG.H);
+  const WR = 8, NIN = 26 + WR, NH = CFG.hidden, NOUT = 3;
+  const NPARAMS = NIN * NH + NH + NH * NOUT + NOUT;
+
+  let spare = null;
+  function gauss() {
+    if (spare !== null) { const s = spare; spare = null; return s; }
+    let u = 0; while (u === 0) u = Math.random();
+    const v = Math.random(), r = Math.sqrt(-2 * Math.log(u));
+    spare = r * Math.sin(TAU * v); return r * Math.cos(TAU * v);
+  }
+  function randGenome() {
+    const g = new Float32Array(NPARAMS), s1 = 1.5 / Math.sqrt(NIN), s2 = 1.2 / Math.sqrt(NH); let k = 0;
+    for (let i = 0; i < NIN * NH; i++) g[k++] = gauss() * s1;
+    for (let i = 0; i < NH; i++) g[k++] = gauss() * 0.2;
+    for (let i = 0; i < NH * NOUT; i++) g[k++] = gauss() * s2;
+    g[k++] = 0.3 + gauss() * 0.2; g[k++] = gauss() * 0.2; g[k++] = gauss() * 0.3;
+    return g;
+  }
+  function forward(g, x, h, o) {
+    let k = 0;
+    for (let j = 0; j < NH; j++) { let s = 0; for (let i = 0; i < NIN; i++) s += g[k++] * x[i]; h[j] = s; }
+    for (let j = 0; j < NH; j++) h[j] = Math.tanh(h[j] + g[k++]);
+    for (let m = 0; m < NOUT; m++) { let s = 0; for (let j = 0; j < NH; j++) s += g[k++] * h[j]; o[m] = s; }
+    for (let m = 0; m < NOUT; m++) o[m] = Math.tanh(o[m] + g[k++]);
+  }
+
+  /* ---------------- partida ---------------- */
+  function newMatch(gA, gB, opts) {
+    opts = opts || {};
+    const players = [];
+    for (let i = 0; i < 4; i++) players.push({
+      i, team: i < 2 ? 0 : 1, role: i % 2, x: 0, z: 0, h: 0, v: 0, cd: 0, kickT: 0, phase: Math.random() * TAU,
+      inp: new Float32Array(NIN), hid: new Float32Array(NH), out: new Float32Array(NOUT),
+    });
+    const ep = {
+      g: [gA, gB], players, ball: { x: 0, z: 0, vx: 0, vz: 0, spin: 0 },
+      t: 0, T: opts.T || CFG.trainT, untilGoal: !!opts.untilGoal, score: [0, 0], done: false, pause: 0, idle: 0, lastTouch: -1,
+      stats: [{ progress: 0, approach: 0, touches: 0 }, { progress: 0, approach: 0, touches: 0 }],
+      events: opts.record ? [] : null,
+    };
+    kickoff(ep);
+    return ep;
+  }
+  function kickoff(ep) {
+    const P = ep.players;
+    const spots = [[-5, -2.8], [-9, 2.2], [5, 2.8], [9, -2.2]];
+    for (const p of P) {
+      const s = p.team === 0 ? 1 : -1;
+      const [x, z] = spots[p.i];
+      p.x = x + (Math.random() - 0.5) * 1.2; p.z = z + (Math.random() - 0.5) * 1.2;
+      p.h = Math.atan2(-p.z, -p.x) + (Math.random() - 0.5) * 0.4; p.v = 0; p.cd = 0;
+      void s;
+    }
+    const b = ep.ball; b.x = 0; b.z = (Math.random() - 0.5) * 2; b.vx = 0; b.vz = 0;
+    ep.idle = 0; ep.lastTouch = -1;
+  }
+
+  function sense(ep, p) {
+    const s = p.team === 0 ? 1 : -1, inp = p.inp, W = CFG.W, H = CFG.H;
+    const px = s * p.x, pz = s * p.z, ph = p.h + (s < 0 ? Math.PI : 0);
+    const cph = Math.cos(ph), sph = Math.sin(ph);
+    const relM = (mx, mz, k) => {
+      const dx = mx - px, dz = mz - pz, ang = Math.atan2(dz, dx) - ph;
+      inp[k] = Math.sin(ang); inp[k + 1] = Math.cos(ang); inp[k + 2] = Math.min(1, Math.hypot(dx, dz) / DIAG);
+    };
+    const b = ep.ball;
+    relM(s * b.x, s * b.z, 0);
+    const bvx = s * b.vx, bvz = s * b.vz;
+    inp[3] = (bvx * cph + bvz * sph) / 15; inp[4] = (-bvx * sph + bvz * cph) / 15;
+    const mate = ep.players[p.team * 2 + (1 - p.role)];
+    relM(s * mate.x, s * mate.z, 5);
+    const o1 = ep.players[(1 - p.team) * 2], o2 = ep.players[(1 - p.team) * 2 + 1];
+    const d1 = (o1.x - p.x) ** 2 + (o1.z - p.z) ** 2, d2 = (o2.x - p.x) ** 2 + (o2.z - p.z) ** 2;
+    const [n1, n2] = d1 <= d2 ? [o1, o2] : [o2, o1];
+    relM(s * n1.x, s * n1.z, 8); relM(s * n2.x, s * n2.z, 11);
+    relM(-W, 0, 14); relM(W, 0, 17);
+    inp[20] = px / W; inp[21] = pz / H; inp[22] = p.v / CFG.speed;
+    inp[23] = p.role ? 1 : -1;
+    inp[24] = s * b.x / W; inp[25] = s * b.z / H;
+    for (let k = 0; k < WR; k++) {
+      const a = ph + k * TAU / WR, dx = Math.cos(a), dz = Math.sin(a);
+      const tx = dx > 1e-6 ? (W - px) / dx : dx < -1e-6 ? (-W - px) / dx : Infinity;
+      const tz = dz > 1e-6 ? (H - pz) / dz : dz < -1e-6 ? (-H - pz) / dz : Infinity;
+      inp[26 + k] = 1 - Math.min(Math.min(tx, tz), 10) / 10;
+    }
+  }
+
+  function ev(ep, e) { if (ep.events) ep.events.push(e); }
+
+  function step(ep) {
+    if (ep.done) return;
+    const dt = CFG.dt, P = ep.players, b = ep.ball, W = CFG.W, H = CFG.H;
+    if (ep.pause > 0) { ep.pause -= dt; if (ep.pause <= 0) kickoff(ep); return; }
+    for (const p of P) { sense(ep, p); forward(ep.g[p.team], p.inp, p.hid, p.out); }
+    for (const p of P) {
+      p.h += p.out[1] * CFG.turn * dt;
+      const o = p.out[0], target = o >= 0 ? o * CFG.speed : o * CFG.speed * CFG.back;
+      p.v += (target - p.v) * Math.min(1, dt * 6);
+      p.x += Math.cos(p.h) * p.v * dt; p.z += Math.sin(p.h) * p.v * dt;
+      p.phase += Math.abs(p.v) * dt * 2.4;
+      if (p.cd > 0) p.cd -= dt;
+      if (p.kickT > 0) p.kickT -= dt;
+    }
+    // separação entre jogadores
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+      const a = P[i], c = P[j], dx = c.x - a.x, dz = c.z - a.z, m = 2 * CFG.pr, d2 = dx * dx + dz * dz;
+      if (d2 < m * m && d2 > 1e-8) { const d = Math.sqrt(d2), q = (m - d) / 2 / d; a.x -= dx * q; a.z -= dz * q; c.x += dx * q; c.z += dz * q; }
+    }
+    for (const p of P) {
+      const lx = W - CFG.pr, lz = H - CFG.pr;
+      if (p.x > lx) p.x = lx; if (p.x < -lx) p.x = -lx; if (p.z > lz) p.z = lz; if (p.z < -lz) p.z = -lz;
+    }
+    // chute e contato com a bola
+    for (const p of P) {
+      const dx = b.x - p.x, dz = b.z - p.z, d = Math.hypot(dx, dz) || 1e-4, nx = dx / d, nz = dz / d, reach = CFG.pr + CFG.br;
+      const fx = Math.cos(p.h), fz = Math.sin(p.h);
+      if (p.out[2] > 0.2 && p.cd <= 0 && d < reach + CFG.kickRange && nx * fx + nz * fz > 0.5) {
+        const pw = CFG.kickMin + (CFG.kickMax - CFG.kickMin) * p.out[2];
+        b.vx = fx * pw + fx * Math.max(0, p.v) * 0.3; b.vz = fz * pw + fz * Math.max(0, p.v) * 0.3;
+        p.cd = CFG.kickCd; p.kickT = 0.25; touch(ep, p, true);
+        continue;
+      }
+      if (d < reach) {
+        b.x = p.x + nx * reach; b.z = p.z + nz * reach;
+        const pvx = Math.cos(p.h) * p.v, pvz = Math.sin(p.h) * p.v;
+        const rel = (b.vx - pvx) * nx + (b.vz - pvz) * nz;
+        if (rel < 0) { b.vx -= 1.4 * rel * nx; b.vz -= 1.4 * rel * nz; }
+        touch(ep, p, false);
+      }
+    }
+    // bola
+    const f = Math.exp(-CFG.friction * dt);
+    b.vx *= f; b.vz *= f;
+    const sp = Math.hypot(b.vx, b.vz); if (sp > 22) { b.vx *= 22 / sp; b.vz *= 22 / sp; }
+    b.x += b.vx * dt; b.z += b.vz * dt; b.spin += sp * dt / CFG.br;
+    const br = CFG.br, GH = CFG.goalHalf;
+    const inMouth = Math.abs(b.z) < GH - br * 0.5;
+    if (Math.abs(b.x) > W - br && !(inMouth || Math.abs(b.x) > W)) {
+      b.x = Math.sign(b.x) * (W - br); b.vx = -b.vx * CFG.wallBounce; ev(ep, { type: 'bounce' });
+    }
+    if (Math.abs(b.x) > W) {
+      // dentro da área do gol
+      if (Math.abs(b.z) > GH - br) { b.z = Math.sign(b.z) * (GH - br); b.vz = -b.vz * CFG.wallBounce; }
+      if (Math.abs(b.x) > W + br) { goal(ep, b.x > 0 ? 0 : 1); return; }
+    } else if (Math.abs(b.z) > H - br) {
+      b.z = Math.sign(b.z) * (H - br); b.vz = -b.vz * CFG.wallBounce; ev(ep, { type: 'bounce' });
+    }
+    // estatísticas para a aptidão
+    for (let t = 0; t < 2; t++) {
+      const s = t === 0 ? 1 : -1, st = ep.stats[t];
+      st.progress += s * b.x / W * dt;
+      const m = Math.min(Math.hypot(P[t * 2].x - b.x, P[t * 2].z - b.z), Math.hypot(P[t * 2 + 1].x - b.x, P[t * 2 + 1].z - b.z));
+      st.approach += (1 - m / DIAG) * dt;
+    }
+    ep.idle = sp < 0.3 ? ep.idle + dt : 0;
+    if (ep.events && ep.idle > 7) { kickoff(ep); ev(ep, { type: 'reset' }); }
+    ep.t += dt;
+    if (ep.t >= ep.T) { ep.done = true; ev(ep, { type: 'end' }); }
+  }
+  function touch(ep, p, kick) {
+    const st = ep.stats[p.team];
+    if (st.touches < 20) st.touches++;
+    ep.lastTouch = p.i;
+    if (kick) ev(ep, { type: 'kick', i: p.i, x: ep.ball.x, z: ep.ball.z });
+  }
+  function goal(ep, team) {
+    ep.score[team]++;
+    ev(ep, { type: 'goal', team, scorer: ep.lastTouch, x: ep.ball.x, z: ep.ball.z });
+    if (ep.untilGoal) { ep.done = true; return; }
+    ep.pause = 2.2; ep.ball.vx = ep.ball.vz = 0;
+  }
+  function teamFitness(ep, t) {
+    const st = ep.stats[t], T = Math.max(1, ep.t);
+    return ep.score[t] * 5 - ep.score[1 - t] * 3 + st.progress / T * 1.5 + st.approach / T * 0.6 + st.touches * 0.04;
+  }
+
+  /* ---------------- treino por self-play ---------------- */
+  function Trainer(state) {
+    const ok = state && state.pop && state.pop.length === CFG.pop && state.pop[0].length === NPARAMS;
+    const F = a => Float32Array.from(a);
+    this.pop = ok ? state.pop.map(F) : Array.from({ length: CFG.pop }, randGenome);
+    this.gen = ok ? state.gen : 1;
+    this.hist = ok && state.hist ? state.hist : [];
+    this.hof = ok && state.hof ? state.hof.map(F) : [];
+    this.hofGen = ok && state.hofGen ? state.hofGen : [];
+    this.base = ok && state.base ? F(state.base) : null;
+    this.best = ok && state.best ? F(state.best) : this.pop[0];
+    this.episodes = 0;
+    this.startGen();
+  }
+  Trainer.prototype.startGen = function () {
+    const N = CFG.pop, M = CFG.matches;
+    this.fit = new Float64Array(N); this.gf = new Float64Array(N); this.ga = new Float64Array(N); this.win = new Float64Array(N);
+    this.queue = [];
+    for (let i = 0; i < N; i++) for (let m = 0; m < M; m++) {
+      let opp;
+      if (this.hof.length && Math.random() < 0.5) opp = this.hof[(Math.random() * this.hof.length) | 0];
+      else { let j = i; while (j === i) j = (Math.random() * N) | 0; opp = this.pop[j]; }
+      this.queue.push({ i, opp, side: m % 2 });
+    }
+    this.qi = 0; this.ep = null; this.phase = 'train'; this.bench = null;
+  };
+  Trainer.prototype.progress = function () {
+    const total = this.queue.length + CFG.bench;
+    return (this.phase === 'train' ? this.qi : this.queue.length + (this.bench ? this.bench.n : 0)) / total;
+  };
+  Trainer.prototype.runFor = function (ms) {
+    const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const t0 = now(); let res = null;
+    while (now() - t0 < ms && !res) {
+      if (this.phase === 'train') {
+        if (!this.ep) {
+          const q = this.queue[this.qi], g = this.pop[q.i];
+          this.ep = q.side === 0 ? newMatch(g, q.opp, { untilGoal: true }) : newMatch(q.opp, g, { untilGoal: true });
+        }
+        for (let k = 0; k < 120 && !this.ep.done; k++) step(this.ep);
+        if (this.ep.done) {
+          const q = this.queue[this.qi], t = q.side, e = this.ep;
+          this.fit[q.i] += teamFitness(e, t) / CFG.matches;
+          this.gf[q.i] += e.score[t]; this.ga[q.i] += e.score[1 - t];
+          this.win[q.i] += e.score[t] > e.score[1 - t] ? 1 : 0;
+          this.ep = null; this.qi++; this.episodes++;
+          if (this.qi >= this.queue.length) this.selectChampion();
+        }
+      } else {
+        const B = this.bench;
+        if (!this.ep) this.ep = B.n % 2 === 0 ? newMatch(this.champ, this.base, { untilGoal: true }) : newMatch(this.base, this.champ, { untilGoal: true });
+        for (let k = 0; k < 120 && !this.ep.done; k++) step(this.ep);
+        if (this.ep.done) {
+          const t = B.n % 2, e = this.ep;
+          if (e.score[t] > e.score[1 - t]) B.w++; else if (e.score[t] < e.score[1 - t]) B.l++; else B.d++;
+          this.ep = null; B.n++; this.episodes++;
+          if (B.n >= CFG.bench) res = this.endGen();
+        }
+      }
+    }
+    return res;
+  };
+  Trainer.prototype.selectChampion = function () {
+    const N = CFG.pop;
+    this.order = Array.from({ length: N }, (_, i) => i).sort((a, b) => this.fit[b] - this.fit[a]);
+    this.champ = this.pop[this.order[0]];
+    if (!this.base) this.base = this.champ;
+    this.phase = 'bench'; this.bench = { n: 0, w: 0, d: 0, l: 0 };
+  };
+  Trainer.prototype.endGen = function () {
+    const N = CFG.pop, M = CFG.matches, order = this.order, c = order[0], B = this.bench;
+    let goals = 0, mean = 0; for (let i = 0; i < N; i++) { goals += this.gf[i] + this.ga[i]; mean += this.fit[i]; }
+    const entry = {
+      gen: this.gen, best: +this.fit[c].toFixed(3), mean: +(mean / N).toFixed(3),
+      goals: +(goals / (N * M)).toFixed(3), champWin: +(this.win[c] / M).toFixed(2),
+      benchW: B.w / CFG.bench, benchD: B.d / CFG.bench, benchL: B.l / CFG.bench,
+    };
+    this.hist.push(entry); if (this.hist.length > 400) this.hist.shift();
+    this.best = this.champ;
+    this.hof.push(this.champ); this.hofGen.push(this.gen);
+    if (this.hof.length > CFG.hof) { this.hof.shift(); this.hofGen.shift(); }
+    const pop = this.pop, fit = this.fit;
+    const tour = () => { let w = -1; for (let i = 0; i < 3; i++) { const k = (Math.random() * N) | 0; if (w < 0 || fit[k] > fit[w]) w = k; } return pop[w]; };
+    const next = order.slice(0, CFG.elite).map(i => pop[i]);
+    while (next.length < N) {
+      const A = tour(), Bg = tour(), cross = Math.random() < 0.3, big = Math.random() < 0.1, g = new Float32Array(NPARAMS);
+      for (let i = 0; i < NPARAMS; i++) {
+        let w = cross && Math.random() < 0.5 ? Bg[i] : A[i];
+        if (Math.random() < 0.08) w += gauss() * (big ? 0.5 : 0.18);
+        g[i] = w;
+      }
+      next.push(g);
+    }
+    this.pop = next; this.gen++;
+    this.startGen();
+    return { entry, best: this.best, gen: this.gen };
+  };
+  Trainer.prototype.opponentFor = function () {
+    if (!this.hof.length) return { g: this.pop[1], gen: 0 };
+    const k = Math.max(0, this.hof.length - 1 - Math.floor(3 + Math.random() * 10));
+    return { g: this.hof[k], gen: this.hofGen[k] };
+  };
+  Trainer.prototype.serialize = function () {
+    const r = g => Array.from(g, v => Math.round(v * 1e4) / 1e4);
+    return {
+      gen: this.gen, hist: this.hist.slice(-300), best: r(this.best), pop: this.pop.map(r),
+      hof: this.hof.slice(-12).map(r), hofGen: this.hofGen.slice(-12), base: this.base ? r(this.base) : null,
+    };
+  };
+
+  return { CFG, TAU, NIN, NH, NOUT, NPARAMS, newMatch, step, kickoff, randGenome, Trainer, teamFitness };
+})();
+if (typeof module !== 'undefined') module.exports = SIM;
+
+</script>
+<script type="text/plain" id="worker-src">
+let trainer = null, running = true, lastProg = 0, epAt = 0, epCount = 0;
+function pick() { const o = trainer.opponentFor(); return { g: Array.from(o.g), gen: o.gen }; }
+onmessage = e => {
+  const m = e.data;
+  if (m.type === 'init') { trainer = new SIM.Trainer(m.state); epAt = Date.now(); epCount = trainer.episodes; postMessage({ type: 'opp', opp: pick() }); loop(); }
+  else if (m.type === 'pause') running = false;
+  else if (m.type === 'resume') running = true;
+  else if (m.type === 'opp') postMessage({ type: 'opp', opp: pick() });
+  else if (m.type === 'reset') { trainer = new SIM.Trainer(null); postMessage({ type: 'state', state: trainer.serialize(), reset: true }); }
+};
+function loop() {
+  if (running && trainer) {
+    const r = trainer.runFor(40);
+    if (r) postMessage({ type: 'gen', entry: r.entry, gen: r.gen, best: Array.from(r.best), opp: pick(), state: r.entry.gen % 3 === 0 ? trainer.serialize() : null });
+    const now = Date.now();
+    if (now - lastProg > 300) {
+      lastProg = now;
+      const eps = (trainer.episodes - epCount) / Math.max(0.001, (now - epAt) / 1000);
+      if (now - epAt > 4000) { epAt = now; epCount = trainer.episodes; }
+      postMessage({ type: 'progress', gen: trainer.gen, p: trainer.progress(), eps });
+    }
+  }
+  setTimeout(loop, running ? 0 : 150);
+}
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const { CFG, TAU } = SIM;
+const W = CFG.W, H = CFG.H, GH = CFG.goalHalf, GD = CFG.goalDepth;
+const IR = 23;
+const MATCH_T = 90;
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TEAM = [
+  { name: 'Azul', css: '#3f8fd6', col: 0x4d9de0, dark: 0x2c6ea8, players: ['Céu', 'Mar'] },
+  { name: 'Laranja', css: '#ea7a2c', col: 0xf08a3c, dark: 0xb85a1c, players: ['Caqui', 'Brasa'] },
+];
+
+/* =========================================================
+   Treino
+   ========================================================= */
+const KEY = 'copa-da-ilha-v1';
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem(KEY)); } catch (e) { saved = null; }
+const okLen = a => a && a.length === SIM.NPARAMS;
+let hist = saved && saved.hist ? saved.hist : [];
+let champion = saved && okLen(saved.best) ? Float32Array.from(saved.best) : SIM.randGenome();
+let championGen = saved && saved.gen ? saved.gen - 1 : 0;
+let opponent = { g: SIM.randGenome(), gen: 0 };
+if (saved && saved.hof && saved.hof.length && okLen(saved.hof[0])) {
+  const k = Math.max(0, saved.hof.length - 6); opponent = { g: Float32Array.from(saved.hof[k]), gen: saved.hofGen[k] };
+}
+let trainGen = saved && saved.gen ? saved.gen : 1, trainProg = 0, eps = 0, training = true;
+function persist(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { } }
+
+let worker = null, localTrainer = null;
+try {
+  const src = $('sim-src').textContent + '\n' + $('worker-src').textContent;
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  worker.onmessage = e => onTrainMsg(e.data);
+  worker.onerror = () => { worker = null; startLocal(); };
+  worker.postMessage({ type: 'init', state: saved });
+} catch (e) { worker = null; startLocal(); }
+function startLocal() { if (!localTrainer) localTrainer = new SIM.Trainer(saved); }
+let localAt = performance.now(), local0 = 0;
+function localTrain() {
+  if (!localTrainer || !training) return;
+  const r = localTrainer.runFor(6);
+  if (r) { const o = localTrainer.opponentFor(); onTrainMsg({ type: 'gen', entry: r.entry, gen: r.gen, best: r.best, opp: { g: o.g, gen: o.gen }, state: r.entry.gen % 3 === 0 ? localTrainer.serialize() : null }); }
+  const now = performance.now();
+  if (now - localAt > 3000) { eps = (localTrainer.episodes - local0) / ((now - localAt) / 1000); localAt = now; local0 = localTrainer.episodes; }
+  trainGen = localTrainer.gen; trainProg = localTrainer.progress();
+}
+function onTrainMsg(m) {
+  if (m.type === 'progress') { trainGen = m.gen; trainProg = m.p; eps = m.eps; }
+  else if (m.type === 'opp') { if (m.opp.gen > 0) opponent = { g: Float32Array.from(m.opp.g), gen: m.opp.gen }; }
+  else if (m.type === 'gen') {
+    hist.push(m.entry); if (hist.length > 400) hist.shift();
+    champion = Float32Array.from(m.best); championGen = m.entry.gen; trainGen = m.gen; trainProg = 0;
+    if (m.opp && m.opp.gen > 0) opponent = { g: Float32Array.from(m.opp.g), gen: m.opp.gen };
+    if (m.state) persist(m.state);
+    drawCharts();
+  } else if (m.type === 'state') {
+    persist(m.state);
+    if (m.reset) { hist = []; champion = Float32Array.from(m.state.best); championGen = 0; opponent = { g: SIM.randGenome(), gen: 0 }; trainGen = 1; drawCharts(); }
+  }
+}
+
+/* =========================================================
+   Cena
+   ========================================================= */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+const HORIZON = 0xf4ddc2;
+scene.fog = new THREE.Fog(HORIZON, 70, 180);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+camera.position.set(0, 25, 29);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = 1.38; controls.minDistance = 7; controls.maxDistance = 100;
+controls.enabled = false;
+
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(320, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new THREE.Color(0x86c3dc) }, mid: { value: new THREE.Color(HORIZON) }, bot: { value: new THREE.Color(0xe7a996) } },
+  vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP;
+    void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.55, h)) : mix(mid, bot, smoothstep(0.0, -0.6, h));
+    gl_FragColor = vec4(c, 1.0);
+    #include <colorspace_fragment>
+    }`,
+})));
+scene.add(new THREE.HemisphereLight(0xe3f2ff, 0xc9a77c, 1.15));
+const sun = new THREE.DirectionalLight(0xfff0d6, 2.5);
+sun.position.set(14, 40, 18); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 5, far: 110 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+let seedV = 4242;
+const srand = () => { seedV = (seedV * 16807) % 2147483647; return (seedV - 1) / 2147483646; };
+const noise3 = (x, y, z) => Math.sin(x * 0.7 + y * 1.3) * Math.cos(z * 0.9 - y * 0.5) + 0.5 * Math.sin(x * 1.9 - z * 1.7 + y * 0.8);
+function makeRockBase(radius, height, seg, rings, cTop, cBot) {
+  const geo = new THREE.ConeGeometry(radius, height, seg, rings); geo.rotateX(Math.PI);
+  const pos = geo.attributes.position, colors = [], top = new THREE.Color(cTop), bot = new THREE.Color(cBot), tmp = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    if (y < height / 2 - 0.01) { const n = noise3(x * .35, y * .35, z * .35), k = 1 + n * .12; x *= k; z *= k; y += n * height * .03; pos.setXYZ(i, x, y, z); }
+    tmp.copy(bot).lerp(top, Math.pow(THREE.MathUtils.clamp((y + height / 2) / height, 0, 1), .8)); colors.push(tmp.r, tmp.g, tmp.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); geo.computeVertexNormals();
+  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
+}
+function canvasTex(draw, w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const dotTex = canvasTex(x => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(.55, '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }, 64, 64);
+
+// ilha
+const grassTop = new THREE.Mesh(new THREE.CylinderGeometry(IR + 1, IR + .5, 1.2, 80), new THREE.MeshStandardMaterial({ color: 0x9fcf7f, roughness: 1 }));
+grassTop.position.y = -.6; grassTop.receiveShadow = true; scene.add(grassTop);
+const island = makeRockBase(IR + .5, 16, 30, 6, 0xc39266, 0x7c6a93); island.position.y = -1.2 - 8; scene.add(island);
+
+// gramado com linhas
+const PW = 2 * W, PH = 2 * H;
+const pitchTex = canvasTex((x, w, h) => {
+  const sx = w / PW, stripes = 10;
+  for (let i = 0; i < stripes; i++) { x.fillStyle = i % 2 ? '#7fbf5f' : '#8ccb69'; x.fillRect(i * w / stripes, 0, w / stripes + 1, h); }
+  x.strokeStyle = 'rgba(255,255,255,.92)'; x.lineWidth = .12 * sx;
+  const L = v => v * sx, cx = w / 2, cy = h / 2;
+  x.strokeRect(L(.15), L(.15), w - L(.3), h - L(.3));
+  x.beginPath(); x.moveTo(cx, L(.15)); x.lineTo(cx, h - L(.15)); x.stroke();
+  x.beginPath(); x.arc(cx, cy, L(3), 0, TAU); x.stroke();
+  x.fillStyle = 'rgba(255,255,255,.92)'; x.beginPath(); x.arc(cx, cy, L(.22), 0, TAU); x.fill();
+  for (const s of [0, 1]) {
+    const bx = s ? w - L(.15) - L(4.5) : L(.15);
+    x.strokeRect(bx, cy - L(6), L(4.5), L(12));
+    const gx = s ? w - L(.15) - L(1.8) : L(.15);
+    x.strokeRect(gx, cy - L(3.8), L(1.8), L(7.6));
+    x.beginPath(); x.arc(s ? w - L(3.4) : L(3.4), cy, L(.2), 0, TAU); x.fill();
+  }
+}, 1500, 900);
+const pitch = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: pitchTex, roughness: 1 }));
+pitch.rotation.x = -Math.PI / 2; pitch.position.y = .01; pitch.receiveShadow = true; scene.add(pitch);
+
+// muretas
+{
+  const mat = new THREE.MeshStandardMaterial({ color: 0xf1e6cf, roughness: .8, flatShading: true });
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xd8c7a6, roughness: .8 });
+  const add = (w, d, x, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, .55, d), mat); m.position.set(x, .27, z); m.castShadow = true; m.receiveShadow = true; scene.add(m);
+    const c = new THREE.Mesh(new THREE.BoxGeometry(w + .05, .08, d + .05), capMat); c.position.set(x, .58, z); scene.add(c);
+  };
+  add(PW + .8, .4, 0, H + .2); add(PW + .8, .4, 0, -H - .2);
+  const seg = H - GH;
+  for (const s of [-1, 1]) { add(.4, seg, s * (W + .2), GH + seg / 2); add(.4, seg, s * (W + .2), -GH - seg / 2); }
+  // bandeirinhas
+  const poleGeo = new THREE.CylinderGeometry(.04, .04, 1.3, 6), poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const p = new THREE.Mesh(poleGeo, poleMat); p.position.set(sx * (W - .2), .65, sz * (H - .2)); scene.add(p);
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(.45, .3), new THREE.MeshStandardMaterial({ color: sx < 0 ? TEAM[0].col : TEAM[1].col, side: THREE.DoubleSide }));
+    f.position.set(sx * (W - .2) + .22, 1.15, sz * (H - .2)); scene.add(f);
+  }
+}
+// gols
+function makeGoal(side) {
+  const g = new THREE.Group(), s = side, postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 });
+  const post = new THREE.CylinderGeometry(.1, .1, 1.9, 10);
+  for (const z of [-GH, GH]) { const p = new THREE.Mesh(post, postMat); p.position.set(0, .95, z); p.castShadow = true; g.add(p); }
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, 2 * GH + .2, 10), postMat); bar.rotation.x = Math.PI / 2; bar.position.set(0, 1.9, 0); bar.castShadow = true; g.add(bar);
+  const net = [], d = GD * s, hgt = 1.9;
+  const push = (a, b) => net.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+  for (let i = 0; i <= 10; i++) { const z = -GH + i * (2 * GH) / 10; push([0, hgt, z], [d, hgt * .55, z]); push([d, hgt * .55, z], [d, 0, z]); }
+  for (let j = 0; j <= 5; j++) { const t = j / 5; push([d * t, hgt - (hgt * .45) * t, -GH], [d * t, hgt - (hgt * .45) * t, GH]); }
+  for (let j = 0; j <= 5; j++) { const y = hgt * .55 * j / 5; push([d, y, -GH], [d, y, GH]); }
+  for (const z of [-GH, GH]) for (let j = 0; j <= 5; j++) { const y = hgt * j / 5; const xd = y > hgt * .55 ? d * (hgt - y) / (hgt * .45) : d; push([0, y, z], [xd, y, z]); }
+  const ng = new THREE.BufferGeometry(); ng.setAttribute('position', new THREE.Float32BufferAttribute(net, 3));
+  const lines = new THREE.LineSegments(ng, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: .65 })); g.add(lines);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(GD, 2 * GH), new THREE.MeshStandardMaterial({ color: 0x76b457, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(d / 2, .012, 0); floor.receiveShadow = true; g.add(floor);
+  g.position.x = s * W; scene.add(g);
+  return { g, lines };
+}
+const goals = [makeGoal(-1), makeGoal(1)];
+
+// arquibancadas e torcida
+const fans = [];
+{
+  const stepMat = new THREE.MeshStandardMaterial({ color: 0xe7d8bb, roughness: .9, flatShading: true });
+  const stepMat2 = new THREE.MeshStandardMaterial({ color: 0xd9c6a1, roughness: .9, flatShading: true });
+  const fanGeo = new THREE.SphereGeometry(.32, 14, 10), eyeGeo = new THREE.SphereGeometry(.06, 6, 5), eyeMat = new THREE.MeshBasicMaterial({ color: 0x241a38 });
+  for (const sz of [-1, 1]) {
+    for (let r = 0; r < 3; r++) {
+      const w = 22 - r * 2.2, z = sz * (H + 1.6 + r * 1.05), y = .25 + r * .45;
+      const st = new THREE.Mesh(new THREE.BoxGeometry(w, .5 + r * .9, 1.05), r % 2 ? stepMat2 : stepMat);
+      st.position.set(0, (.5 + r * .9) / 2, z); st.castShadow = true; st.receiveShadow = true; scene.add(st);
+      const n = Math.floor(w / 1.25);
+      for (let i = 0; i < n; i++) {
+        if (srand() < .15) continue;
+        const x = -w / 2 + .6 + i * (w - 1.2) / (n - 1) + (srand() - .5) * .3;
+        const team = x < 0 ? 0 : 1;
+        const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(TEAM[team].col).offsetHSL((srand() - .5) * .04, -.1 + srand() * .15, (srand() - .3) * .15), roughness: .6 });
+        const g = new THREE.Group(), b = new THREE.Mesh(fanGeo, mat); b.castShadow = true; g.add(b);
+        for (const s of [-1, 1]) { const e = new THREE.Mesh(eyeGeo, eyeMat); e.position.set(s * .1, .06, -sz * .28); g.add(e); }
+        const baseY = .5 + r * .9 + .3;
+        g.position.set(x, baseY, z); scene.add(g);
+        fans.push({ g, b, team, baseY, ph: srand() * TAU, jump: 0 });
+      }
+    }
+  }
+  // árvores nas pontas
+  const trunkGeo = new THREE.CylinderGeometry(.22, .34, 1.7, 7), trunkMat = new THREE.MeshStandardMaterial({ color: 0x8a5e3c, roughness: 1, flatShading: true });
+  const leafGeo = new THREE.IcosahedronGeometry(1.5, 0), leafMats = [0x6aa84f, 0x7fb95a, 0x5c9a4a].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true }));
+  for (const [x, z, s] of [[-20, -6, 1], [-20, 5, .8], [20, 6, 1], [20, -5, .85], [-18.5, 0, .7], [18.5, 0, .7], [-12, 16, .9], [13, -16, .9], [12, 16, .75], [-13, -16, .8]]) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s);
+    const t = new THREE.Mesh(trunkGeo, trunkMat); t.position.y = .85; t.castShadow = true; g.add(t);
+    const l = new THREE.Mesh(leafGeo, leafMats[(srand() * 3) | 0]); l.position.y = 2.6; l.castShadow = true; g.add(l);
+    scene.add(g);
+  }
+}
+// nuvens
+const drifters = [];
+{
+  const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true, emissive: 0xfff4ea, emissiveIntensity: .35 });
+  const puff = new THREE.IcosahedronGeometry(1, 1);
+  for (let i = 0; i < 11; i++) {
+    const g = new THREE.Group(), n = 4 + ((srand() * 3) | 0);
+    for (let j = 0; j < n; j++) { const m = new THREE.Mesh(puff, cloudMat), s = 2 + srand() * 2.5; m.scale.set(s * 1.3, s * .8, s); m.position.set((j - n / 2) * 2.6 + srand(), srand() * 1.2, srand() * 2); g.add(m); }
+    const a = srand() * TAU, d = 58 + srand() * 45; g.position.set(Math.cos(a) * d, -20 + srand() * 34, Math.sin(a) * d);
+    scene.add(g); drifters.push({ g, a, d, y: g.position.y, sp: .004 + srand() * .006 });
+  }
+}
+
+// bola
+const ballMesh = (() => {
+  const geo = new THREE.IcosahedronGeometry(CFG.br, 1);
+  const n = geo.attributes.position.count, cols = new Float32Array(n * 3);
+  for (let f = 0; f < n / 3; f++) {
+    const dark = [0, 5, 10, 15, 22, 27, 33, 38, 44, 51, 57, 63, 68, 74].includes(f);
+    for (let v = 0; v < 3; v++) { const c = dark ? .12 : .97; cols[(f * 3 + v) * 3] = c; cols[(f * 3 + v) * 3 + 1] = c; cols[(f * 3 + v) * 3 + 2] = dark ? .18 : .95; }
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .45, flatShading: true }));
+  m.castShadow = true; scene.add(m); return m;
+})();
+
+// jogadores
+const pViews = [];
+{
+  const blobGeo = new THREE.SphereGeometry(CFG.pr, 28, 18);
+  const eyeGeo = new THREE.SphereGeometry(.16, 14, 10), pupilGeo = new THREE.SphereGeometry(.085, 10, 8);
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .3 }), pupilMat = new THREE.MeshStandardMaterial({ color: 0x1d1830, roughness: .2 });
+  const bandGeo = new THREE.TorusGeometry(CFG.pr * .98, .07, 8, 32), bandMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .5 });
+  for (let i = 0; i < 4; i++) {
+    const t = TEAM[i < 2 ? 0 : 1], role = i % 2;
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(t.col).offsetHSL(0, 0, role ? -.06 : .03), roughness: .5 });
+    const body = new THREE.Mesh(blobGeo, mat); body.position.y = CFG.pr; body.castShadow = true; g.add(body);
+    const band = new THREE.Mesh(bandGeo, bandMat); band.rotation.x = Math.PI / 2; band.position.y = .12; body.add(band);
+    const eyes = [];
+    for (const sg of [-1, 1]) {
+      const e = new THREE.Group(); e.position.set(.44, .16, sg * .22); e.add(new THREE.Mesh(eyeGeo, eyeMat));
+      const pu = new THREE.Mesh(pupilGeo, pupilMat); pu.position.set(.11, .01, sg * .02); e.add(pu); body.add(e); eyes.push(e);
+    }
+    // topete com a cor escura do time
+    const tuft = new THREE.Mesh(new THREE.ConeGeometry(.14, .38, 6), new THREE.MeshStandardMaterial({ color: t.dark, roughness: .6, flatShading: true }));
+    tuft.position.set(-.05, .65, 0); tuft.rotation.z = .4; body.add(tuft);
+    scene.add(g);
+    pViews.push({ g, body, eyes, blink: 1 + Math.random() * 3 });
+  }
+}
+
+// partículas
+const PMAX = 600, pPos = new Float32Array(PMAX * 3), pCol = new Float32Array(PMAX * 3), parts = [];
+for (let i = 0; i < PMAX; i++) { parts.push({ life: 0, vx: 0, vy: 0, vz: 0, g: 9 }); pPos[i * 3 + 1] = -999; }
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3)); pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: .3, map: dotTex, vertexColors: true, transparent: true, depthWrite: false }));
+points.frustumCulled = false; scene.add(points);
+let pNext = 0; const tc = new THREE.Color();
+function burst(x, y, z, color, n, spd, up = 3, grav = 9, life = .8) {
+  tc.set(color);
+  for (let i = 0; i < n; i++) {
+    const k = pNext = (pNext + 1) % PMAX, p = parts[k], a = Math.random() * TAU, s = spd * (.4 + Math.random() * .8);
+    p.life = life * (.7 + Math.random() * .6); p.vx = Math.cos(a) * s; p.vz = Math.sin(a) * s; p.vy = up * (.6 + Math.random() * .8); p.g = grav;
+    pPos[k * 3] = x; pPos[k * 3 + 1] = y; pPos[k * 3 + 2] = z; pCol[k * 3] = tc.r; pCol[k * 3 + 1] = tc.g; pCol[k * 3 + 2] = tc.b;
+  }
+}
+function updateParticles(dt) {
+  for (let i = 0; i < PMAX; i++) {
+    const p = parts[i]; if (p.life <= 0) continue;
+    p.life -= dt; p.vy -= p.g * dt;
+    pPos[i * 3] += p.vx * dt; pPos[i * 3 + 1] += p.vy * dt; pPos[i * 3 + 2] += p.vz * dt;
+    if (p.life <= 0 || pPos[i * 3 + 1] < 0) { p.life = 0; pPos[i * 3 + 1] = -999; }
+  }
+  pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
+}
+
+/* =========================================================
+   Partida ao vivo
+   ========================================================= */
+let ep = null, endHold = 0, match = { a: 0, b: 0 }, kicks = 0, feed = [];
+function newMatch() {
+  ep = SIM.newMatch(champion, opponent.g, { T: MATCH_T, record: true });
+  match = { a: championGen, b: opponent.gen };
+  $('gA').textContent = championGen ? `geração ${championGen}` : 'cérebro aleatório';
+  $('gB').textContent = opponent.gen ? `geração ${opponent.gen}` : 'cérebro aleatório';
+  kicks = 0; feed = []; renderFeed(); endHold = 0; hideBanner();
+  if (worker) worker.postMessage({ type: 'opp' });
+}
+function renderFeed() {
+  const ul = $('feed');
+  if (!feed.length) { ul.innerHTML = '<li class="empty">Nenhum gol ainda.</li>'; return; }
+  ul.innerHTML = feed.slice(-6).reverse().map(f => `<li><span class="t mono">${f.t}</span><span class="d" style="background:${TEAM[f.team].css}"></span><span>${f.text}</span></li>`).join('');
+}
+
+/* =========================================================
+   Interação
+   ========================================================= */
+let speed = 1, tvCam = true;
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
+  speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+$('bNew').addEventListener('click', newMatch);
+$('tTrain').addEventListener('click', e => {
+  training = !training; const b = e.currentTarget;
+  b.setAttribute('aria-pressed', String(training)); b.textContent = training ? 'Treino ligado' : 'Treino pausado';
+  if (worker) worker.postMessage({ type: training ? 'resume' : 'pause' });
+});
+$('tCam').addEventListener('click', e => {
+  tvCam = !tvCam; const b = e.currentTarget;
+  b.setAttribute('aria-pressed', String(tvCam)); b.textContent = tvCam ? 'Câmera de TV' : 'Câmera livre';
+  controls.enabled = !tvCam;
+});
+let resetTimer = 0;
+$('bReset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!b.classList.contains('confirm')) {
+    b.classList.add('confirm'); b.textContent = 'Confirmar: apagar o treino';
+    clearTimeout(resetTimer); resetTimer = setTimeout(() => { b.classList.remove('confirm'); b.textContent = 'Recomeçar treino'; }, 3500); return;
+  }
+  clearTimeout(resetTimer); b.classList.remove('confirm'); b.textContent = 'Recomeçar treino';
+  if (worker) worker.postMessage({ type: 'reset' });
+  else { localTrainer = new SIM.Trainer(null); onTrainMsg({ type: 'state', state: localTrainer.serialize(), reset: true }); }
+  newMatch();
+});
+let bannerTimer = 0;
+function showBanner(big, s, color, ms) {
+  $('bBig').textContent = big; $('bBig').style.color = color || 'var(--ink)'; $('bS').textContent = s;
+  $('banner').classList.add('show'); clearTimeout(bannerTimer); if (ms) bannerTimer = setTimeout(hideBanner, ms);
+}
+function hideBanner() { $('banner').classList.remove('show'); }
+
+/* =========================================================
+   HUD
+   ========================================================= */
+const fmtT = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+function updateHud() {
+  if (!ep) return;
+  $('sA').textContent = ep.score[0]; $('sB').textContent = ep.score[1];
+  $('clock').textContent = `${fmtT(ep.t)} / ${fmtT(MATCH_T)}`;
+  $('kicks').textContent = `${kicks} ${kicks === 1 ? 'chute' : 'chutes'}`;
+  $('gen').textContent = trainGen;
+  $('gBar').style.width = (trainProg * 100).toFixed(0) + '%';
+  $('gVal').textContent = training ? Math.round(trainProg * 100) + '%' : 'pausado';
+  $('epsChip').textContent = eps ? `${eps.toFixed(0)} partidas/s` : '– partidas/s';
+}
+function sizeCanvas(cv) {
+  const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2), w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); return [x, r.width, r.height];
+}
+function sparkline(cv, vals, color, fixedMax) {
+  const [x, w, h] = sizeCanvas(cv); x.clearRect(0, 0, w, h); if (w < 10) return;
+  const padT = 6, padB = 4;
+  x.strokeStyle = 'rgba(42,35,64,0.12)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, h - padB + .5); x.lineTo(w, h - padB + .5); x.stroke();
+  if (fixedMax) { x.setLineDash([3, 3]); x.beginPath(); x.moveTo(0, padT + .5); x.lineTo(w, padT + .5); x.stroke(); x.setLineDash([]); }
+  if (vals.length < 2) return;
+  const max = fixedMax || (Math.max(...vals) * 1.15 || 1);
+  const X = i => 3 + i / (vals.length - 1) * (w - 10), Y = v => h - padB - v / max * (h - padT - padB);
+  x.beginPath(); vals.forEach((v, i) => i ? x.lineTo(X(i), Y(v)) : x.moveTo(X(i), Y(v)));
+  x.lineTo(X(vals.length - 1), h - padB); x.lineTo(X(0), h - padB); x.closePath(); x.fillStyle = color + '2a'; x.fill();
+  x.beginPath(); vals.forEach((v, i) => i ? x.lineTo(X(i), Y(v)) : x.moveTo(X(i), Y(v)));
+  x.strokeStyle = color; x.lineWidth = 1.8; x.lineJoin = 'round'; x.stroke();
+  const lx = X(vals.length - 1), ly = Y(vals[vals.length - 1]);
+  x.fillStyle = '#fffaf2'; x.beginPath(); x.arc(lx, ly, 4, 0, TAU); x.fill(); x.fillStyle = color; x.beginPath(); x.arc(lx, ly, 2.6, 0, TAU); x.fill();
+}
+function drawCharts() {
+  const h = hist.slice(-80);
+  // média móvel de 5 gerações para suavizar o ruído do self-play
+  const smooth = (arr) => arr.map((_, i) => { const s = arr.slice(Math.max(0, i - 4), i + 1); return s.reduce((a, b) => a + b, 0) / s.length; });
+  const win = smooth(h.map(d => d.benchW * 100)), gl = smooth(h.map(d => d.goals));
+  sparkline($('chWin'), win, '#3f8fd6', 100);
+  sparkline($('chGoals'), gl, '#ea7a2c');
+  if (h.length) {
+    $('vWin').textContent = Math.round(win[win.length - 1]) + '%';
+    $('vGoals').textContent = gl[gl.length - 1].toFixed(2);
+    $('chartFoot').textContent = `Média móvel de 5 gerações (${h[0].gen} a ${h[h.length - 1].gen}). A cada geração, o campeão joga 10 partidas contra o campeão da geração 1.`;
+  } else {
+    $('vWin').textContent = '–'; $('vGoals').textContent = '–';
+    $('chartFoot').textContent = 'Os gráficos aparecem após a primeira geração.';
+  }
+}
+
+/* =========================================================
+   Loop
+   ========================================================= */
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); drawCharts(); }
+addEventListener('resize', resize);
+const camTarget = new THREE.Vector3(), camPos = new THREE.Vector3(), tmpV = new THREE.Vector3(), axis = new THREE.Vector3(), qd = new THREE.Quaternion();
+let shake = 0;
+
+function handleEvents() {
+  for (const e of ep.events) {
+    if (e.type === 'kick') {
+      kicks++;
+      burst(e.x, .15, e.z, 0xcfe8a8, 6, 1.6, 1.5, 6, .5);
+      pViews[e.i].kick = .25;
+    } else if (e.type === 'goal') {
+      const t = TEAM[e.team];
+      const scorer = e.scorer >= 0 ? (ep.players[e.scorer].team === e.team ? TEAM[e.team].players[e.scorer % 2] : `contra, de ${TEAM[1 - e.team].players[e.scorer % 2]}`) : '';
+      const text = scorer.startsWith('contra') ? `Gol ${scorer}` : `Gol de ${scorer} (${t.name})`;
+      feed.push({ t: fmtT(ep.t), team: e.team, text }); renderFeed();
+      showBanner('GOL!', `${text} · ${ep.score[0]} × ${ep.score[1]}`, t.css, 2000);
+      const gx = e.team === 0 ? W + GD / 2 : -W - GD / 2;
+      for (let k = 0; k < 4; k++) burst(gx, 1.2, (Math.random() - .5) * 4, k % 2 ? t.col : 0xffffff, 18, 4, 7, 6, 1.6);
+      fans.forEach(f => { if (f.team === e.team) f.jump = 2.2 + Math.random() * .6; });
+      goals[e.team === 0 ? 1 : 0].shake = 1; shake = .4;
+    } else if (e.type === 'reset') {
+      feed.push({ t: fmtT(ep.t), team: 0, text: 'Bola parada, reinício no meio' }); renderFeed();
+    } else if (e.type === 'end') {
+      endHold = 4.5;
+      const [a, b] = ep.score;
+      const big = a === b ? 'Empate' : (a > b ? 'Vitória do Azul' : 'Vitória do Laranja');
+      showBanner(big, `Azul ${a} × ${b} Laranja · geração ${match.a || 0} contra geração ${match.b || 0}`, a === b ? 'var(--ink)' : (a > b ? TEAM[0].css : TEAM[1].css), 0);
+    }
+  }
+  ep.events.length = 0;
+}
+
+function syncViews(time, fdt) {
+  const b = ep.ball;
+  const bsp = Math.hypot(b.vx, b.vz);
+  ballMesh.position.set(b.x, CFG.br, b.z);
+  if (bsp > .01) { axis.set(b.vz, 0, -b.vx).normalize(); qd.setFromAxisAngle(axis, bsp * fdt * speed / CFG.br); ballMesh.quaternion.premultiply(qd); }
+  if (bsp > 11 && Math.random() < .6) burst(b.x, .3, b.z, 0xffffff, 1, .2, .3, 0, .35);
+  ballMesh.visible = ep.pause <= 0 || Math.abs(b.x) <= W + 2.5;
+  ep.players.forEach((p, i) => {
+    const v = pViews[i];
+    const sp = Math.min(1, Math.abs(p.v) / CFG.speed), hop = Math.abs(Math.sin(p.phase));
+    v.g.position.set(p.x, hop * .32 * sp, p.z); v.g.rotation.y = -p.h;
+    let sq = sp > .08 ? (hop < .3 ? (.3 - hop) * .5 : -hop * .08) * sp : Math.sin(time * 3 + i) * .03;
+    if (v.kick > 0) { v.kick -= fdt; const k = Math.sin((1 - v.kick / .25) * Math.PI); v.body.position.x = k * .25; v.body.scale.set(1 + k * .25, 1 - k * .12, 1); }
+    else { v.body.position.x = 0; v.body.scale.set(1 + sq * .6, 1 - sq, 1 + sq * .6); }
+    // olhos seguem a bola
+    v.blink -= fdt; let ey = 1; if (v.blink < 0) { ey = .15; if (v.blink < -.12) v.blink = 2 + Math.random() * 4; }
+    v.eyes.forEach(e => e.scale.y = ey);
+  });
+  // celebração: time que fez gol pula durante a pausa
+  fans.forEach(f => {
+    if (f.jump > 0) { f.jump -= fdt; f.g.position.y = f.baseY + Math.abs(Math.sin(f.jump * 9 + f.ph)) * .7; }
+    else f.g.position.y = f.baseY + Math.max(0, Math.sin(time * 2 + f.ph)) * .05;
+  });
+  goals.forEach(g => { if (g.shake > 0) { g.shake -= fdt * 1.5; g.lines.position.x = Math.sin(g.shake * 40) * .06 * g.shake; } });
+  for (const d of drifters) { d.a += d.sp * fdt; d.g.position.set(Math.cos(d.a) * d.d, d.y, Math.sin(d.a) * d.d); d.g.lookAt(0, d.y, 0); }
+  // câmera de TV
+  if (tvCam) {
+    const bx = THREE.MathUtils.clamp(b.x, -W, W), bz = THREE.MathUtils.clamp(b.z, -H, H);
+    camTarget.lerp(tmpV.set(bx * .55, 0, bz * .25), 1 - Math.pow(.04, fdt));
+    const narrow = innerWidth < innerHeight;
+    camPos.set(camTarget.x * .8, narrow ? 36 : 25, narrow ? 38 : 29);
+    camera.position.lerp(camPos, 1 - Math.pow(.05, fdt));
+    if (shake > 0) { shake -= fdt; camera.position.x += (Math.random() - .5) * shake * .6; camera.position.y += (Math.random() - .5) * shake * .6; }
+    camera.lookAt(camTarget);
+    controls.target.copy(camTarget);
+  }
+}
+
+let last = performance.now(), acc = 0, hudT = 0, time = 0;
+function frame(now) {
+  const fdt = Math.min(.1, (now - last) / 1000); last = now; time += fdt;
+  if (!worker) localTrain();
+  if (endHold > 0) { endHold -= fdt; if (endHold <= 0) newMatch(); }
+  else if (ep && !ep.done) {
+    acc += fdt * speed;
+    while (acc >= CFG.dt && !ep.done) { SIM.step(ep); acc -= CFG.dt; }
+    if (ep.done) acc = 0;
+  }
+  if (ep) { handleEvents(); syncViews(time, fdt); }
+  updateParticles(fdt);
+  if (!tvCam) controls.update();
+  renderer.render(scene, camera);
+  hudT += fdt;
+  if (hudT > .12) { hudT = 0; updateHud(); }
+  requestAnimationFrame(frame);
+}
+
+newMatch();
+resize(); updateHud(); drawCharts();
+camera.lookAt(0, 0, 0);
+$('loading').remove();
+requestAnimationFrame(frame);
+</script>

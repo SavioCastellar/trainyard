@@ -1,8 +1,8 @@
-# Cabeçudos — prova de conceito da arquitetura
+# Cabeçudos
 
 Liga universitária em que cada estudante treina o seu atleta "Cabeçudo", controlado por IA, e as atléticas competem entre si todos os dias.
 
-Este repositório existe para **provar que a arquitetura funciona** antes de construir o produto. Os resultados de cada experimento ficam em [`docs/resultados-poc.md`](docs/resultados-poc.md).
+A prova de conceito da arquitetura terminou (resultados em [`docs/resultados-poc.md`](docs/resultados-poc.md)). Agora o trabalho segue em sessões paralelas: comece por [`CLAUDE.md`](CLAUDE.md) e [`docs/plano.md`](docs/plano.md).
 
 ## Como as peças se encaixam
 
@@ -12,7 +12,9 @@ sim/        Física e regras em TypeScript — fonte única do jogo.
 training/   Treino do cérebro com PPO + self-play em liga (Python/PyTorch),
             conversando com a simulação por uma ponte binária (stdin/stdout).
 web/        Visualizador 3D que toca os replays gerados no servidor.
-docs/       Plano da prova de conceito e resultados.
+fitas/      Fitas de treino gravadas (uma por atividade).
+prototipos/ Páginas exploratórias aprovadas, usadas como referência visual.
+docs/       Produto, arquitetura, aprendizados, contratos, plano e briefing de cada sessão.
 ```
 
 Princípios:

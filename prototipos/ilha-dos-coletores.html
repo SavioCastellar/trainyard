@@ -1,0 +1,1096 @@
+<title>Ilha dos Coletores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --ink: #2a2340;
+    --muted: #6b6485;
+    --paper: rgba(255, 250, 242, 0.84);
+    --paper-solid: #fffaf2;
+    --line: rgba(42, 35, 64, 0.12);
+    --amber: #d98b1e;
+    --plum: #5a4796;
+    --berry: #e8575a;
+    --leaf: #4f8d47;
+    --sky: #cfe6ee;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    background: var(--sky);
+    color: var(--ink);
+    font-family: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif;
+    overflow: hidden;
+  }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  #c:active { cursor: grabbing; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  #ui {
+    position: fixed; inset: 0; pointer-events: none;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    display: grid;
+    grid-template-columns: minmax(0, 300px) 1fr minmax(0, 280px);
+    grid-template-rows: auto 1fr auto;
+    gap: 12px;
+  }
+  .left { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 10px; align-self: start; }
+  .panel {
+    pointer-events: auto;
+    background: var(--paper);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(42, 35, 64, 0.12);
+    padding: 14px 16px;
+  }
+  .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--leaf); font-weight: 600; }
+  h1 { margin: 2px 0 6px; font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+
+  .genrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .genrow .lbl { font-size: 12px; color: var(--muted); }
+  .gen { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+  .clock { font-size: 12px; color: var(--muted); }
+  .bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 8px 0 12px; }
+  .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #7fbf6a, #e9b84a); border-radius: inherit; }
+
+  .counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .counter { display: flex; flex-direction: column; gap: 2px; }
+  .counter b { font-size: 18px; font-weight: 600; }
+  .counter span { font-size: 10.5px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .charts { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; }
+  .chart-head .v { font-size: 12px; }
+  .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .chart { width: 100%; height: 54px; display: block; margin-top: 4px; }
+  .foot { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+  .controls {
+    grid-column: 1 / 4; grid-row: 3; justify-self: center;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px;
+    padding: 10px 12px;
+  }
+  .seg { display: flex; background: rgba(42, 35, 64, 0.07); border-radius: 10px; padding: 3px; gap: 2px; }
+  button {
+    font: 600 13px/1 "Bricolage Grotesque", system-ui, sans-serif;
+    color: var(--ink); background: transparent; border: 0; border-radius: 8px;
+    padding: 8px 11px; cursor: pointer;
+  }
+  button:hover { background: rgba(42, 35, 64, 0.08); }
+  button:focus-visible { outline: 2px solid var(--plum); outline-offset: 2px; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper-solid); }
+  .toggle[aria-pressed="true"] { background: rgba(90, 71, 150, 0.14); color: var(--plum); }
+  .danger.confirm { background: var(--berry); color: #fff; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  .inspector { grid-column: 3; grid-row: 1 / 3; align-self: start; display: flex; flex-direction: column; gap: 10px; }
+  .insp-head { display: flex; align-items: center; gap: 10px; }
+  .insp-head .dot { width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); flex: none; }
+  .insp-head h2 { margin: 0; font-size: 18px; font-weight: 800; }
+  .insp-head .sub { font-size: 11.5px; color: var(--muted); }
+  .insp-head button { margin-left: auto; padding: 6px 9px; }
+  .status { align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 99px; background: rgba(79, 141, 71, 0.14); color: var(--leaf); }
+  .status.alert { background: rgba(232, 87, 90, 0.14); color: #b8383b; }
+  .status.hunt { background: rgba(90, 71, 150, 0.14); color: var(--plum); }
+  .status.gone { background: rgba(42, 35, 64, 0.08); color: var(--muted); }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 12.5px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; text-align: right; }
+  .energy { height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; grid-column: 1 / 3; }
+  .energy > i { display: block; height: 100%; background: var(--leaf); }
+  .brain-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  #net { width: 100%; height: 190px; display: block; }
+
+  .toast {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 18px); transform: translate(-50%, -8px);
+    background: var(--ink); color: var(--paper-solid); font-size: 13px; font-weight: 600;
+    padding: 8px 14px; border-radius: 99px; opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); pointer-events: none; }
+
+  @media (max-width: 760px) {
+    #ui { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; gap: 8px; }
+    .left { grid-column: 1; grid-row: 1; }
+    .brand { display: none; }
+    .charts, .foot { display: none; }
+    .inspector { grid-column: 1; grid-row: 3; max-height: 38vh; overflow: auto; }
+    #net { height: 150px; }
+    .controls { grid-column: 1; grid-row: 4; justify-self: stretch; }
+    .hint { display: none; }
+    .gen { font-size: 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transition: none; }
+  }
+</style>
+
+<canvas id="c" aria-label="Simulação 3D da ilha com coletores e predadores"></canvas>
+<div class="loading" id="loading">Carregando a ilha…</div>
+
+<div id="ui">
+  <div class="left">
+    <header class="panel brand">
+      <div class="eyebrow">Neuroevolução ao vivo</div>
+      <h1>Ilha dos Coletores</h1>
+      <p class="lede">28 coletores aprendem a juntar frutas e a fugir. 6 predadores aprendem a caçar. No fim de cada geração, os melhores cérebros se reproduzem com pequenas mutações. Tudo roda no seu navegador.</p>
+    </header>
+
+    <section class="panel stats" aria-label="Progresso do treino">
+      <div class="genrow">
+        <div><div class="lbl">Geração</div><div class="gen mono" id="gen">1</div></div>
+        <div class="clock mono" id="clock">00:00 / 00:40</div>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="counters">
+        <div class="counter"><b class="mono" id="alive">28</b><span>Vivos</span></div>
+        <div class="counter"><b class="mono" id="foodc">0</b><span>Frutas</span></div>
+        <div class="counter"><b class="mono" id="catchc">0</b><span>Capturas</span></div>
+        <div class="counter"><b class="mono" id="starvec">0</b><span>Fome</span></div>
+      </div>
+      <div class="charts">
+        <div>
+          <div class="chart-head"><span><i class="swatch" style="background:var(--amber)"></i>Frutas por coletor</span><span class="v mono" id="vFood">–</span></div>
+          <canvas class="chart" id="chFood"></canvas>
+        </div>
+        <div>
+          <div class="chart-head"><span><i class="swatch" style="background:var(--plum)"></i>Capturas por predador</span><span class="v mono" id="vCatch">–</span></div>
+          <canvas class="chart" id="chCatch"></canvas>
+        </div>
+        <div class="foot" id="chartFoot">Média de cada geração. Os gráficos aparecem após a primeira geração.</div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="panel inspector" id="insp" hidden aria-live="polite">
+    <div class="insp-head">
+      <div class="dot" id="iDot"></div>
+      <div><h2 id="iName">Coletor</h2><div class="sub" id="iSub">Linhagem da geração 1</div></div>
+      <button id="iClose" aria-label="Fechar inspetor">✕</button>
+    </div>
+    <div class="status" id="iStatus">Procurando comida</div>
+    <dl class="kv" id="iKv"></dl>
+    <div class="brain-title">O que o cérebro vê e decide</div>
+    <canvas id="net"></canvas>
+  </aside>
+
+  <nav class="panel controls" aria-label="Controles">
+    <div class="seg" role="group" aria-label="Velocidade">
+      <button data-speed="0" aria-pressed="false">Pausar</button>
+      <button data-speed="1" aria-pressed="true">1×</button>
+      <button data-speed="4" aria-pressed="false">4×</button>
+      <button data-speed="16" aria-pressed="false">16×</button>
+      <button data-speed="64" aria-pressed="false">64×</button>
+    </div>
+    <button class="toggle" id="tRays" aria-pressed="true">Sensores</button>
+    <button class="toggle" id="tRot" aria-pressed="true">Câmera girando</button>
+    <button class="danger" id="bReset">Recomeçar treino</button>
+    <span class="hint">Clique em um bichinho para ver o que ele enxerga</span>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =========================================================
+   Configuração
+   ========================================================= */
+const CFG = {
+  R: 26, dt: 1 / 30, genTime: 40,
+  nC: 28, nP: 6, nFood: 48,
+  c: { r: 0.55, speed: 5.0, turn: 4.8, rays: 12, fov: Math.PI * 5 / 3, len: 13, hidden: 16 },
+  p: { r: 0.85, speed: 5.4, turn: 2.6, rays: 9, fov: Math.PI * 0.8, len: 19, hidden: 16, cooldown: 2.0 },
+  energyDecay: 1 / 22, foodEnergy: 0.45, foodR: 0.4,
+};
+const TAU = Math.PI * 2;
+const C_IN = CFG.c.rays * 3 + 2;   // frutas, predadores, obstáculos + energia, velocidade
+const P_IN = CFG.p.rays * 2 + 2;   // presas, obstáculos + velocidade, digerindo
+const OUT = 2;                     // acelerar, virar
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const srand = mulberry32(20260926);
+let gSpare = null;
+function gauss() {
+  if (gSpare !== null) { const s = gSpare; gSpare = null; return s; }
+  let u = 0; while (u === 0) u = Math.random();
+  const v = Math.random(), r = Math.sqrt(-2 * Math.log(u));
+  gSpare = r * Math.sin(TAU * v); return r * Math.cos(TAU * v);
+}
+
+/* =========================================================
+   Cérebros: MLP  entradas -> 16 tanh -> 2 tanh
+   ========================================================= */
+const nParams = (nin, nh) => nin * nh + nh + nh * OUT + OUT;
+function randGenome(nin, nh) {
+  const g = new Float32Array(nParams(nin, nh));
+  const s1 = 1.6 / Math.sqrt(nin), s2 = 1.2 / Math.sqrt(nh); let k = 0;
+  for (let i = 0; i < nin * nh; i++) g[k++] = gauss() * s1;
+  for (let i = 0; i < nh; i++) g[k++] = gauss() * 0.2;
+  for (let i = 0; i < nh * OUT; i++) g[k++] = gauss() * s2;
+  g[k++] = 0.3 + gauss() * 0.2; g[k++] = gauss() * 0.2;
+  return g;
+}
+function forward(g, nin, nh, x, h, o) {
+  let k = 0;
+  for (let j = 0; j < nh; j++) { let s = 0; for (let i = 0; i < nin; i++) s += g[k++] * x[i]; h[j] = s; }
+  for (let j = 0; j < nh; j++) h[j] = Math.tanh(h[j] + g[k++]);
+  for (let m = 0; m < OUT; m++) { let s = 0; for (let j = 0; j < nh; j++) s += g[k++] * h[j]; o[m] = s; }
+  for (let m = 0; m < OUT; m++) o[m] = Math.tanh(o[m] + g[k++]);
+}
+
+/* =========================================================
+   População e evolução
+   ========================================================= */
+let gen = 1, simT = 0, hist = [];
+let cPop = [], pPop = [];
+const stats = { food: 0, catches: 0, starved: 0 };
+
+function newInd(kind, born) {
+  const nin = kind === 'c' ? C_IN : P_IN;
+  const hue = kind === 'c' ? Math.random() : 0.70 + (Math.random() - 0.5) * 0.12;
+  return { g: randGenome(nin, CFG[kind].hidden), hue, born, fit: 0 };
+}
+function evolve(pop, kind, nElite, sigma) {
+  const sorted = [...pop].sort((a, b) => b.fit - a.fit);
+  const next = sorted.slice(0, nElite).map(i => ({ g: i.g, hue: i.hue, born: i.born, fit: 0 }));
+  const tour = () => { let best = null; for (let i = 0; i < 3; i++) { const c = sorted[(Math.random() * sorted.length) | 0]; if (!best || c.fit > best.fit) best = c; } return best; };
+  while (next.length < pop.length) {
+    const a = tour(), b = tour(), cross = Math.random() < 0.5;
+    const g = new Float32Array(a.g.length);
+    for (let i = 0; i < g.length; i++) {
+      let w = cross && Math.random() < 0.5 ? b.g[i] : a.g[i];
+      if (Math.random() < 0.1) w += gauss() * sigma;
+      g[i] = w;
+    }
+    let hue = a.hue + gauss() * 0.015;
+    hue = kind === 'c' ? ((hue % 1) + 1) % 1 : Math.min(0.8, Math.max(0.62, hue));
+    next.push({ g, hue, born: gen + 1, fit: 0 });
+  }
+  if (kind === 'c' && Math.random() < 0.3) next[next.length - 1] = newInd('c', gen + 1);
+  return next;
+}
+
+/* =========================================================
+   Mundo
+   ========================================================= */
+const obstacles = [];
+(function placeObstacles() {
+  const kinds = ['tree', 'rock', 'tree', 'tree', 'rock', 'tree', 'rock', 'tree', 'rock', 'tree'];
+  for (const kind of kinds) {
+    for (let t = 0; t < 60; t++) {
+      const a = srand() * TAU, d = 5 + srand() * (CFG.R - 9);
+      const x = Math.cos(a) * d, z = Math.sin(a) * d, r = kind === 'tree' ? 1.05 : 1.25;
+      if (obstacles.every(o => Math.hypot(o.x - x, o.z - z) > o.r + r + 3.5)) { obstacles.push({ x, z, r, kind, s: 0.85 + srand() * 0.35 }); break; }
+    }
+  }
+})();
+function freeSpot(margin, avoid) {
+  for (let t = 0; t < 50; t++) {
+    const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * (CFG.R - margin);
+    const x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (!obstacles.every(o => (o.x - x) ** 2 + (o.z - z) ** 2 > (o.r + margin) ** 2)) continue;
+    if (avoid && !avoid.every(p => (p.x - x) ** 2 + (p.z - z) ** 2 > 49)) continue;
+    return [x, z];
+  }
+  return [0, 0];
+}
+
+function makeAgent(kind, idx) {
+  const S = CFG[kind];
+  return {
+    kind, idx, r: S.r, ind: null, x: 0, z: 0, h: 0, v: 0, alive: true, death: '',
+    energy: 1, food: 0, catches: 0, tAlive: 0, cd: 0, shape: 0,
+    inp: new Float32Array(kind === 'c' ? C_IN : P_IN), hid: new Float32Array(S.hidden), out: new Float32Array(OUT),
+    rayT: new Float32Array(S.rays), rayType: new Int8Array(S.rays),
+    phase: Math.random() * TAU, blink: 1 + Math.random() * 4, view: null,
+  };
+}
+const collectors = Array.from({ length: CFG.nC }, (_, i) => makeAgent('c', i));
+const predators = Array.from({ length: CFG.nP }, (_, i) => makeAgent('p', i));
+const foods = Array.from({ length: CFG.nFood }, () => ({ x: 0, z: 0, r: CFG.foodR, spawnT: 1, ph: Math.random() * TAU, view: null }));
+const events = [];
+
+function resetWorld() {
+  simT = 0; stats.food = 0; stats.catches = 0; stats.starved = 0;
+  predators.forEach((a, i) => {
+    a.ind = pPop[i]; [a.x, a.z] = freeSpot(2); a.h = Math.random() * TAU; a.v = 0;
+    a.alive = true; a.catches = 0; a.cd = 0; a.shape = 0;
+  });
+  collectors.forEach((a, i) => {
+    a.ind = cPop[i]; [a.x, a.z] = freeSpot(1.2, predators); a.h = Math.random() * TAU; a.v = 0;
+    a.alive = true; a.death = ''; a.energy = 1; a.food = 0; a.tAlive = 0;
+  });
+  foods.forEach(f => { [f.x, f.z] = freeSpot(1.2); f.spawnT = 0; });
+  paintAgents();
+}
+
+/* ---------- sensores (raycasts) ---------- */
+function rayCircle(ox, oz, dx, dz, cx, cz, r) {
+  const mx = ox - cx, mz = oz - cz, b = mx * dx + mz * dz, c = mx * mx + mz * mz - r * r;
+  if (c > 0 && b > 0) return Infinity;
+  const disc = b * b - c; if (disc < 0) return Infinity;
+  const t = -b - Math.sqrt(disc); return t < 0 ? 0 : t;
+}
+function rayWall(ox, oz, dx, dz) {
+  const b = ox * dx + oz * dz, c = ox * ox + oz * oz - CFG.R * CFG.R;
+  return -b + Math.sqrt(Math.max(0, b * b - c));
+}
+const L0 = [], L1 = [], LW = [];
+function sense(a) {
+  const isP = a.kind === 'p', S = isP ? CFG.p : CFG.c, L = S.len, nch = isP ? 2 : 3, inp = a.inp;
+  L0.length = 0; L1.length = 0; LW.length = 0;
+  const near = (o, r) => { const dx = o.x - a.x, dz = o.z - a.z, m = L + r; return dx * dx + dz * dz < m * m; };
+  if (isP) { for (const c of collectors) if (c.alive && near(c, c.r)) L0.push(c); }
+  else {
+    for (const f of foods) if (near(f, f.r)) L0.push(f);
+    for (const p of predators) if (near(p, p.r)) L1.push(p);
+  }
+  for (const o of obstacles) if (near(o, o.r)) LW.push(o);
+  const lists = isP ? [L0] : [L0, L1];
+  for (let k = 0; k < S.rays; k++) {
+    const ang = a.h - S.fov / 2 + S.fov * k / (S.rays - 1), dx = Math.cos(ang), dz = Math.sin(ang);
+    let bestAll = L, typeAll = -1;
+    for (let ch = 0; ch < lists.length; ch++) {
+      let best = L; const lst = lists[ch];
+      for (let i = 0; i < lst.length; i++) { const o = lst[i]; const t = rayCircle(a.x, a.z, dx, dz, o.x, o.z, o.r); if (t < best) best = t; }
+      inp[k * nch + ch] = best < L ? 1 - best / L : 0;
+      if (best < bestAll) { bestAll = best; typeAll = ch; }
+    }
+    let best = rayWall(a.x, a.z, dx, dz);
+    for (let i = 0; i < LW.length; i++) { const o = LW[i]; const t = rayCircle(a.x, a.z, dx, dz, o.x, o.z, o.r); if (t < best) best = t; }
+    if (best > L) best = L;
+    inp[k * nch + nch - 1] = best < L ? 1 - best / L : 0;
+    if (best < bestAll) { bestAll = best; typeAll = nch - 1; }
+    a.rayT[k] = bestAll / L; a.rayType[k] = typeAll;
+  }
+  const base = S.rays * nch;
+  if (isP) { inp[base] = a.v / S.speed; inp[base + 1] = a.cd > 0 ? 1 : 0; }
+  else { inp[base] = a.energy; inp[base + 1] = a.v / S.speed; }
+}
+
+function think(a) {
+  sense(a);
+  const S = CFG[a.kind];
+  forward(a.ind.g, a.inp.length, S.hidden, a.inp, a.hid, a.out);
+}
+function move(a, dt) {
+  const S = CFG[a.kind];
+  a.h += a.out[1] * S.turn * dt;
+  let maxV = S.speed; if (a.kind === 'p' && a.cd > 0) maxV *= 0.35;
+  const target = (a.out[0] + 1) / 2 * maxV;
+  a.v += (target - a.v) * Math.min(1, dt * 5);
+  a.x += Math.cos(a.h) * a.v * dt; a.z += Math.sin(a.h) * a.v * dt;
+  a.phase += a.v * dt * 2.4;
+}
+function bounds(a) {
+  for (const o of obstacles) {
+    const dx = a.x - o.x, dz = a.z - o.z, m = a.r + o.r, d2 = dx * dx + dz * dz;
+    if (d2 < m * m) { const d = Math.sqrt(d2) || 1e-4; a.x = o.x + dx / d * m; a.z = o.z + dz / d * m; }
+  }
+  const d = Math.hypot(a.x, a.z), lim = CFG.R - a.r;
+  if (d > lim) { a.x *= lim / d; a.z *= lim / d; }
+}
+function separate(list) {
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i]; if (!a.alive) continue;
+    for (let j = i + 1; j < list.length; j++) {
+      const b = list[j]; if (!b.alive) continue;
+      const dx = b.x - a.x, dz = b.z - a.z, m = a.r + b.r, d2 = dx * dx + dz * dz;
+      if (d2 < m * m && d2 > 1e-8) { const d = Math.sqrt(d2), p = (m - d) / 2 / d; a.x -= dx * p; a.z -= dz * p; b.x += dx * p; b.z += dz * p; }
+    }
+  }
+}
+function kill(c, why) {
+  c.alive = false; c.death = why;
+  events.push({ type: why, x: c.x, z: c.z, hue: c.ind.hue });
+  if (why === 'starve') stats.starved++;
+}
+const aliveCount = () => collectors.reduce((n, c) => n + (c.alive ? 1 : 0), 0);
+
+function step() {
+  const dt = CFG.dt;
+  for (const a of collectors) if (a.alive) think(a);
+  for (const a of predators) think(a);
+  for (const a of collectors) if (a.alive) move(a, dt);
+  for (const a of predators) move(a, dt);
+  separate(collectors); separate(predators);
+  for (const a of collectors) if (a.alive) bounds(a);
+  for (const a of predators) bounds(a);
+
+  for (const c of collectors) {
+    if (!c.alive) continue;
+    for (const f of foods) {
+      const dx = f.x - c.x, dz = f.z - c.z, m = c.r + f.r;
+      if (dx * dx + dz * dz < m * m) {
+        c.food++; stats.food++; c.energy = Math.min(1, c.energy + CFG.foodEnergy);
+        events.push({ type: 'eat', x: f.x, z: f.z, hue: c.ind.hue });
+        [f.x, f.z] = freeSpot(1.2); f.spawnT = 0;
+      }
+    }
+  }
+  for (const p of predators) {
+    if (p.cd > 0) { p.cd -= dt; continue; }
+    for (const c of collectors) {
+      if (!c.alive) continue;
+      const dx = c.x - p.x, dz = c.z - p.z, m = p.r + c.r;
+      if (dx * dx + dz * dz < m * m) { kill(c, 'catch'); p.catches++; stats.catches++; p.cd = CFG.p.cooldown; break; }
+    }
+  }
+  for (const c of collectors) {
+    if (!c.alive) continue;
+    c.tAlive += dt; c.energy -= CFG.energyDecay * dt;
+    if (c.energy <= 0) kill(c, 'starve');
+  }
+  for (const p of predators) {
+    let best = Infinity;
+    for (const c of collectors) if (c.alive) { const d = (c.x - p.x) ** 2 + (c.z - p.z) ** 2; if (d < best) best = d; }
+    if (best < Infinity) p.shape += dt * 0.03 * Math.max(0, 1 - Math.sqrt(best) / 15);
+  }
+  simT += dt;
+  if (simT >= CFG.genTime || aliveCount() === 0) endGeneration();
+}
+
+function endGeneration() {
+  let food = 0, catches = 0;
+  for (const c of collectors) { c.ind.fit = c.food + 0.06 * c.tAlive; food += c.food; }
+  for (const p of predators) { p.ind.fit = p.catches * 3 + p.shape; catches += p.catches; }
+  hist.push({ gen, food: food / CFG.nC, catches: catches / CFG.nP, alive: aliveCount(), starved: stats.starved });
+  if (hist.length > 400) hist.shift();
+  cPop = evolve(cPop, 'c', 4, 0.25);
+  pPop = evolve(pPop, 'p', 2, 0.25);
+  gen++;
+  save();
+  resetWorld();
+  drawCharts();
+  if (speed <= 4) toast(`Geração ${gen} começou`);
+}
+
+/* ---------- persistência (só neste navegador) ---------- */
+const KEY = 'ilha-coletores-v1';
+const ser = i => ({ g: Array.from(i.g, v => Math.round(v * 1e4) / 1e4), hue: Math.round(i.hue * 1e4) / 1e4, born: i.born });
+function save() { try { localStorage.setItem(KEY, JSON.stringify({ gen, hist: hist.slice(-200), c: cPop.map(ser), p: pPop.map(ser) })); } catch (e) { } }
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (!s || s.c.length !== CFG.nC || s.p.length !== CFG.nP) return false;
+    if (s.c[0].g.length !== nParams(C_IN, CFG.c.hidden) || s.p[0].g.length !== nParams(P_IN, CFG.p.hidden)) return false;
+    gen = s.gen; hist = s.hist || [];
+    cPop = s.c.map(d => ({ g: Float32Array.from(d.g), hue: d.hue, born: d.born, fit: 0 }));
+    pPop = s.p.map(d => ({ g: Float32Array.from(d.g), hue: d.hue, born: d.born, fit: 0 }));
+    return true;
+  } catch (e) { return false; }
+}
+function freshPopulations() {
+  gen = 1; hist = [];
+  cPop = Array.from({ length: CFG.nC }, () => newInd('c', 1));
+  pPop = Array.from({ length: CFG.nP }, () => newInd('p', 1));
+}
+
+/* =========================================================
+   Cena 3D
+   ========================================================= */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+const HORIZON = 0xf4ddc2;
+scene.fog = new THREE.Fog(HORIZON, 80, 190);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 500);
+camera.position.set(36, 30, 40);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.maxPolarAngle = 1.38; controls.minDistance = 7; controls.maxDistance = 120;
+controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.35;
+controls.target.set(0, 0, 0);
+
+// céu em degradê
+scene.add(new THREE.Mesh(
+  new THREE.SphereGeometry(320, 32, 16),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color(0x86c3dc) }, mid: { value: new THREE.Color(HORIZON) }, bot: { value: new THREE.Color(0xe7a996) } },
+    vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP;
+      void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.55, h)) : mix(mid, bot, smoothstep(0.0, -0.6, h));
+      gl_FragColor = vec4(c, 1.0);
+      #include <colorspace_fragment>
+      }`,
+  })
+));
+
+scene.add(new THREE.HemisphereLight(0xe3f2ff, 0xc9a77c, 1.15));
+const sun = new THREE.DirectionalLight(0xfff0d6, 2.5);
+sun.position.set(22, 42, 14); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -34, right: 34, top: 34, bottom: -34, near: 5, far: 110 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+const noise3 = (x, y, z) => Math.sin(x * 0.7 + y * 1.3) * Math.cos(z * 0.9 - y * 0.5) + 0.5 * Math.sin(x * 1.9 - z * 1.7 + y * 0.8);
+
+function makeRockBase(radius, height, seg, rings, cTop, cBot) {
+  const geo = new THREE.ConeGeometry(radius, height, seg, rings);
+  geo.rotateX(Math.PI);
+  const pos = geo.attributes.position, colors = [];
+  const top = new THREE.Color(cTop), bot = new THREE.Color(cBot), tmp = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    if (y < height / 2 - 0.01) {
+      const n = noise3(x * 0.35, y * 0.35, z * 0.35);
+      const k = 1 + n * 0.12; x *= k; z *= k; y += n * height * 0.03;
+      pos.setXYZ(i, x, y, z);
+    }
+    const f = THREE.MathUtils.clamp((y + height / 2) / height, 0, 1);
+    tmp.copy(bot).lerp(top, Math.pow(f, 0.8));
+    colors.push(tmp.r, tmp.g, tmp.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
+}
+
+const R = CFG.R;
+const grassTop = new THREE.Mesh(new THREE.CylinderGeometry(R + 1.4, R + 0.9, 1.2, 80), new THREE.MeshStandardMaterial({ color: 0x9fcf7f, roughness: 1 }));
+grassTop.position.y = -0.6; grassTop.receiveShadow = true; scene.add(grassTop);
+const island = makeRockBase(R + 0.9, 18, 30, 6, 0xc39266, 0x7c6a93);
+island.position.y = -1.2 - 9; scene.add(island);
+
+// grama e flores (instanciadas)
+{
+  const n = 900, geo = new THREE.ConeGeometry(0.1, 0.55, 4); geo.translate(0, 0.27, 0);
+  const inst = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), n);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const a = srand() * TAU, d = Math.sqrt(srand()) * (R + 0.9);
+    p.set(Math.cos(a) * d, 0, Math.sin(a) * d);
+    q.setFromEuler(new THREE.Euler((srand() - 0.5) * 0.4, srand() * TAU, (srand() - 0.5) * 0.4));
+    const k = 0.6 + srand() * 0.9; s.set(k, k, k);
+    inst.setMatrixAt(i, m.compose(p, q, s));
+    inst.setColorAt(i, col.setHSL(0.26 + srand() * 0.06, 0.45, 0.42 + srand() * 0.14));
+  }
+  scene.add(inst);
+  const fn = 160, fgeo = new THREE.IcosahedronGeometry(0.13, 0);
+  const flowers = new THREE.InstancedMesh(fgeo, new THREE.MeshStandardMaterial({ roughness: 0.6 }), fn);
+  const pal = [0xfff6df, 0xffc9d6, 0xffe08a, 0xcbb9ff];
+  for (let i = 0; i < fn; i++) {
+    const a = srand() * TAU, d = Math.sqrt(srand()) * (R + 0.5);
+    p.set(Math.cos(a) * d, 0.16, Math.sin(a) * d); q.identity(); s.set(1, 1, 1);
+    flowers.setMatrixAt(i, m.compose(p, q, s));
+    flowers.setColorAt(i, col.set(pal[(srand() * pal.length) | 0]));
+  }
+  scene.add(flowers);
+}
+
+// árvores e pedras
+{
+  const trunkGeo = new THREE.CylinderGeometry(0.22, 0.34, 1.7, 7);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8a5e3c, roughness: 1, flatShading: true });
+  const leafGeo = new THREE.IcosahedronGeometry(1.5, 0);
+  const leafMats = [0x6aa84f, 0x7fb95a, 0x5c9a4a].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true }));
+  const rockGeo = new THREE.DodecahedronGeometry(1.2, 0);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0xbdb3cf, roughness: 0.95, flatShading: true });
+  for (const o of obstacles) {
+    const g = new THREE.Group(); g.position.set(o.x, 0, o.z); g.scale.setScalar(o.s); g.rotation.y = srand() * TAU;
+    if (o.kind === 'tree') {
+      const t = new THREE.Mesh(trunkGeo, trunkMat); t.position.y = 0.85; t.castShadow = true; g.add(t);
+      const l1 = new THREE.Mesh(leafGeo, leafMats[(srand() * 3) | 0]); l1.position.y = 2.6; l1.castShadow = true; g.add(l1);
+      const l2 = new THREE.Mesh(leafGeo, leafMats[(srand() * 3) | 0]); l2.position.set(0.3, 3.7, -0.2); l2.scale.setScalar(0.62); l2.castShadow = true; g.add(l2);
+    } else {
+      const r = new THREE.Mesh(rockGeo, rockMat); r.position.y = 0.55; r.scale.set(1.1, 0.8, 1.0); r.castShadow = true; r.receiveShadow = true; g.add(r);
+    }
+    scene.add(g);
+  }
+}
+
+// ilhotas flutuantes e nuvens
+const drifters = [];
+{
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xa6d487, roughness: 1, flatShading: true });
+  for (let i = 0; i < 7; i++) {
+    const r = 1.5 + srand() * 2.5, a = srand() * TAU, d = R + 12 + srand() * 22;
+    const g = new THREE.Group();
+    const base = makeRockBase(r, r * 2.2, 9, 2, 0xc39266, 0x7c6a93); base.position.y = -r * 1.1; g.add(base);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.02, r, 0.35, 9), capMat); cap.position.y = 0.05; g.add(cap);
+    g.position.set(Math.cos(a) * d, -6 + srand() * 12, Math.sin(a) * d);
+    scene.add(g); drifters.push({ g, y: g.position.y, ph: srand() * TAU, sp: 0.3 + srand() * 0.4 });
+  }
+  const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true, emissive: 0xfff4ea, emissiveIntensity: 0.35 });
+  const puff = new THREE.IcosahedronGeometry(1, 1);
+  for (let i = 0; i < 12; i++) {
+    const g = new THREE.Group();
+    const n = 4 + ((srand() * 3) | 0);
+    for (let j = 0; j < n; j++) {
+      const m = new THREE.Mesh(puff, cloudMat);
+      const s = 2 + srand() * 2.5; m.scale.set(s * 1.3, s * 0.8, s);
+      m.position.set((j - n / 2) * 2.6 + srand(), srand() * 1.2, srand() * 2); g.add(m);
+    }
+    const a = srand() * TAU, d = 60 + srand() * 45;
+    g.position.set(Math.cos(a) * d, -20 + srand() * 34, Math.sin(a) * d);
+    g.lookAt(0, g.position.y, 0);
+    scene.add(g); drifters.push({ g, cloud: true, a, d, y: g.position.y, sp: 0.004 + srand() * 0.006 });
+  }
+}
+
+// texturas de brilho
+function dotTexture(soft) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(soft ? 0.25 : 0.55, 'rgba(255,255,255,' + (soft ? 0.55 : 1) + ')'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const glowTex = dotTexture(true), dotTex = dotTexture(false);
+
+/* ---------- frutas ---------- */
+{
+  const berryGeo = new THREE.SphereGeometry(0.3, 16, 12);
+  const berryMat = new THREE.MeshStandardMaterial({ color: 0xff5f6d, roughness: 0.35, emissive: 0x8a1628, emissiveIntensity: 0.35 });
+  const leafGeo = new THREE.SphereGeometry(0.14, 8, 6);
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x5fae4e, roughness: 0.8, flatShading: true });
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa08a, transparent: true, opacity: 0.5, depthWrite: false });
+  for (const f of foods) {
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(berryGeo, berryMat); b.castShadow = true; g.add(b);
+    const l = new THREE.Mesh(leafGeo, leafMat); l.scale.set(1.3, 0.35, 0.7); l.position.set(0.08, 0.3, 0); l.rotation.z = -0.5; g.add(l);
+    const s = new THREE.Sprite(glowMat); s.scale.setScalar(1.5); g.add(s);
+    scene.add(g); f.view = g;
+  }
+}
+
+/* ---------- coletores e predadores ---------- */
+const pickables = [];
+{
+  const blobGeo = new THREE.SphereGeometry(CFG.c.r, 28, 18);
+  const eyeGeo = new THREE.SphereGeometry(0.15, 14, 10), pupilGeo = new THREE.SphereGeometry(0.08, 10, 8);
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+  const pupilMat = new THREE.MeshStandardMaterial({ color: 0x1d1830, roughness: 0.2 });
+  const sproutMat = new THREE.MeshStandardMaterial({ color: 0x5fae4e, roughness: 0.8, flatShading: true });
+  const stemGeo = new THREE.CylinderGeometry(0.025, 0.03, 0.26, 5), sproutGeo = new THREE.SphereGeometry(0.16, 8, 6);
+  const cheekGeo = new THREE.CircleGeometry(0.07, 12);
+  const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff8fa3, transparent: true, opacity: 0.55 });
+  for (const a of collectors) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    const body = new THREE.Mesh(blobGeo, mat); body.position.y = CFG.c.r; body.castShadow = true; g.add(body);
+    const eyes = [];
+    for (const sgn of [-1, 1]) {
+      const eye = new THREE.Group(); eye.position.set(0.4, 0.14, sgn * 0.2);
+      eye.add(new THREE.Mesh(eyeGeo, eyeMat));
+      const pu = new THREE.Mesh(pupilGeo, pupilMat); pu.position.set(0.1, 0.01, sgn * 0.02); eye.add(pu);
+      body.add(eye); eyes.push(eye);
+      const ch = new THREE.Mesh(cheekGeo, cheekMat); ch.position.set(0.47, -0.08, sgn * 0.3); ch.lookAt(2, -0.4, sgn * 1.6); body.add(ch);
+    }
+    const stem = new THREE.Mesh(stemGeo, sproutMat); stem.position.y = 0.62; body.add(stem);
+    const leaf = new THREE.Mesh(sproutGeo, sproutMat); leaf.scale.set(1.2, 0.3, 0.6); leaf.position.set(0.1, 0.75, 0); leaf.rotation.z = -0.5; body.add(leaf);
+    g.userData.agent = a; scene.add(g); pickables.push(g);
+    a.view = { g, body, mat, eyes };
+  }
+
+  const pBodyGeo = new THREE.SphereGeometry(CFG.p.r, 28, 18);
+  const earGeo = new THREE.ConeGeometry(0.24, 0.55, 4);
+  const tailGeo = new THREE.ConeGeometry(0.22, 1.1, 6);
+  const pEyeGeo = new THREE.SphereGeometry(0.13, 12, 8);
+  const slitGeo = new THREE.BoxGeometry(0.04, 0.17, 0.05);
+  const slitMat = new THREE.MeshBasicMaterial({ color: 0x241a38 });
+  for (const a of predators) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x3b2d5c, roughness: 0.6 });
+    const body = new THREE.Mesh(pBodyGeo, mat); body.position.y = 0.78; body.scale.set(1.3, 0.88, 0.98); body.castShadow = true; g.add(body);
+    for (const sgn of [-1, 1]) {
+      const ear = new THREE.Mesh(earGeo, mat); ear.position.set(0.35, 1.5, sgn * 0.36); ear.rotation.set(sgn * 0.3, 0, -0.2); ear.castShadow = true; g.add(ear);
+    }
+    const tail = new THREE.Mesh(tailGeo, mat); tail.position.set(-1.38, 1.05, 0); tail.rotation.z = 1.1; tail.castShadow = true; g.add(tail);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd45c });
+    const eyes = [];
+    for (const sgn of [-1, 1]) {
+      const e = new THREE.Mesh(pEyeGeo, eyeMat); e.position.set(0.98, 0.98, sgn * 0.3); e.scale.set(0.7, 1, 1); g.add(e); eyes.push(e);
+      const s = new THREE.Mesh(slitGeo, slitMat); s.position.set(1.07, 0.98, sgn * 0.3); g.add(s);
+    }
+    g.userData.agent = a; scene.add(g); pickables.push(g);
+    a.view = { g, body, mat, eyeMat, eyes, tail };
+  }
+}
+function paintAgents() {
+  for (const a of collectors) a.view.mat.color.setHSL(a.ind.hue, 0.68, 0.7);
+  for (const a of predators) a.view.mat.color.setHSL(a.ind.hue, 0.36, 0.3);
+}
+
+/* ---------- partículas e fantasminhas ---------- */
+const PMAX = 500, pPos = new Float32Array(PMAX * 3), pCol = new Float32Array(PMAX * 3), parts = [];
+for (let i = 0; i < PMAX; i++) { parts.push({ life: 0, vx: 0, vy: 0, vz: 0 }); pPos[i * 3 + 1] = -999; }
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.34, map: dotTex, vertexColors: true, transparent: true, depthWrite: false }));
+points.frustumCulled = false; scene.add(points);
+let pNext = 0; const tmpCol = new THREE.Color();
+function burst(x, y, z, color, n, spd) {
+  tmpCol.set(color);
+  for (let i = 0; i < n; i++) {
+    const k = pNext = (pNext + 1) % PMAX, p = parts[k], a = Math.random() * TAU, s = spd * (0.4 + Math.random() * 0.8);
+    p.life = 0.6 + Math.random() * 0.5; p.vx = Math.cos(a) * s; p.vz = Math.sin(a) * s; p.vy = 2 + Math.random() * 3;
+    pPos[k * 3] = x; pPos[k * 3 + 1] = y; pPos[k * 3 + 2] = z;
+    pCol[k * 3] = tmpCol.r; pCol[k * 3 + 1] = tmpCol.g; pCol[k * 3 + 2] = tmpCol.b;
+  }
+}
+function updateParticles(dt) {
+  for (let i = 0; i < PMAX; i++) {
+    const p = parts[i]; if (p.life <= 0) continue;
+    p.life -= dt; p.vy -= 9 * dt;
+    pPos[i * 3] += p.vx * dt; pPos[i * 3 + 1] += p.vy * dt; pPos[i * 3 + 2] += p.vz * dt;
+    if (p.life <= 0 || pPos[i * 3 + 1] < 0) { p.life = 0; pPos[i * 3 + 1] = -999; }
+  }
+  pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
+}
+const ghosts = [];
+{
+  const gGeo = new THREE.SphereGeometry(0.45, 18, 12), eGeo = new THREE.SphereGeometry(0.07, 8, 6);
+  const eMat = new THREE.MeshBasicMaterial({ color: 0x2a2340, transparent: true });
+  for (let i = 0; i < 14; i++) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, roughness: 0.4, emissive: 0xffffff, emissiveIntensity: 0.3, depthWrite: false });
+    const g = new THREE.Group(); const b = new THREE.Mesh(gGeo, mat); b.scale.set(1, 1.2, 1); g.add(b);
+    for (const s of [-1, 1]) { const e = new THREE.Mesh(eGeo, eMat); e.position.set(0.38, 0.12, s * 0.15); g.add(e); }
+    g.visible = false; scene.add(g); ghosts.push({ g, mat, t: 1 });
+  }
+}
+let gNext = 0;
+function ghost(x, z, tint) {
+  const gh = ghosts[gNext = (gNext + 1) % ghosts.length];
+  gh.t = 0; gh.g.visible = true; gh.g.position.set(x, 0.6, z); gh.mat.color.set(tint);
+}
+function updateGhosts(dt) {
+  for (const gh of ghosts) {
+    if (gh.t >= 1) continue;
+    gh.t += dt / 1.6; gh.g.position.y += dt * 1.8;
+    gh.g.rotation.y = Math.sin(gh.t * 8) * 0.4;
+    gh.mat.opacity = 0.8 * (1 - gh.t);
+    if (gh.t >= 1) gh.g.visible = false;
+  }
+}
+
+/* ---------- raios do agente selecionado e anel ---------- */
+const MAXR = Math.max(CFG.c.rays, CFG.p.rays);
+const rayPos = new Float32Array(MAXR * 6), rayCol = new Float32Array(MAXR * 6);
+const rayGeo = new THREE.BufferGeometry();
+rayGeo.setAttribute('position', new THREE.BufferAttribute(rayPos, 3));
+rayGeo.setAttribute('color', new THREE.BufferAttribute(rayCol, 3));
+const rayLines = new THREE.LineSegments(rayGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95, depthTest: false }));
+rayLines.frustumCulled = false; rayLines.renderOrder = 5; rayLines.visible = false; scene.add(rayLines);
+const hitDots = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAXR * 3), 3)).setAttribute('color', new THREE.BufferAttribute(new Float32Array(MAXR * 3), 3)),
+  new THREE.PointsMaterial({ size: 0.55, map: dotTex, vertexColors: true, transparent: true, depthTest: false, depthWrite: false }));
+hitDots.frustumCulled = false; hitDots.renderOrder = 6; hitDots.visible = false; scene.add(hitDots);
+const ring = new THREE.Mesh(new THREE.RingGeometry(1, 1.18, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false }));
+ring.rotation.x = -Math.PI / 2; ring.visible = false; scene.add(ring);
+
+const RAYCOL = {
+  c: [new THREE.Color(0xff5f6d), new THREE.Color(0x6a4fc4), new THREE.Color(0x8d8aa0)],
+  p: [new THREE.Color(0xf2a531), new THREE.Color(0x8d8aa0)],
+};
+const RAYNONE = new THREE.Color(0xffffff);
+
+/* =========================================================
+   Interação
+   ========================================================= */
+let speed = 1, showRays = true, selected = null;
+const $ = id => document.getElementById(id);
+const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) { down = null; return; }
+  down = null;
+  const rect = canvas.getBoundingClientRect();
+  ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -(e.clientY - rect.top) / rect.height * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(pickables, true);
+  for (const h of hits) {
+    let o = h.object; while (o && !o.userData.agent) o = o.parent;
+    if (o && o.userData.agent.alive) { select(o.userData.agent); return; }
+  }
+  select(null);
+});
+addEventListener('keydown', e => { if (e.key === 'Escape') select(null); });
+$('iClose').addEventListener('click', () => select(null));
+
+function select(a) {
+  selected = a;
+  $('insp').hidden = !a;
+  if (a) { setRot(false); updateInspector(); }
+}
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
+  speed = +b.dataset.speed;
+  document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+$('tRays').addEventListener('click', e => { showRays = !showRays; e.currentTarget.setAttribute('aria-pressed', String(showRays)); });
+function setRot(v) { controls.autoRotate = v; $('tRot').setAttribute('aria-pressed', String(v)); }
+setRot(!reduceMotion);
+$('tRot').addEventListener('click', () => setRot(!controls.autoRotate));
+let resetTimer = 0;
+$('bReset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!b.classList.contains('confirm')) {
+    b.classList.add('confirm'); b.textContent = 'Confirmar: apagar o treino';
+    clearTimeout(resetTimer); resetTimer = setTimeout(() => { b.classList.remove('confirm'); b.textContent = 'Recomeçar treino'; }, 3500);
+    return;
+  }
+  clearTimeout(resetTimer); b.classList.remove('confirm'); b.textContent = 'Recomeçar treino';
+  freshPopulations(); save(); resetWorld(); drawCharts(); toast('Treino recomeçado na geração 1');
+});
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   HUD: números, gráficos e inspetor
+   ========================================================= */
+const fmtT = s => { s = Math.floor(s); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+function updateHud() {
+  $('gen').textContent = gen;
+  $('clock').textContent = `${fmtT(simT)} / ${fmtT(CFG.genTime)}`;
+  $('bar').style.width = (simT / CFG.genTime * 100).toFixed(1) + '%';
+  $('alive').textContent = `${aliveCount()}/${CFG.nC}`;
+  $('foodc').textContent = stats.food;
+  $('catchc').textContent = stats.catches;
+  $('starvec').textContent = stats.starved;
+}
+function sizeCanvas(cv) {
+  const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2);
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); return [x, r.width, r.height];
+}
+function sparkline(cv, vals, color) {
+  const [x, w, h] = sizeCanvas(cv); x.clearRect(0, 0, w, h);
+  if (w < 10) return;
+  const padT = 6, padB = 4;
+  x.strokeStyle = 'rgba(42,35,64,0.12)'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(0, h - padB + 0.5); x.lineTo(w, h - padB + 0.5); x.stroke();
+  if (vals.length < 2) return;
+  const max = Math.max(...vals) * 1.15 || 1;
+  const X = i => 3 + i / (vals.length - 1) * (w - 10), Y = v => h - padB - v / max * (h - padT - padB);
+  x.beginPath(); vals.forEach((v, i) => i ? x.lineTo(X(i), Y(v)) : x.moveTo(X(i), Y(v)));
+  x.lineTo(X(vals.length - 1), h - padB); x.lineTo(X(0), h - padB); x.closePath();
+  x.fillStyle = color + '2a'; x.fill();
+  x.beginPath(); vals.forEach((v, i) => i ? x.lineTo(X(i), Y(v)) : x.moveTo(X(i), Y(v)));
+  x.strokeStyle = color; x.lineWidth = 1.8; x.lineJoin = 'round'; x.stroke();
+  const lx = X(vals.length - 1), ly = Y(vals[vals.length - 1]);
+  x.fillStyle = '#fffaf2'; x.beginPath(); x.arc(lx, ly, 4, 0, TAU); x.fill();
+  x.fillStyle = color; x.beginPath(); x.arc(lx, ly, 2.6, 0, TAU); x.fill();
+}
+function drawCharts() {
+  const h = hist.slice(-60);
+  sparkline($('chFood'), h.map(d => d.food), '#d98b1e');
+  sparkline($('chCatch'), h.map(d => d.catches), '#5a4796');
+  if (h.length) {
+    $('vFood').textContent = h[h.length - 1].food.toFixed(2);
+    $('vCatch').textContent = h[h.length - 1].catches.toFixed(2);
+    const first = h[0].gen, last = h[h.length - 1].gen;
+    $('chartFoot').textContent = first === last ? `Média da geração ${last}.` : `Média de cada geração, da ${first} à ${last}.`;
+  } else {
+    $('vFood').textContent = '–'; $('vCatch').textContent = '–';
+    $('chartFoot').textContent = 'Média de cada geração. Os gráficos aparecem após a primeira geração.';
+  }
+}
+function updateInspector() {
+  const a = selected; if (!a) return;
+  const isP = a.kind === 'p';
+  $('iName').textContent = (isP ? 'Predador ' : 'Coletor ') + '#' + (a.idx + 1);
+  $('iSub').textContent = `Linhagem nascida na geração ${a.ind.born}`;
+  $('iDot').style.background = isP ? `hsl(${a.ind.hue * 360} 36% 30%)` : `hsl(${a.ind.hue * 360} 68% 70%)`;
+  const st = $('iStatus');
+  let text, cls = '';
+  if (!isP) {
+    if (!a.alive) { text = a.death === 'catch' ? 'Foi pego' : 'Morreu de fome'; cls = 'gone'; }
+    else {
+      let threat = 0, foodSeen = 0;
+      for (let k = 0; k < CFG.c.rays; k++) { threat = Math.max(threat, a.inp[k * 3 + 1]); foodSeen = Math.max(foodSeen, a.inp[k * 3]); }
+      if (threat > 0.25) { text = 'Fugindo!'; cls = 'alert'; }
+      else if (a.energy < 0.3) { text = 'Com fome'; cls = 'alert'; }
+      else text = foodSeen > 0 ? 'Indo atrás de fruta' : 'Explorando';
+    }
+  } else {
+    let prey = 0; for (let k = 0; k < CFG.p.rays; k++) prey = Math.max(prey, a.inp[k * 2]);
+    if (a.cd > 0) { text = 'Digerindo'; cls = 'gone'; }
+    else if (prey > 0) { text = 'Caçando'; cls = 'hunt'; }
+    else text = 'Patrulhando';
+  }
+  st.textContent = text; st.className = 'status ' + cls;
+  const fit = isP ? a.catches * 3 + a.shape : a.food + 0.06 * a.tAlive;
+  $('iKv').innerHTML = isP
+    ? `<dt>Capturas</dt><dd class="mono">${a.catches}</dd><dt>Velocidade</dt><dd class="mono">${a.v.toFixed(1)} m/s</dd><dt>Aptidão</dt><dd class="mono">${fit.toFixed(2)}</dd>`
+    : `<dt>Frutas</dt><dd class="mono">${a.food}</dd><dt>Energia</dt><dd class="mono">${Math.round(Math.max(0, a.energy) * 100)}%</dd><div class="energy"><i style="width:${Math.max(0, a.energy) * 100}%"></i></div><dt>Aptidão</dt><dd class="mono">${fit.toFixed(2)}</dd>`;
+}
+function drawNet() {
+  const a = selected; if (!a) return;
+  const [x, w, h] = sizeCanvas($('net')); x.clearRect(0, 0, w, h);
+  const isP = a.kind === 'p', S = CFG[a.kind], nch = isP ? 2 : 3;
+  const names = isP ? ['Presas', 'Obstáculos'] : ['Frutas', 'Predadores', 'Obstác.'];
+  const cols = isP ? ['#f2a531', '#8d8aa0'] : ['#ff5f6d', '#6a4fc4', '#8d8aa0'];
+  const labW = 70, gx = labW, gw = w - labW - 2, cw = gw / S.rays, rh = 14;
+  x.font = '500 10px "JetBrains Mono", monospace'; x.textBaseline = 'middle';
+  let y = 4;
+  x.fillStyle = '#6b6485'; x.fillText('raios ←  → ', gx, y + 5); y += 14;
+  for (let ch = 0; ch < nch; ch++) {
+    x.fillStyle = '#2a2340'; x.fillText(names[ch], 0, y + rh / 2);
+    for (let k = 0; k < S.rays; k++) {
+      const v = a.inp[k * nch + ch];
+      x.fillStyle = 'rgba(42,35,64,0.07)'; x.fillRect(gx + k * cw + 1, y, cw - 2, rh - 2);
+      if (v > 0) { x.globalAlpha = 0.2 + 0.8 * v; x.fillStyle = cols[ch]; x.fillRect(gx + k * cw + 1, y, cw - 2, rh - 2); x.globalAlpha = 1; }
+    }
+    y += rh;
+  }
+  y += 6;
+  x.fillStyle = '#2a2340'; x.fillText('Neurônios', 0, y + 6);
+  const nh = S.hidden, hw = gw / nh;
+  for (let j = 0; j < nh; j++) {
+    const v = a.hid[j];
+    x.fillStyle = v >= 0 ? `rgba(217,139,30,${0.12 + 0.88 * v})` : `rgba(90,71,150,${0.12 + 0.88 * -v})`;
+    x.beginPath(); x.arc(gx + j * hw + hw / 2, y + 6, Math.min(hw / 2 - 1, 6), 0, TAU); x.fill();
+  }
+  y += 22;
+  const bar = (label, v, center) => {
+    x.fillStyle = '#2a2340'; x.fillText(label, 0, y + 6);
+    x.fillStyle = 'rgba(42,35,64,0.08)'; x.fillRect(gx, y, gw, 12);
+    x.fillStyle = '#4f8d47';
+    if (center) { const c = gx + gw / 2, len = v * gw / 2; x.fillRect(Math.min(c, c + len), y, Math.abs(len), 12); x.fillStyle = 'rgba(42,35,64,0.35)'; x.fillRect(c - 0.5, y - 2, 1, 16); }
+    else x.fillRect(gx, y, Math.max(0, v) * gw, 12);
+    y += 20;
+  };
+  bar('Acelerar', (a.out[0] + 1) / 2, false);
+  bar('Virar', a.out[1], true);
+  x.fillStyle = '#6b6485'; x.fillText('esq.', gx, y + 2); x.textAlign = 'right'; x.fillText('dir.', gx + gw, y + 2); x.textAlign = 'left';
+}
+
+/* =========================================================
+   Loop
+   ========================================================= */
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  drawCharts();
+}
+addEventListener('resize', resize);
+
+const easeBack = t => { const c = 1.9; t = Math.min(1, t); return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+function syncViews(time, fdt) {
+  for (const a of collectors) {
+    const v = a.view; v.g.visible = a.alive; if (!a.alive) continue;
+    const sp = Math.min(1, a.v / CFG.c.speed), hop = Math.abs(Math.sin(a.phase));
+    v.g.position.set(a.x, hop * 0.38 * sp, a.z);
+    v.g.rotation.y = -a.h;
+    const sq = sp > 0.08 ? (hop < 0.3 ? (0.3 - hop) * 0.55 : -hop * 0.1) * sp : Math.sin(time * 3 + a.phase) * 0.03;
+    v.body.scale.set(1 + sq * 0.6, 1 - sq, 1 + sq * 0.6);
+    a.blink -= fdt; let ey = 1;
+    if (a.blink < 0) { ey = 0.15; if (a.blink < -0.12) a.blink = 2 + Math.random() * 4; }
+    v.eyes[0].scale.y = v.eyes[1].scale.y = ey;
+    const tired = a.energy < 0.3 ? 0.35 : 0.68;
+    v.mat.color.setHSL(a.ind.hue, tired, 0.7);
+  }
+  for (const a of predators) {
+    const v = a.view;
+    v.g.position.set(a.x, Math.abs(Math.sin(a.phase * 0.8)) * 0.12, a.z);
+    v.g.rotation.y = -a.h + Math.sin(a.phase * 0.8) * 0.06;
+    v.tail.rotation.x = Math.sin(time * 5 + a.idx) * 0.35;
+    v.eyeMat.color.set(a.cd > 0 ? 0x8a7a5a : 0xffd45c);
+    const ey = a.cd > 0 ? 0.3 : 1; v.eyes[0].scale.y = v.eyes[1].scale.y = ey;
+  }
+  for (const f of foods) {
+    f.spawnT += fdt;
+    const g = f.view; g.position.set(f.x, 0.45 + Math.sin(time * 2 + f.ph) * 0.08, f.z);
+    g.rotation.y = time * 0.8 + f.ph; g.scale.setScalar(Math.max(0.001, easeBack(f.spawnT * 2.5)));
+  }
+  for (const d of drifters) {
+    if (d.cloud) { d.a += d.sp * fdt; d.g.position.set(Math.cos(d.a) * d.d, d.y, Math.sin(d.a) * d.d); d.g.lookAt(0, d.y, 0); }
+    else d.g.position.y = d.y + Math.sin(time * d.sp + d.ph) * 0.6;
+  }
+  // eventos visuais
+  const n = Math.min(events.length, speed > 16 ? 8 : 30);
+  for (let i = events.length - n; i < events.length; i++) {
+    const e = events[i];
+    if (e.type === 'eat') { burst(e.x, 0.5, e.z, 0xff6f7d, 8, 2.2); burst(e.x, 0.5, e.z, new THREE.Color().setHSL(e.hue, 0.7, 0.7), 4, 1.5); }
+    else if (e.type === 'catch') { burst(e.x, 0.6, e.z, new THREE.Color().setHSL(e.hue, 0.7, 0.7), 16, 3.5); burst(e.x, 0.6, e.z, 0x5a4796, 8, 2.5); ghost(e.x, e.z, 0xffffff); }
+    else { burst(e.x, 0.5, e.z, 0xbdb3cf, 8, 1.4); ghost(e.x, e.z, 0xd9e4f5); }
+  }
+  events.length = 0;
+
+  // anel e raios do selecionado
+  const a = selected;
+  if (a && a.alive) {
+    ring.visible = true; ring.position.set(a.x, 0.04, a.z);
+    const s = (a.kind === 'p' ? 1.5 : 0.95) * (1 + Math.sin(time * 4) * 0.05); ring.scale.setScalar(s);
+    if (showRays) {
+      const S = CFG[a.kind], y = a.kind === 'p' ? 0.9 : 0.55;
+      const hp = hitDots.geometry.attributes.position.array, hc = hitDots.geometry.attributes.color.array;
+      for (let k = 0; k < MAXR; k++) {
+        const o = k * 6;
+        if (k >= S.rays) { rayPos.fill(0, o, o + 6); hp[k * 3 + 1] = -999; continue; }
+        const ang = a.h - S.fov / 2 + S.fov * k / (S.rays - 1), t = a.rayT[k] * S.len, typ = a.rayType[k];
+        const ex = a.x + Math.cos(ang) * t, ez = a.z + Math.sin(ang) * t;
+        rayPos[o] = a.x; rayPos[o + 1] = y; rayPos[o + 2] = a.z; rayPos[o + 3] = ex; rayPos[o + 4] = y; rayPos[o + 5] = ez;
+        const c = typ < 0 ? RAYNONE : RAYCOL[a.kind][typ], al = typ < 0 ? 0.55 : 1;
+        rayCol[o] = c.r * al; rayCol[o + 1] = c.g * al; rayCol[o + 2] = c.b * al; rayCol[o + 3] = c.r; rayCol[o + 4] = c.g; rayCol[o + 5] = c.b;
+        if (typ >= 0) { hp[k * 3] = ex; hp[k * 3 + 1] = y; hp[k * 3 + 2] = ez; hc[k * 3] = c.r; hc[k * 3 + 1] = c.g; hc[k * 3 + 2] = c.b; }
+        else hp[k * 3 + 1] = -999;
+      }
+      rayGeo.attributes.position.needsUpdate = true; rayGeo.attributes.color.needsUpdate = true;
+      hitDots.geometry.attributes.position.needsUpdate = true; hitDots.geometry.attributes.color.needsUpdate = true;
+      rayLines.visible = hitDots.visible = true;
+    } else rayLines.visible = hitDots.visible = false;
+    // câmera acompanha
+    const dx = (a.x - controls.target.x) * 0.08, dz = (a.z - controls.target.z) * 0.08;
+    controls.target.x += dx; controls.target.z += dz; camera.position.x += dx; camera.position.z += dz;
+  } else {
+    ring.visible = rayLines.visible = hitDots.visible = false;
+  }
+}
+
+let last = performance.now(), acc = 0, hudT = 0, time = 0;
+function frame(now) {
+  const fdt = Math.min(0.1, (now - last) / 1000); last = now; time += fdt;
+  acc += fdt * speed;
+  const t0 = performance.now();
+  while (acc >= CFG.dt) {
+    step(); acc -= CFG.dt;
+    if (performance.now() - t0 > 14) { acc = Math.min(acc, CFG.dt * 2); break; }
+  }
+  syncViews(time, fdt);
+  updateParticles(fdt); updateGhosts(fdt);
+  controls.update();
+  renderer.render(scene, camera);
+  hudT += fdt;
+  if (hudT > 0.12) { hudT = 0; updateHud(); updateInspector(); }
+  if (selected) drawNet();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- início ---------- */
+const resumed = load();
+if (!resumed) freshPopulations();
+resetWorld();
+resize();
+updateHud();
+$('loading').remove();
+if (resumed) toast(`Treino retomado na geração ${gen}`);
+requestAnimationFrame(frame);
+</script>
