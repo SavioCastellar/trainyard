@@ -39,3 +39,22 @@ cd sim && npx tsc -p . && node dist/scripts/bench.js ../training/runs/exp1/actor
 node dist/scripts/make-replay.js ../training/runs/exp1/actor.json ../web/replay.json
 python ../web/build.py ../web/replay.json   # gera web/dist/replay-oficial.html
 ```
+
+## Treino de atividade gravado uma vez ("fita")
+
+Cada atividade é treinada uma única vez, do zero até o domínio. As fotos do cérebro ao longo do
+treino viram uma "fita" que todos os jogadores assistem em trechos; só a aparência do atleta muda.
+O navegador re-simula cada tentativa a partir dos pesos da foto, então ninguém vê exatamente as
+mesmas jogadas.
+
+```bash
+# 1. treinar (Treino de Precisão: ~5 min em 2 núcleos)
+cd sim && npx tsc -p . && cd ../training
+python ppo_drill.py --minutes 5 --out runs/precisao
+
+# 2. gerar a fita (avalia cada foto, escolhe as que mostram mudança, detecta marcos)
+cd ../sim && node dist/scripts/make-tape.js ../training/runs/precisao/checkpoints.json ../fitas/precisao.json
+
+# 3. visualizador
+python ../web/build_precision.py   # gera web/dist/treino-precisao.html
+```
