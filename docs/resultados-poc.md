@@ -12,7 +12,7 @@ Máquina usada: 2 núcleos de CPU, sem GPU. Datas: 3–4 de outubro de 2026.
 | 2 | Uma simulação única serve ao treino (ponte Node ↔ Python) | ~28–29 mil decisões de atleta por segundo em 2 núcleos | **Passou** |
 | 3 | Partidas reproduzíveis e auditáveis | 300/300 e 200/200 partidas idênticas na segunda execução; replay de ~195 KB (~50 KB comprimido) | **Passou** |
 | 4 | Custo de servidor | 0,46 s de CPU por partida de 90 s; ~10 h de CPU por dia para 1.000 usuários | **Passou** |
-| 5 | Desempenho no celular | Visualizador pronto, com medidor de quadros por segundo | **Aguardando teste no celular** |
+| 5 | Desempenho no celular | 50 quadros/s em média num Android intermediário, qualidade máxima | **Passou** |
 
 A infraestrutura funciona. O que falta é **qualidade do aprendizado**, que é um problema de desenho de recompensas e de quantidade de treino — não de arquitetura.
 
@@ -79,4 +79,12 @@ O sinal da contraestratégia (defesa mais recuada contra Chute de longe) aparece
 Distribuindo os treinos ao longo do dia, 1.000 usuários cabem em 1–2 servidores pequenos.
 
 ## 5. Celular
-O visualizador (`web/dist/replay-oficial.html`) toca um replay oficial e mostra quadros por segundo, pior quadro, chamadas de desenho e triângulos, com um "Modo leve" (sem sombras, resolução 1×). Falta abrir num celular intermediário e registrar o resultado aqui.
+Medição feita pelo Savio com o visualizador (`web/dist/replay-oficial.html`), dentro do app do Claude:
+
+| Aparelho | Qualidade | Média | Pior quadro | Chamadas de desenho | Triângulos | Resolução |
+|---|---|---|---|---|---|---|
+| Android 13, modelo 2201116PG (intermediário) | máxima (sombras, sem modo leve) | 50,2 quadros/s | 34 ms | 350 | 64 mil | 784×1420 |
+
+- Bem acima da meta de 30 quadros/s, mesmo sem o modo leve.
+- O pior quadro de 34 ms equivale a um único quadro perdido de vez em quando; não é perceptível.
+- Margem de otimização: 350 chamadas de desenho é alto. A torcida e as árvores podem virar instâncias (uma chamada por tipo de objeto), o que deve reduzir para menos de 100 e ajudar aparelhos mais simples e a bateria.
