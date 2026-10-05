@@ -26,7 +26,7 @@ espaço para detalhe visual: o Savio vai pedir muitos ajustes finos aqui.
    termina numa página publicada para ele comparar (antes × depois quando ajudar).
 3. **Animações compartilhadas:** `animateCabecudo(rig, estado, dt)` com parado, andar, correr,
    chutar, comemorar, cair/levantar, lesionado — e cabeça com mola. Registrar em `docs/contratos.md`
-   e avisar a sessão Atividades para adotar.
+   e avisar as sessões de Cenários e de treino para adotar.
 4. **Aparência salva:** formato JSON do `look` validado, gerador aleatório coerente, e prévia
    pequena (retrato) para listas e ranking.
 

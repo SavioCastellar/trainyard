@@ -44,7 +44,7 @@ rig.restExpr    expressão de repouso
   uma função de animação compartilhada (ex.: `animateCabecudo(rig, estado, dt)`), ela entra aqui e
   as atividades passam a usá-la.
 
-## 2. Atividade (dono: sessão Atividades)
+## 2. Atividade (dono: a sessão de treino de cada atividade)
 Cada atividade é uma classe em `sim/src/drills/<nome>.ts`, determinística por semente:
 ```ts
 export const NOME = { ...constantes, maxTime, dt };       // dt = 1/30
@@ -63,7 +63,7 @@ export class NomeDrill {
   generalizar por nome ao criar a segunda atividade).
 - O futebol (`sim/src/soccer.ts`, `Match`) segue o mesmo espírito com 4 atletas; ver o arquivo.
 
-## 3. Fita (dono: sessão Atividades)
+## 3. Fita (compartilhado entre as sessões de treino; mudanças aditivas)
 `fitas/<atividade>.json`, gerada por `sim/scripts/make-tape.ts`:
 ```js
 {
@@ -84,6 +84,24 @@ export class NomeDrill {
   outros, mas **`hits` deve existir como "desempenho principal"** (a curva usa ele) — ou renomear
   para `score` em todas de uma vez, combinando aqui.
 
-## 4. Replay de partida oficial (dono: sessão Atividades)
+## 4. Replay de partida oficial (dono: sessão de treino do Futebol)
 `sim/src/replay.ts`, interface `Replay` (v1): semente, fps, specs dos 4 atletas, placar, quadros
 int16 em base64 (bola x,z + por atleta x, z, direção, flags), eventos.
+
+## 5. Cenário (dono: sessão Cenários)
+Um módulo por atividade em `web/cenarios/<atividade>.js` (script clássico, como a `cabecudo-lib.js`;
+espera `THREE` e `TAU` no escopo), mais peças comuns em `web/cenarios/comum.js`.
+```js
+const cen = construirCenario<Atividade>(scene, { qualidade: 'alta'|'leve' });
+cen.raiz          // Group com todo o cenário; origem = centro da arena da simulação, y=0 = chão
+cen.objetos       // fábricas dos objetos que se mexem, nas medidas da ficha:
+                  //   ex.: cen.objetos.bola(), cen.objetos.alvo() → { grupo, ...handles }
+cen.efeitos       // efeitos prontos: ex.: cen.efeitos.acerto(x, z), cen.efeitos.gol(time)
+cen.camera        // sugestão de câmera: { desktop: {pos, alvo}, celular: {pos, alvo} }
+cen.atualizar(dt) // anima o que é só decoração (grama, água, torcida, nuvens)
+```
+- **Unidades e eixos iguais aos da simulação**: 1 unidade = 1 da simulação; plano x,z; a direção
+  `h` da simulação vira `rotation.y = Math.PI / 2 - h`.
+- O cenário **não** decide nada do jogo: posições vêm da simulação; o cenário só desenha.
+- Luz e sombra ficam no cenário (cada atividade pode ter seu clima), mas cabem no orçamento de
+  desempenho: ≥ 30 fps no celular intermediário com 4 Cabeçudos.

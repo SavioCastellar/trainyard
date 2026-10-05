@@ -5,6 +5,7 @@ Jogo simulado de hábito diário para atléticas universitárias. Cada membro te
 
 Antes de trabalhar, leia:
 1. `docs/sessoes/<sua-sessao>.md` — o que é seu, o que não é, e o próximo objetivo.
+   Sessões de treino: também a ficha `docs/atividades/<atividade>.md` e `docs/treino-local.md`.
 2. `docs/contratos.md` — as interfaces que outras sessões usam. Não quebre.
 3. `docs/produto.md` e `docs/aprendizados.md` quando a tarefa tocar em regra de jogo ou em treino.
 
@@ -25,29 +26,35 @@ Antes de trabalhar, leia:
   publicada que o Savio consegue abrir e assistir (inclusive no celular, meta ≥ 30 quadros/s).
 
 ## Como trabalhar
-- Trabalhe só nas pastas da sua sessão (ver `docs/sessoes/`). Precisa mudar algo de outra sessão
-  ou um contrato? Descreva a mudança em `docs/pedidos.md` e avise o Savio, em vez de fazer.
-- Um ramo por sessão (`personagem`, `atividades`, `central`). Commits pequenos, mensagem em português.
-- Páginas para o Savio ver: publique como Artifact (HTML único, tudo embutido; Three.js via
-  importmap do `cdn.jsdelivr.net`). Teste antes num Chromium sem interface, desktop e celular (390×844).
+- Trabalhe só nas pastas da sua sessão (ver `docs/plano.md` e `docs/sessoes/`). Precisa mudar algo
+  de outra sessão ou um contrato? Descreva em `docs/pedidos.md` e avise o Savio, em vez de fazer.
+- Um ramo por sessão; pull request para `main` a cada marco. Commits pequenos, mensagem em português.
+- **Treinos e simulações pesadas rodam no computador do Savio** (Windows, Ryzen 9 8 núcleos),
+  com o Claude Code local numa cópia própria da pasta (`git worktree`). Ver `docs/treino-local.md`.
+  Sessões na nuvem não treinam nada além de testes rápidos.
+- Páginas para o Savio ver: nas sessões na nuvem, publique como Artifact (HTML único, tudo
+  embutido; Three.js via importmap do `cdn.jsdelivr.net`), testando antes num Chromium sem
+  interface, desktop e celular (390×844). Nas sessões locais, gere o HTML em `web/dist/` e peça
+  para ele abrir no navegador.
 - Ao terminar um marco, atualize `docs/sessoes/<sua-sessao>.md` (feito / próximo) e, se aprendeu
   algo que vale para os outros, `docs/aprendizados.md`.
 - Decisões de produto em aberto estão em `docs/produto.md` → "Em aberto". Não invente: pergunte.
 
 ## Rodando
 ```bash
-cd sim && npm install && npx tsc -p . && npm test         # simulação + testes de determinismo
-cd training && pip install -r requirements.txt             # Python 3.10+, PyTorch (CPU basta)
+cd sim && npm install && npm test                          # compila + testes de determinismo
+cd training && pip install -r requirements.txt             # Python 3.11+, PyTorch (CPU)
 python ppo_drill.py --minutes 5 --out runs/precisao        # treino de uma atividade
 node ../sim/dist/scripts/make-tape.js runs/precisao/checkpoints.json ../fitas/precisao.json
 python ../web/build_precision.py                           # gera web/dist/treino-precisao.html
 ```
-A máquina das sessões na nuvem tem 2 núcleos: o Treino de Precisão leva ~5 min; o futebol leva horas.
 
 ## Mapa
 - `sim/` simulação (futebol 2x2, robô de referência, atividades em `src/drills/`, replay, ponte)
 - `training/` PPO em Python (futebol: `ppo.py`; atividades: `ppo_drill.py`)
 - `fitas/` fitas de treino gravadas (entram no Git; são o "conteúdo" do jogo)
-- `web/` visualizadores (replay oficial, treino de precisão) e a biblioteca do Cabeçudo
+- `web/` biblioteca do Cabeçudo (`src/cabecudo-lib.js`), cenários (`cenarios/`), criador
+  (`personagem/`), páginas das atividades (`atividades/`) e visualizadores atuais (`src/`)
 - `prototipos/` páginas exploratórias já aprovadas como referência visual (não editar)
-- `docs/` produto, arquitetura, aprendizados, contratos, plano e briefing de cada sessão
+- `docs/` produto, arquitetura, aprendizados, contratos, plano, fichas de atividade (`atividades/`),
+  briefing de cada sessão (`sessoes/`), treino local
