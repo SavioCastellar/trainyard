@@ -1,8 +1,8 @@
 # Briefing de design — Mapa geral do jogo
 
 ## O jogo em poucas linhas
-**Cabeçudos** é um jogo de hábito diário para **atléticas universitárias brasileiras**. Cada membro
-da atlética tem o seu próprio atleta, o **Cabeçudo**: uma caricatura de cabeça grande do estudante,
+O jogo (nome ainda a definir) é um jogo de hábito diário para **atléticas universitárias brasileiras**. Cada membro
+da atlética tem o seu próprio **atleta**: uma caricatura de cabeça grande do estudante,
 controlada por inteligência artificial. O jogador não controla o atleta durante as partidas: ele
 escolhe o que o atleta faz no dia (treinar, trabalhar, jogar) e assiste ao resultado.
 
@@ -37,7 +37,8 @@ escolhe o que o atleta faz no dia (treinar, trabalhar, jogar) e assiste ao resul
 - Cores das atléticas nos uniformes e na torcida.
 - Temas **genéricos** (arenas, ilhas, campos). **Evitar** temática de faculdade forçada (salas de
   aula, provas, bandejão) e cenários realistas.
-- O Cabeçudo é só visual: a cabeça grande não é mecânica de jogo.
+- A cabeça grande do atleta é só visual, não é mecânica de jogo.
+- O jogo e os personagens ainda não têm nome; não usar "Cabeçudo(s)" (nome rejeitado).
 
 ## O que o mapa precisa resolver
 O mapa é o "mundo" onde o jogo acontece e provavelmente a tela inicial de navegação. Ele precisa ter

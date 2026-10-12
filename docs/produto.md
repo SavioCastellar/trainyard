@@ -10,8 +10,8 @@
 - Tom: **humor, mas competitivo**.
 
 ## O atleta
-- Cada membro da atlética tem o **seu próprio atleta de IA**, o **Cabeçudo**: uma caricatura de
-  cabeça grande do estudante, construída em código (`web/src/cabecudo-lib.js`). Venceu o "Feijão"
+- Cada membro da atlética tem o **seu próprio atleta de IA**, uma caricatura de cabeça grande
+  do estudante, construída em código (`web/src/cabecudo-lib.js`). Esse estilo venceu o "Feijão"
   (corpo estilo Fall Guys) na escolha de personagem.
 - Personalização atual: pele, cabelo (curto, black power, moicano, coque, boné, careca), cor do
   cabelo, óculos (nenhum, redondo, escuro), barba (nenhuma, bigode, barba cheia), expressão
@@ -58,6 +58,7 @@
 - Protótipo aprovado: **Treino de Precisão** (chutar bolas em alvos que aparecem pela arena).
 
 ## Rejeitado (não propor de novo)
+- "Cabeçudo(s)" como nome do jogo ou dos personagens.
 - Treinos que são exercícios de luta (chatos de assistir).
 - Sumô. Cabeça como mecânica.
 - Treinos com temática de faculdade forçada; cenas realistas (caras e sem graça).
@@ -67,6 +68,7 @@
 - Treinar um cérebro por usuário.
 
 ## Em aberto (perguntar ao Savio antes de decidir)
+- **Nome do jogo e nome dos personagens.** Até lá: "o jogo" e "o atleta".
 - Incluir o atributo **Força** (necessário para o título "Avalanche"; hoje o futebol não tem).
 - Lista final de atributos e de habilidades.
 - Quanto um treino de 2h sobe um atributo; teto de atributos; quantos treinos até um título.

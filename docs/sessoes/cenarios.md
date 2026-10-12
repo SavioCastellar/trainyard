@@ -1,6 +1,6 @@
 # Sessão Cenários
 
-**Missão:** a parte visual dos lugares onde o Cabeçudo treina e compete — objetos, cenário,
+**Missão:** a parte visual dos lugares onde o atleta treina e compete — objetos, cenário,
 iluminação, céu, clima, efeitos (partículas, impacto, comemoração). Não mexe em simulação nem em
 treino: entrega cenários prontos para as sessões de treino plugarem a simulação.
 
@@ -18,14 +18,14 @@ treino: entrega cenários prontos para as sessões de treino plugarem a simulaç
    o que existe na cena, tamanhos e o que se mexe. **As medidas da ficha mandam**: o cenário tem que
    bater com a simulação que a sessão de treino vai escrever.
 2. Você monta o cenário seguindo `docs/contratos.md` §5 e publica uma **vitrine**: a cena com o
-   Cabeçudo e os objetos móveis animados de forma simples (sem IA), para o Savio julgar o visual.
+   atleta e os objetos móveis animados de forma simples (sem IA), para o Savio julgar o visual.
 3. Rodadas de ajuste com o Savio até ele aprovar. Marque na ficha: "Cenário: aprovado".
 4. A Central abre a sessão de treino daquela atividade.
 
 ## Referências
 - Estilo aprovado: `prototipos/` (ilhas flutuantes low-poly, céu em degradê, sombras suaves) e a
   arena do Treino de Precisão (`web/src/precision.template.html`, `buildIsland`, alvos, partículas).
-- Meta: ≥ 30 fps num celular intermediário com 4 Cabeçudos em cena. Instâncias para objetos
+- Meta: ≥ 30 fps num celular intermediário com 4 atletas em cena. Instâncias para objetos
   repetidos, poucas luzes com sombra, texturas geradas em canvas.
 
 ## Marcos

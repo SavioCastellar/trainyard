@@ -21,5 +21,5 @@
 Torcida e placar são decoração do cenário.
 
 ## Estado
-- Cenário: protótipo em `web/src/stage.js` (estádio da Copa dos Cabeçudos); migrar para `web/cenarios/futebol.js`.
+- Cenário: protótipo em `web/src/stage.js` (estádio do protótipo de futebol); migrar para `web/cenarios/futebol.js`.
 - Treino: aprende, mas joga "chutão" (ver `docs/aprendizados.md`). Sessão: `docs/sessoes/treino-futebol.md`.

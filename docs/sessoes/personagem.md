@@ -1,6 +1,6 @@
 # Sessão Personagem
 
-**Missão:** o Cabeçudo — como ele é, como o jogador o cria e como ele se mexe. É a sessão com mais
+**Missão:** o atleta (o personagem de cabeça grande) — como ele é, como o jogador o cria e como ele se mexe. É a sessão com mais
 espaço para detalhe visual: o Savio vai pedir muitos ajustes finos aqui.
 
 ## É seu
@@ -13,7 +13,7 @@ espaço para detalhe visual: o Savio vai pedir muitos ajustes finos aqui.
   remover ou mudar o que existe só combinando (`docs/pedidos.md`).
 
 ## Referências
-- `prototipos/cabecudo-ou-feijao.html` — página que comparou Cabeçudo × Feijão (criador com opções,
+- `prototipos/cabecudo-ou-feijao.html` — página que comparou o estilo cabeça grande × "Feijão" (criador com opções,
   equipamentos, lesão, animações). Base para o criador.
 - `prototipos/copa-dos-cabecudos.html`, `web/src/stage.js` — o boneco jogando futebol.
 - `web/src/precision.template.html` (`Arena.animateAthlete`) — o boneco correndo, chutando e comemorando.

@@ -1,5 +1,5 @@
 /**
- * Futebol 2x2 dos Cabeçudos.
+ * Futebol 2x2.
  *
  * - Física 2D simples (o 3D é só visual): cápsulas para os atletas, bola com atrito.
  * - Atributos mudam apenas o corpo (velocidade, força, precisão...), então atributo maior

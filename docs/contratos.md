@@ -104,4 +104,4 @@ cen.atualizar(dt) // anima o que é só decoração (grama, água, torcida, nuve
   `h` da simulação vira `rotation.y = Math.PI / 2 - h`.
 - O cenário **não** decide nada do jogo: posições vêm da simulação; o cenário só desenha.
 - Luz e sombra ficam no cenário (cada atividade pode ter seu clima), mas cabem no orçamento de
-  desempenho: ≥ 30 fps no celular intermediário com 4 Cabeçudos.
+  desempenho: ≥ 30 fps no celular intermediário com 4 atletas.

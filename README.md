@@ -1,6 +1,6 @@
-# Cabeçudos
+# trainyard
 
-Liga universitária em que cada estudante treina o seu atleta "Cabeçudo", controlado por IA, e as atléticas competem entre si todos os dias.
+Liga universitária em que cada estudante treina o seu atleta controlado por IA, e as atléticas competem entre si todos os dias.
 
 A prova de conceito da arquitetura terminou (resultados em [`docs/resultados-poc.md`](docs/resultados-poc.md)). Agora o trabalho segue em sessões paralelas: comece por [`CLAUDE.md`](CLAUDE.md) e [`docs/plano.md`](docs/plano.md).
 
