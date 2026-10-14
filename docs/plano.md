@@ -31,7 +31,7 @@ o cenário é ajustado, e plugar o cenário quando ele for aprovado.
 - Central: fichas de 2–3 atividades novas com o Savio.
 - Pronto quando: futebol bom de assistir; 3 atividades de treino com fita aprovada; boneco final em todas.
 
-**Fase B — regras do jogo** (Central + Savio): atributos, habilidades, títulos, quanto rende cada
+**Fase B — regras do jogo** (Central + Savio; proposta 1 em `docs/regras.md`, núcleo em `sim/src/jogo.ts`): atributos, habilidades, títulos, quanto rende cada
 treino, economia, temporada, convocação. Pronto quando `docs/produto.md` → "Em aberto" não tiver
 nada crítico. Pode andar junto com a Fase A.
 

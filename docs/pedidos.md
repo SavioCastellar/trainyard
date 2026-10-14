@@ -9,4 +9,7 @@ Formato:
 O que precisa, por quê, e como saber que ficou pronto.
 ```
 
-(nenhum pedido ainda)
+## 2026-10-14 · de Central para Treino: Futebol · aberto
+Incluir **Força** na física do futebol (disputa de bola, carrinho) e, nas partidas oficiais, usar os
+atributos efetivos de `sim/src/jogo.ts` (`efetivo()`: equipamento adaptado + forma) como spec dos
+atletas. Pronto quando o teste "atributos altos vencem" passar também variando só Força.

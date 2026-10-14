@@ -7,7 +7,9 @@
   sem entrar deve parecer perder progresso e abandonar o seu atleta.
 - Inspirações: Tamagotchi (presença diária) e Punch Club (evolução do personagem pelo que ele faz).
 - Cada atlética compete contra as outras diariamente. Prêmio em dinheiro no fim do campeonato.
-- Tom: **humor, mas competitivo**.
+- Tom: **sério e competitivo** (mudou em 2026-10-14; antes era "humor, mas competitivo").
+- Regras, economia, temporada, convocação e mundo: proposta em `docs/regras.md` (números em
+  `sim/src/jogo.ts`).
 
 ## O atleta
 - Cada membro da atlética tem o **seu próprio atleta de IA**, uma caricatura de cabeça grande
@@ -69,11 +71,6 @@
 
 ## Em aberto (perguntar ao Savio antes de decidir)
 - **Nome do jogo e nome dos personagens.** Até lá: "o jogo" e "o atleta".
-- Incluir o atributo **Força** (necessário para o título "Avalanche"; hoje o futebol não tem).
-- Lista final de atributos e de habilidades.
-- Quanto um treino de 2h sobe um atributo; teto de atributos; quantos treinos até um título.
-- Duração da temporada e formato do campeonato entre atléticas (e do prêmio).
-- Economia: preços, salários do "trabalhar", lista de equipamentos.
-- Como funciona a convocação interna (ranking? votação? desempenho?).
-- Lore do mundo.
-- O que acontece quando o jogador some por dias (perda de forma? lesão?).
+- Revisar a proposta 1 de `docs/regras.md` (atributos com Força, ganho de treino, títulos,
+  economia, convocação automática, temporada de 6 semanas, ausência, mundo). Até o Savio revisar,
+  as outras sessões seguem essa proposta.

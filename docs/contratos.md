@@ -105,3 +105,10 @@ cen.atualizar(dt) // anima o que é só decoração (grama, água, torcida, nuve
 - O cenário **não** decide nada do jogo: posições vêm da simulação; o cenário só desenha.
 - Luz e sombra ficam no cenário (cada atividade pode ter seu clima), mas cabem no orçamento de
   desempenho: ≥ 30 fps no celular intermediário com 4 atletas.
+
+## 6. Regras do jogo (dono: Central)
+`sim/src/jogo.ts`: funções puras sobre um `Atleta` JSON (`novoAtleta`, `treinar`, `trabalhar`,
+`registrarPartida`, `expedicao`, `comprar`, `equipar`, `reparar`, `tratar`, `virarDia`,
+`novaTemporada`, `efetivo`, `forca`, `indiceConvocacao`, `convocar`, `titulos`). Ações inválidas
+lançam `Error` com mensagem em português (o backend mostra ao jogador). Sorte só via `Rng`.
+Números podem mudar no balanceamento; nomes e formato do `Atleta` só com pedido.

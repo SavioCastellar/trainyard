@@ -23,7 +23,7 @@ escolhe o que o atleta faz no dia (treinar, trabalhar, jogar) e assiste ao resul
   com um estilo próprio.
 
 ## Público e tom
-- Universitários adultos (18+). **Humor, mas competitivo.**
+- Universitários adultos (18+). **Sério e competitivo.**
 - Nada infantil: sem lore fofinha, sem alimentar ou fazer carinho no personagem.
 - Começa com as atléticas de **um único campus**.
 
@@ -63,7 +63,7 @@ Requisitos:
 - Leve o bastante para rodar em celular intermediário.
 
 ## Em aberto (pode propor)
-- A lore do mundo: por que existe este lugar de ilhas flutuantes? (adulta, com humor)
+- A lore do mundo: por que existe este lugar de ilhas flutuantes? (adulta e séria; proposta em `docs/regras.md`)
 - Nomes dos lugares.
 - Se as atléticas aparecem como ilhas/territórios próprios no mapa.
 - Como o mapa mostra progresso ao longo da temporada.

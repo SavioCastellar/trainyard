@@ -25,7 +25,7 @@ Antes de trabalhar, leia:
   atividade); recompensas auxiliares geram comportamentos degenerados (ver `docs/aprendizados.md`).
 - **Visual:** Three.js 0.160, low-poly colorido, personagem de cabeça grande (caricatura) de `web/src/cabecudo-lib.js`.
   Nada de modelos realistas. A cabeça grande é só visual, nunca mecânica de jogo.
-- **Interface e textos em português do Brasil.** Tom: humor, mas competitivo. Público adulto
+- **Interface e textos em português do Brasil.** Tom: **sério e competitivo** (ver `docs/regras.md` → "Tom e mundo"). Público adulto
   (18+): nada infantil, nada de alimentar ou fazer carinho no personagem.
 - **Validação é visual.** Diversão não tem métrica: toda mudança relevante termina numa página
   publicada que o Savio consegue abrir e assistir (inclusive no celular, meta ≥ 30 quadros/s).
