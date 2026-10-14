@@ -115,6 +115,7 @@
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="dia">Simulador do dia</button>
   <button role="tab" aria-selected="false" data-tab="balanco">Balanço da temporada</button>
+  <button role="tab" aria-selected="false" data-tab="liga">Liga simulada</button>
   <button role="tab" aria-selected="false" data-tab="tabelas">Tabelas</button>
 </nav>
 
@@ -146,6 +147,7 @@
       <div class="card">
         <h2>Ações do dia</h2>
         <div class="row"><select id="sel-treino"></select><button class="act" id="b-treino">Treinar</button></div>
+        <label class="hint" style="display:flex;gap:6px;align-items:center;margin:0 0 6px"><input type="checkbox" id="c-prep"> Sessão com preparador (+50% de ganho, custa créditos)</label>
         <p class="hint" id="h-treino"></p>
         <div class="row"><select id="sel-trab"></select><button class="act" id="b-trab">Trabalhar</button></div>
         <p class="hint" id="h-trab"></p>
@@ -181,7 +183,7 @@
 <section id="tab-balanco" hidden>
   <div class="card" style="margin-bottom:12px">
     <h2>Como ler</h2>
-    <div class="prose"><p>Cada perfil joga as 42 dias da temporada com as mesmas regras (média de 20 atletas com sementes diferentes). Compra equipamento de futebol assim que pode, conserta quando está gasto e trata lesões. É convocado em metade das rodadas oficiais; os adversários ficam mais fortes ao longo da temporada.</p></div>
+    <div class="prose"><p>Cada perfil joga os 42 dias da temporada com as mesmas regras (média de 20 atletas com sementes diferentes). Compra equipamento de futebol assim que pode, conserta quando está gasto e trata lesões. Joga metade das rodadas oficiais; os adversários ficam mais fortes ao longo da temporada.</p></div>
   </div>
   <div class="legend" id="legend"></div>
   <div class="charts">
@@ -191,6 +193,19 @@
   <div class="card" style="margin-top:12px">
     <h2>Resumo por perfil</h2>
     <div class="tablewrap"><table id="t-resumo"></table></div>
+  </div>
+</section>
+
+<section id="tab-liga" hidden>
+  <div class="card" style="margin-bottom:12px">
+    <h2>Como ler</h2>
+    <div class="prose"><p>Seis atléticas de 12 membros jogam a temporada inteira com as regras atuais. A atlética A tem os membros menos ativos e a F, os mais ativos (mais dedicados e especialistas, menos casuais). Cada rodada: 3 duplas contra 3 duplas, mais pontos de preparo pela fração das ações dos membros usadas no dia. Mata-mata em melhor de 3, com o melhor colocado começando com 1 vitória. O resultado de cada jogo segue a curva calibrada no futebol simulado.</p></div>
+  </div>
+  <div class="charts">
+    <div class="card"><h2>Uma temporada (semente <span class="mono" id="l-seed"></span>)</h2>
+      <div class="row"><button class="act sec" id="b-outra">Outra temporada</button></div>
+      <div class="tablewrap"><table id="t-classif"></table></div><p class="hint" id="l-mm" style="margin-top:8px"></p></div>
+    <div class="card"><h2>Em <span id="l-n"></span> temporadas</h2><div class="tablewrap"><table id="t-valid"></table></div></div>
   </div>
 </section>
 
@@ -217,8 +232,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // ---------- abas
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
-  for (const t of ['dia', 'balanco', 'tabelas']) $('tab-' + t).hidden = t !== b.dataset.tab;
+  for (const t of ['dia', 'balanco', 'liga', 'tabelas']) $('tab-' + t).hidden = t !== b.dataset.tab;
   if (b.dataset.tab === 'balanco') desenharBalanco();
+  if (b.dataset.tab === 'liga') desenharLiga();
 });
 
 // ---------- simulador do dia
@@ -232,11 +248,11 @@ function tenta(f) { try { f(); } catch (e) { anota(esc(e.message), 'bad'); } ren
 
 $('sel-treino').innerHTML = ATRIBUTOS.map(k => `<option value="${k}">${ATIVIDADES[k].nome} · ${NOME_ATRIBUTO[k]}</option>`).join('');
 $('sel-mod').innerHTML = Object.entries(MODALIDADES).map(([k, m]) => `<option value="${k}">${m.nome}${m.disponivel ? '' : ' (em breve)'}</option>`).join('');
-$('sel-treino').onchange = $('sel-trab').onchange = $('sel-mod').onchange = render;
+$('sel-treino').onchange = $('sel-trab').onchange = $('sel-mod').onchange = $('c-prep').onchange = render;
 
 $('b-treino').onclick = () => tenta(() => {
-  const k = $('sel-treino').value, r = treinar(A, k);
-  anota(`<b>${ATIVIDADES[k].nome}</b> (sessão ${r.sessao}/${SESSOES_POR_FITA}${r.dominou ? ', domínio' : ''}): ${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}.`);
+  const k = $('sel-treino').value, prep = $('c-prep').checked, r = treinar(A, k, 0, prep);
+  anota(`<b>${ATIVIDADES[k].nome}</b>${prep ? ' com preparador' : ''} (sessão ${r.sessao}/${SESSOES_POR_FITA}${r.dominou ? ', domínio' : ''}): ${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}.`);
 });
 $('b-trab').onclick = () => tenta(() => {
   const f = FUNCOES.find(x => x.id === $('sel-trab').value), r = trabalhar(A, f.id);
@@ -244,12 +260,11 @@ $('b-trab').onclick = () => tenta(() => {
   anota(`Turno como <b>${f.nome}</b>: +${r.liquido} créditos (${r.caixa} para a atlética).`);
 });
 function jogo(oficial) {
-  const p = chanceVitoria(forca(A, 'futebol'), forcaLiga(dia)), x = rng().next();
-  const res = x < p * 0.85 ? 'v' : x < p * 0.85 + 0.15 ? 'e' : 'd';
+  const p = chanceVitoria(forca(A, 'futebol'), forcaLiga(dia)), res = sortearResultado(forca(A, 'futebol'), forcaLiga(dia), rng().next());
   const r = registrarPartida(A, 'futebol', res, oficial, rng());
   caixa += r.caixa;
   const nome = { v: 'Vitória', e: 'Empate', d: 'Derrota' }[res];
-  anota(`${oficial ? '<b>Rodada oficial</b>' : 'Amistoso'}: ${nome} (chance de vitória ${fmt(p * 85)}%). +${r.premio} créditos.` +
+  anota(`${oficial ? '<b>Rodada oficial</b>' : 'Amistoso'}: ${nome} (chance de vitória ${fmt(p * 100)}%). +${r.premio} créditos.` +
     (r.lesao ? ` <span class="bad">Lesão: ${r.lesao} dias fora.</span>` : ''), res === 'v' ? 'ok' : '');
 }
 $('b-amistoso').onclick = () => tenta(() => jogo(false));
@@ -262,7 +277,10 @@ $('b-exped').onclick = () => tenta(() => {
 $('b-tratar').onclick = () => tenta(() => { const c = custoTratamento(A); tratar(A); anota(`Departamento médico: lesão tratada por ${c} créditos.`); });
 $('b-dia').onclick = () => tenta(() => {
   const ausente = A.acoesHoje === 0;
-  if (dia % 2 === 0 && A.lesao === 0 && indiceConvocacao(A, 'futebol') >= 0) jogo(true);
+  if (dia % 2 === 0) {
+    if (indiceConvocacao(A, 'futebol') > 0) jogo(true);
+    else anota(A.lesao ? 'Fora da rodada oficial: lesionado.' : 'Fora da rodada oficial: sem nenhuma ação hoje, o atleta não foi convocado.', 'warn');
+  }
   virarDia(A);
   if (ausente) anota(`Dia sem atividade. Forma caiu para ${fmt(A.forma)}.` + (A.diasAusente > REGRAS.diasAteRegredir ? ' Atributos regredindo.' : ''), 'warn');
   dia++;
@@ -293,21 +311,22 @@ function render() {
   }).join('');
 
   const k = $('sel-treino').value;
-  $('h-treino').textContent = `Ganho previsto: +${fmt(ganhoTreino(A.atrib[k], A.forma), 2)} · sessão ${Math.min((A.sessoes[k] ?? 0) + 1, SESSOES_POR_FITA)} de ${SESSOES_POR_FITA} da fita` + (ATIVIDADES[k].fita ? '' : ' (fita ainda não gravada)');
+  const prep = $('c-prep').checked;
+  $('h-treino').textContent = `Ganho previsto: +${fmt(ganhoTreino(A.atrib[k], A.forma) * (prep ? 1 + REGRAS.bonusPreparador : 1), 2)}${prep ? ` por ${REGRAS.custoPreparador} créditos` : ''} · sessão ${Math.min((A.sessoes[k] ?? 0) + 1, SESSOES_POR_FITA)} de ${SESSOES_POR_FITA} da fita` + (ATIVIDADES[k].fita ? '' : ' (fita ainda não gravada)');
   const sel = $('sel-trab').value, disp = funcoesDisponiveis(A);
   $('sel-trab').innerHTML = FUNCOES.map(f => {
     const ok = disp.includes(f);
     const req = f.requisito ? Object.entries(f.requisito).map(([a, v]) => `${NOME_ATRIBUTO[a]} ${v}`).join(', ') : '';
-    return `<option value="${f.id}" ${ok ? '' : 'disabled'}>${f.nome} · ${f.salario} cr${ok ? '' : ` (exige ${f.turnos} turnos${req ? ', ' + req : ''})`}</option>`;
+    return `<option value="${f.id}" ${ok ? '' : 'disabled'}>${f.nome} · ${salarioDoTurno(f.salario, A.turnosHoje ?? 0)} cr${ok ? '' : ` (exige ${f.turnos} turnos${req ? ', ' + req : ''})`}</option>`;
   }).join('');
   $('sel-trab').value = disp.some(f => f.id === sel) ? sel : disp.at(-1).id;
-  $('h-trab').textContent = `${A.turnos} turnos cumpridos. Funções melhores liberam com experiência e atributos.`;
+  $('h-trab').textContent = `${A.turnos} turnos cumpridos. Cada turno a mais no mesmo dia paga ${REGRAS.quedaPorTurno * 100}% menos. Funções melhores liberam com experiência e atributos.`;
   const sem = A.acoesHoje >= REGRAS.acoesPorDia;
   $('b-treino').disabled = $('b-amistoso').disabled = $('b-exped').disabled = sem || A.lesao > 0;
   $('b-trab').disabled = sem;
   $('b-tratar').disabled = !A.lesao;
   $('b-tratar').textContent = A.lesao ? `Tratar lesão (${custoTratamento(A)} cr)` : 'Tratar lesão';
-  $('h-dia').innerHTML = (dia % 2 === 0 ? 'Hoje tem rodada oficial: ao encerrar o dia, o atleta joga se estiver apto. ' : 'Rodada oficial amanhã. ') +
+  $('h-dia').innerHTML = (dia % 2 === 0 ? 'Hoje tem rodada oficial: ao encerrar o dia, o atleta joga se estiver apto e tiver feito alguma ação hoje. ' : 'Rodada oficial amanhã. ') +
     (A.acoesHoje === 0 ? '<span class="warn">Encerrar sem nenhuma ação conta como ausência: a forma cai 15.</span>' : '');
 
   $('kit').innerHTML = Object.keys(ENC).map(enc => {
@@ -382,6 +401,51 @@ function desenharBalanco() {
   $('t-resumo').innerHTML = `<tr><th>Perfil</th><th>Rotina</th><th class="num">Força d21</th><th class="num">Força d42</th><th class="num">Com título</th><th class="num">Dia do 1º título</th><th class="num">Ganhou</th><th class="num">Equipamento</th><th class="num">Médico</th><th class="num">Saldo final</th></tr>` +
     BAL.map(s => `<tr><td><b>${s.nome}</b></td><td>${s.descricao}</td><td class="num">${fmt(s.forca[20], 1)}</td><td class="num">${fmt(s.forca[41], 1)}</td><td class="num">${fmt(s.titulos * 100)}%</td><td class="num">${s.diaTitulo ? fmt(s.diaTitulo) : '—'}</td><td class="num">${fmt(s.ganho)}</td><td class="num">${fmt(s.kit)}</td><td class="num">${fmt(s.medico)}</td><td class="num">${fmt(s.cred[41])}</td></tr>`).join('');
 }
+
+// ---------- liga simulada
+let ligaSeed = 1, VALID = null;
+function desenharLiga() {
+  const L = simularLiga(ligaSeed), ord = classificacao(L.ats), nome = i => L.ats[i].nome;
+  const nivel = ['muito baixa', 'baixa', 'média-baixa', 'média-alta', 'alta', 'muito alta'];
+  $('l-seed').textContent = ligaSeed;
+  tabela('t-classif', ['#', 'Atlética', 'Atividade', 'Pts#', 'V#', 'E#', 'D#'], ord.map((i, pos) => {
+    const at = L.ats[i];
+    return [pos + 1, `<b>${at.nome}</b>${i === L.campeao ? ' <span class="tag t">Campeã</span>' : ''}`, nivel[i], fmt(at.pts), at.v, at.e, at.d];
+  }));
+  $('l-mm').textContent = `Semifinais: ${nome(ord[0])} × ${nome(ord[3])} e ${nome(ord[1])} × ${nome(ord[2])}. Final: ${nome(L.finalistas[0])} × ${nome(L.finalistas[1])}.`;
+  if (!VALID) {
+    const N = 150;
+    let spear = 0, lider = 0, camp = 0, campLider = 0, zebra = 0, dec = 0, emp = 0, jogos = 0, saldo = 0, gini = 0;
+    for (let s = 1; s <= N; s++) {
+      const X = simularLiga(s), o = classificacao(X.ats), n = o.length;
+      spear += 1 - 6 * o.reduce((a, k, pos) => a + (pos - (n - 1 - k)) ** 2, 0) / (n * (n * n - 1));
+      if (o[0] === n - 1) lider++;
+      if (X.campeao === n - 1) camp++;
+      if (X.campeao === o[0]) campLider++;
+      for (const p of X.partidas) if (p.fase === 'regular') {
+        jogos++;
+        if (p.res === 'e') emp++;
+        else if (p.fa !== p.fb) { dec++; if ((p.res === 'v') !== (p.fa > p.fb)) zebra++; }
+      }
+      const sd = X.ats.flatMap(a => a.membros.map(m => m.atleta.creditos)).sort((a, b) => a - b), tot = sd.reduce((a, b) => a + b, 0);
+      saldo += tot / sd.length;
+      gini += sd.reduce((a, x, i) => a + (2 * (i + 1) - sd.length - 1) * x, 0) / (sd.length * tot);
+    }
+    VALID = { N, rows: [
+      ['Correlação atividade × posição (Spearman)', fmt(spear / N, 2), 'alta: quem joga mais termina na frente'],
+      ['Mais ativa termina em 1º na fase regular', fmt(100 * lider / N) + '%', 'aleatório seria 17%'],
+      ['Mais ativa é campeã', fmt(100 * camp / N) + '%', 'favorita, sem ser certeza'],
+      ['Líder da fase regular é campeão', fmt(100 * campLider / N) + '%', 'vantagem de campanha'],
+      ['Empates', fmt(100 * emp / jogos) + '%', 'igual ao futebol simulado (~17%)'],
+      ['Zebras (mais fraca vence o jogo)', fmt(100 * zebra / dec) + '%', 'cada jogo é aberto; a temporada não'],
+      ['Saldo médio no fim da temporada', fmt(saldo / N), 'créditos não acumulam'],
+      ['Desigualdade dos saldos (Gini)', fmt(gini / N, 2), '0 = todos iguais'],
+    ] };
+  }
+  $('l-n').textContent = VALID.N;
+  tabela('t-valid', ['Medida', 'Valor#', 'Leitura'], VALID.rows);
+}
+$('b-outra').onclick = () => { ligaSeed++; desenharLiga(); };
 
 // ---------- tabelas (geradas das próprias regras)
 const tabela = (id, cab, linhas) => $(id).innerHTML = `<tr>${cab.map(c => `<th${c.endsWith('#') ? ' class="num"' : ''}>${c.replace('#', '')}</th>`).join('')}</tr>` +

@@ -34,9 +34,12 @@ export const REGRAS = {
   regressaoPorDia: 0.5,
   // economia
   taxaCaixa: 0.1,
+  quedaPorTurno: 0.25,       // cada turno de trabalho a mais no mesmo dia paga 25% menos
   reparo: 0.35,
   adaptacaoPorDia: 25,
   tratamentoPorDia: 50,
+  custoPreparador: 100,      // sessão com preparador: treino rende +50%
+  bonusPreparador: 0.5,
   // lesão
   lesaoPartida: 0.02,
   lesaoForaDeForma: 0.04,
@@ -44,6 +47,12 @@ export const REGRAS = {
   lesaoDias: [2, 4] as const,
   // presença na convocação: pontos por dia ativo nos últimos 7
   presencaPorDia: 0.5,
+  // rodada oficial (validado em scripts/liga.ts; ver docs/regras.md → "Validação")
+  duplasPorRodada: 3,        // cada atlética escala 3 duplas; dupla 1 × dupla 1 etc.
+  pontosVitoria: 3,
+  pontosEmpate: 1,
+  pontosPreparo: 3,          // por rodada, × fração das ações dos membros usadas no dia
+  vantagemCampanha: true,    // no mata-mata (melhor de 3) o melhor colocado começa com 1 vitória
 } as const;
 
 export type ModalidadeId = 'futebol' | 'queimada' | 'bandeira';
@@ -134,6 +143,7 @@ export interface Atleta {
   forma: number;
   creditos: number;
   turnos: number;               // turnos de trabalho cumpridos (sobe de função)
+  turnosHoje?: number;          // turnos no dia (salário decrescente)
   sessoes: Partial<Record<Atributo, number>>;   // sessões de fita assistidas por atividade
   habilidades: Record<string, number>;          // sessões cumpridas; liberada ao chegar em `sessoes`
   kit: Partial<Record<Encaixe, Peca>>;
@@ -166,10 +176,15 @@ function gastarAcao(a: Atleta, permiteLesionado = false) {
 export const ganhoTreino = (valor: number, forma: number, nivelCT = 0) =>
   REGRAS.ganhoBase * Math.pow(1 - valor / 100, REGRAS.curvaGanho) * (0.6 + 0.4 * forma / 100) * (1 + 0.05 * nivelCT);
 
-export function treinar(a: Atleta, atr: Atributo, nivelCT = 0) {
+export function treinar(a: Atleta, atr: Atributo, nivelCT = 0, comPreparador = false) {
+  if (comPreparador && a.creditos < REGRAS.custoPreparador) throw new Error('Créditos insuficientes para o preparador.');
   gastarAcao(a);
-  const ganho = Math.min(ganhoTreino(a.atrib[atr], a.forma, nivelCT), REGRAS.tetoAtributo - a.atrib[atr]);
+  if (comPreparador) a.creditos -= REGRAS.custoPreparador;
+  const bruto = ganhoTreino(a.atrib[atr], a.forma, nivelCT) * (comPreparador ? 1 + REGRAS.bonusPreparador : 1);
+  const ganho = Math.min(bruto, REGRAS.tetoAtributo - a.atrib[atr]);
   a.atrib[atr] += ganho;
+  // a peça ligada ao atributo treinado também se gasta no treino
+  for (const p of Object.values(a.kit)) if (item(p!.id).atributo === atr && p!.usos > 0) p!.usos--;
   const sessao = (a.sessoes[atr] ?? 0) + 1;
   a.sessoes[atr] = sessao;
   // depois da última sessão da fita o atleta segue treinando no nível de domínio
@@ -195,12 +210,16 @@ function receber(a: Atleta, bruto: number) {
   return { liquido: bruto - caixa, caixa };
 }
 
+export const salarioDoTurno = (salario: number, turnosHoje: number) => Math.round(salario * Math.max(0, 1 - REGRAS.quedaPorTurno * turnosHoje));
+
 export function trabalhar(a: Atleta, funcao: string) {
   const f = funcoesDisponiveis(a).find(x => x.id === funcao);
   if (!f) throw new Error('Função não disponível.');
   gastarAcao(a, true); // lesionado pode trabalhar
+  const hoje = a.turnosHoje ?? 0;
   a.turnos++;
-  return receber(a, f.salario);
+  a.turnosHoje = hoje + 1;
+  return receber(a, salarioDoTurno(f.salario, hoje));
 }
 
 export const efetivo = (a: Atleta, atr: Atributo, m: ModalidadeId) => {
@@ -216,18 +235,33 @@ export const efetivo = (a: Atleta, atr: Atributo, m: ModalidadeId) => {
 export const forca = (a: Atleta, m: ModalidadeId) =>
   (Object.entries(MODALIDADES[m].pesos) as [Atributo, number][]).reduce((s, [k, w]) => s + w * efetivo(a, k, m), 0);
 
-/** Índice da convocação interna: força na modalidade + presença nos últimos 7 dias. */
+/**
+ * Índice da convocação interna: força na modalidade + presença nos últimos 7 dias.
+ * Só é convocável quem está apto e fez pelo menos uma ação no dia da rodada (confirmou presença).
+ */
 export const indiceConvocacao = (a: Atleta, m: ModalidadeId) =>
-  a.lesao > 0 ? 0 : forca(a, m) + REGRAS.presencaPorDia * a.presenca.filter(Boolean).length;
+  a.lesao > 0 || a.acoesHoje === 0 ? 0 : forca(a, m) + REGRAS.presencaPorDia * a.presenca.filter(Boolean).length;
 
-/** Convoca os melhores índices (desempate pela posição na lista, que o servidor sorteia com semente). */
-export function convocar(atletas: Atleta[], m: ModalidadeId) {
+/**
+ * Convoca os melhores índices (desempate pela posição na lista, que o servidor sorteia com semente).
+ * Padrão: titulares + 1 reserva.
+ */
+export function convocar(atletas: Atleta[], m: ModalidadeId, vagas = MODALIDADES[m].vagas + 1) {
   return atletas.map((a, i) => ({ i, x: indiceConvocacao(a, m) })).filter(o => o.x > 0)
-    .sort((p, q) => q.x - p.x || p.i - q.i).slice(0, MODALIDADES[m].vagas + 1).map(o => o.i); // titulares + 1 reserva
+    .sort((p, q) => q.x - p.x || p.i - q.i).slice(0, vagas).map(o => o.i);
 }
 
-/** Chance de vitória entre duas forças (usada no balanço e em amistosos sem simulação). */
-export const chanceVitoria = (f1: number, f2: number) => 1 / (1 + Math.exp(-(f1 - f2) / 8));
+/**
+ * Probabilidade de vitória/empate/derrota entre duas forças, para o balanço e amistosos sem
+ * simulação. Calibrada contra o futebol 2x2 com robôs (`scripts/calibrar.ts`, 600 partidas por
+ * diferença): 10 pontos de vantagem ≈ 46% de vitória, 30 pontos ≈ 66%; empates ≈ 17%.
+ */
+export const EMPATE = 0.17;
+export const chanceVitoria = (f1: number, f2: number) => (1 - EMPATE) / (1 + Math.exp(-(f1 - f2) / 25));
+export function sortearResultado(f1: number, f2: number, x: number): Resultado {
+  const v = chanceVitoria(f1, f2);
+  return x < v ? 'v' : x < v + EMPATE ? 'e' : 'd';
+}
 
 function rolarLesao(a: Atleta, rng: Rng, chance: number, nivelDM = 0) {
   if (rng.next() >= chance) return 0;
@@ -302,6 +336,7 @@ export function virarDia(a: Atleta) {
   if (a.lesao > 0) a.lesao--;
   a.presenca = [...a.presenca, ativo].slice(-7);
   a.acoesHoje = 0;
+  a.turnosHoje = 0;
 }
 
 /** Entre temporadas: atributos voltam 15% em direção ao valor inicial; o resto fica. */
