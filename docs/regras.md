@@ -2,8 +2,11 @@
 
 Decididas pelo Claude em 2026-10-14 a pedido do Savio ("assuma o que for melhor"), para revisão.
 **Os números vivem em `sim/src/jogo.ts`** (fonte da verdade); este arquivo explica o porquê.
-Página para testar: `python web/regras/build.py` → `web/dist/regras.html` (simulador do dia,
-balanço da temporada por perfil, tabelas geradas das próprias regras).
+Páginas (`python web/regras/build.py`):
+- `web/dist/mapa.html` — **como o jogo funciona**: ciclo clicável, um dia por perfil, fluxo do
+  dinheiro, evolução, convocação, temporada e o laboratório "E se?" (mexe nos números de `REGRAS`
+  e simula 60 temporadas comparando com as regras atuais). Comece por aqui.
+- `web/dist/regras.html` — simulador do dia, balanço por perfil, liga simulada, tabelas.
 
 ## Tom e mundo
 - **Tom sério e competitivo.** O jogo trata a liga como esporte de verdade: linguagem de

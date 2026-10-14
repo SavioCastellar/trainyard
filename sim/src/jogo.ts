@@ -47,6 +47,7 @@ export const REGRAS = {
   lesaoDias: [2, 4] as const,
   // presença na convocação: pontos por dia ativo nos últimos 7
   presencaPorDia: 0.5,
+  escalaResultado: 25,       // escala da curva de vitória (maior = atributo pesa menos); calibrada em scripts/calibrar.ts
   // rodada oficial (validado em scripts/liga.ts; ver docs/regras.md → "Validação")
   duplasPorRodada: 3,        // cada atlética escala 3 duplas; dupla 1 × dupla 1 etc.
   pontosVitoria: 3,
@@ -257,7 +258,7 @@ export function convocar(atletas: Atleta[], m: ModalidadeId, vagas = MODALIDADES
  * diferença): 10 pontos de vantagem ≈ 46% de vitória, 30 pontos ≈ 66%; empates ≈ 17%.
  */
 export const EMPATE = 0.17;
-export const chanceVitoria = (f1: number, f2: number) => (1 - EMPATE) / (1 + Math.exp(-(f1 - f2) / 25));
+export const chanceVitoria = (f1: number, f2: number) => (1 - EMPATE) / (1 + Math.exp(-(f1 - f2) / REGRAS.escalaResultado));
 export function sortearResultado(f1: number, f2: number, x: number): Resultado {
   const v = chanceVitoria(f1, f2);
   return x < v ? 'v' : x < v + EMPATE ? 'e' : 'd';
