@@ -83,3 +83,18 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 23. No Windows, para parar um treino sem matar o de outra sessão, ache os processos pela linha de
     comando (`Get-CimInstance Win32_Process | ? { $_.CommandLine -match 'ppo_drill|bridge-drill' }`) e
     pare só os seus: o Python mostra o `--out runs/<nome>`, a ponte do Node mostra o caminho da sua cópia. Dois treinos em paralelo rodam sem perder velocidade (1 núcleo cada).
+
+## Circuito de decisão (Inteligência) — 2026-10-16
+25. **Escolha só aparece quando abrir mão custa.** Com postos renascendo um a um, ou em levas em que dá para
+    pegar quase todos, "ir sempre no mais perto" rendia tanto quanto escolher pelo valor (até um robô que testa
+    todas as ordens ganhava só 5–8%). Com **uma escolha por leva** (pisar um posto apaga os outros) e os de mais
+    valor nascendo mais longe, o mais perto fica em 26,6 e o que pesa valor e tempo em 32,7. → Em atividade de
+    decisão, meça com robô "guloso" e robô "esperto" antes de treinar; se empatam, a regra não pede decisão.
+26. **A rede tem dificuldade de escolher entre itens de uma lista por um atributo.** Postos ordenados por
+    distância: o nível 2 parou em "ir no mais perto" (24 pontos, 1,3 por posto) por 10 min. Ordenados por valor:
+    passou de 30 em 8 min. No nível 3, uma lista só com a cor como número (+1/−1) ficou 5 min sem aprender a
+    cor (metade dos postos pisados da cor errada). **Duas listas pela cor** e o painel como entrada: ficou 20 min
+    parado e então aprendeu em 2 min (14 → 21) — a lista laranja estava sempre vazia no nível 2, e a rede demora a
+    começar a usar entradas que nunca variaram. Alternativa testada e descartada: listas "vale agora / não vale"
+    dominam o nível 3 em 1 min, mas aí a leitura do painel é feita pela observação, não pelo atleta.
+    → Ordene a observação pelo que a decisão do nível pede; o que o nível quer ensinar não pode vir pronto.

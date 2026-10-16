@@ -114,7 +114,7 @@
     <section class="panel" aria-label="Sessão de treino">
       <div class="eyebrow">Centro de treinamento · Inteligência</div>
       <h1>Circuito de decisão</h1>
-      <div class="lvl" id="lvl">Nível 1 · Poucos pontos</div>
+      <div id="lvl" style="display:flex;flex-wrap:wrap;gap:0 6px"><div class="lvl">Nível 1 · Poucos pontos</div></div>
       <div class="sub" id="who" style="margin-top:6px">Atleta: TROVÃO 10</div>
       <div class="attempt"><span class="lbl">Tentativa</span><b id="attempt">1</b></div>
       <div class="stats">
@@ -271,6 +271,7 @@ const numTex = [0, 1, 2, 3].map(v => canvasTex((x, w) => {
   x.strokeStyle = '#fff'; x.lineWidth = 6; x.stroke();
   x.fillStyle = '#fff'; x.font = '800 78px "Bricolage Grotesque", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), w / 2, w / 2 + 4);
 }, 128, 128));
+const WHITE = new THREE.Color(0xffffff);
 const VAL_HEX = [0, 0xe9e4d4, 0x7fd18b, 0xf2c94c];
 function buildPost(g) {
   const p = new THREE.Group(); g.add(p);
@@ -298,7 +299,7 @@ function buildStation(cx) {
   const dark = new THREE.MeshStandardMaterial({ color: 0x2a2d35, roughness: .6 });
   for (const x of [-1.6, 1.6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(.15, 2.2, .15), dark); leg.position.set(x, 1.1, 0); board.add(leg); }
   const frame = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.5, .2), dark); frame.position.y = 2.6; frame.castShadow = true; board.add(frame);
-  const screenMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x2f7de1, emissiveIntensity: .9 });
+  const screenMat = new THREE.MeshBasicMaterial({ color: 0x2f7de1 });
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.0), screenMat); screen.position.set(0, 2.68, .11); board.add(screen);
   const bar = new THREE.Mesh(new THREE.PlaneGeometry(3.4, .16), new THREE.MeshBasicMaterial({ color: 0xffffff })); bar.position.set(0, 2.03, .11); board.add(bar);
   return { g, walls, posts, board, screenMat, bar };
@@ -419,7 +420,7 @@ class Station {
     });
     if (e.active) {
       this.flash = Math.max(0, this.flash - dt * 2);
-      this.st.screenMat.emissive.setHex(COR[e.active].hex); this.st.screenMat.emissiveIntensity = .8 + this.flash * 1.5;
+      this.st.screenMat.color.setHex(COR[e.active].hex).lerp(WHITE, this.flash * .7);
       this.st.bar.scale.x = Math.max(.001, e.swapIn / R.swap);
     }
     this.animateAthlete(dt, time);
@@ -521,8 +522,8 @@ function updatePanel() {
   $('attempt').textContent = fmtN(attemptNumber(main.ck));
   $('hits').textContent = e.points; $('lights').textContent = e.taken; $('reds').textContent = e.wrong; $('redStat').hidden = !e.active;
   $('lvl').innerHTML = e.active
-    ? `Nível ${e.nivel} · ${NIVEIS[e.nivel]} <span class="mono" style="opacity:1;color:${COR[e.active].css}">vale ${COR[e.active].nome} · ${Math.ceil(e.swapIn)} s</span>`
-    : `Nível ${e.nivel} · ${NIVEIS[e.nivel]}`;
+    ? `<div class="lvl">Nível ${e.nivel} · ${NIVEIS[e.nivel]}</div><div class="lvl" style="background:${COR[e.active].css}">Vale ${COR[e.active].nome} <span class="mono">troca em ${Math.ceil(e.swapIn)} s</span></div>`
+    : `<div class="lvl">Nível ${e.nivel} · ${NIVEIS[e.nivel]}</div>`;
   $('tbar').style.width = (e.t / R.maxTime * 100).toFixed(1) + '%';
   const [a] = sessionRange(session);
   $('stage').innerHTML = mode === 'live'

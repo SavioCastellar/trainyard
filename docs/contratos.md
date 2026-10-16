@@ -88,6 +88,9 @@ export class NomeDrill {
   (padrão `precisao`), e a ponte `bridge-drill.ts` recebe `drill` e `nivel` no init e o op 3 `{ nivel }`.
 - Métricas do Reflexo: `hits` (luzes pisadas), `lights` (luzes encerradas), `acc` (= hits/lights),
   `reds` (vermelhas pisadas), `centro` (distância média do centro quando a próxima luz acende), `best`.
+- Métricas da Inteligência: `hits` (pontos por tentativa), `taken` (postos pisados), `valor` (= hits/taken),
+  `wrong` (postos da cor errada, nível 3), `best`. Na ponte, `lights` = 1 por tentativa, para o `ppo_drill`
+  medir o domínio em pontos (hits/lights).
 - Campos de métrica (`hits`, `kicks`, `acc`, `best`) são da Precisão; outras atividades podem ter
   outros, mas **`hits` deve existir como "desempenho principal"** (a curva usa ele) — ou renomear
   para `score` em todas de uma vez, combinando aqui.

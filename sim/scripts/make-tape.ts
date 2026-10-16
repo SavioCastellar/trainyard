@@ -142,7 +142,7 @@ const DRILLS: Record<string, DrillTape> = {
     },
   },
   inteligencia: {
-    title: 'Circuito de decisão', obs: INTELIGENCIA_OBS, actions: INTELIGENCIA_ACTIONS, dHits: 30, gap: total => total / 25,
+    title: 'Circuito de decisão', obs: INTELIGENCIA_OBS, actions: INTELIGENCIA_ACTIONS, dHits: 16, gap: total => total / 25,
     evaluate(brain, nivel, n = 24) {
       const obs = new Float32Array(INTELIGENCIA_OBS), a = [0, 0];
       let hits = 0, taken = 0, wrong = 0, best = 0, valor = 0;
@@ -163,8 +163,9 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(1, e => e.hits >= D[1]), `Domínio do nível 1: ${D[1]} pontos por tentativa.`);
       const l2 = at(2, () => true);
       add(l2, 'Nível 2 · Caminhos bloqueados: postos de 1, 2 e 3 pontos que apagam, divisórias no caminho. Pisar um apaga os outros.', 2);
-      if (l2 >= 0) add(at(2, e => e.valor >= picked[l2].valor + 0.3), 'Começou a deixar o posto fácil de 1 para buscar um que vale mais.');
-      add(at(2, e => e.hits >= D[2]), `Domínio do nível 2: ${D[2]} pontos por tentativa.`);
+      if (l2 >= 0) add(at(2, e => e.taken >= picked[l2].taken + 3), 'Aprendeu a contornar as divisórias: chega a mais postos antes que apaguem.');
+      // subiu de nível ao atingir o domínio no treino; a avaliação da fita (24 tentativas) pode ficar um pouco abaixo
+      add(at(3, () => true) - 1, `Domínio do nível 2: ${D[2]} pontos por tentativa.`);
       const l3 = at(3, () => true);
       add(l3, 'Nível 3 · Regras que mudam: o painel diz qual cor vale e troca a cada 8 s. Posto da outra cor vale 0.', 3);
       if (l3 >= 0) add(at(3, e => e.wrong <= picked[l3].wrong / 2), 'Aprendeu a ler o painel: quase não pisa mais a cor errada.');

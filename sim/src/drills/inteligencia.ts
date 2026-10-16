@@ -5,9 +5,10 @@
  * Nível 3: postos azuis ou laranja; o painel diz qual cor vale (troca a cada 8 s); a outra vale 0.
  * Medidas em docs/atividades/inteligencia.md.
  *
- * Observação: atleta (posição, direção, velocidade); painel (tem cor, tempo até a troca); para cada
- * posto, do mais perto ao mais longe: aceso, direção (cos, sen) e distância vistos pelo atleta, valor,
- * tempo restante, cor em relação ao painel (+1 vale, -1 não vale, 0 sem cor); 8 sensores de distância.
+ * Observação: atleta (posição, direção, velocidade); painel (tem painel, qual cor vale, tempo até a troca);
+ * os postos em duas listas pela cor (azul ou sem cor; laranja), cada uma do que vale mais ao que vale menos:
+ * aceso, direção (cos, sen) e distância vistos pelo atleta, valor, tempo restante; 8 sensores de distância.
+ * Ler o painel = escolher a lista certa.
  * Ações: girar (esq/nada/dir), andar (ré/parado/frente).
  */
 import { Rng } from '../rng.js';
@@ -41,7 +42,7 @@ export const INTELIGENCIA = {
 } as const;
 
 const MAXP = 5;
-export const INTELIGENCIA_OBS = 7 + MAXP * 7 + INTELIGENCIA.sensors;
+export const INTELIGENCIA_OBS = 8 + 2 * MAXP * 6 + INTELIGENCIA.sensors;
 export const INTELIGENCIA_ACTIONS = [3, 3] as const;
 export type Nivel = 1 | 2 | 3;
 
@@ -150,18 +151,23 @@ export class InteligenciaDrill {
   observe(out: Float32Array, off = 0) {
     const I = INTELIGENCIA, P = this.player, c = Math.cos(P.h), s = Math.sin(P.h), D = 2 * I.halfW;
     out[off] = P.x / I.halfW; out[off + 1] = P.z / I.halfH; out[off + 2] = c; out[off + 3] = s;
-    out[off + 4] = P.v / I.speed; out[off + 5] = this.active ? 1 : 0; out[off + 6] = this.active ? this.swapIn / I.swap : 0;
-    // postos do mais perto ao mais longe, vistos pelo atleta (direção separada da distância: aprendizado 19)
-    const order = this.posts.filter(p => p.on).map(p => ({ p, d: Math.hypot(p.x - P.x, p.z - P.z) })).sort((a, b) => a.d - b.d);
-    for (let k = 0; k < MAXP; k++) {
-      const o = off + 7 + k * 7, q = order[k];
-      if (!q) { out.fill(0, o, o + 7); continue; }
-      const { p, d } = q, dx = p.x - P.x, dz = p.z - P.z, f = dx * c + dz * s, l = -dx * s + dz * c;
-      out[o] = 1; out[o + 1] = d > 1e-6 ? f / d : 1; out[o + 2] = d > 1e-6 ? l / d : 0; out[o + 3] = d / D;
-      out[o + 4] = p.value / 3; out[o + 5] = p.life0 ? p.life / 10 : 1;
-      out[o + 6] = p.color ? (p.color === this.active ? 1 : -1) : 0;
-    }
-    for (let k = 0; k < I.sensors; k++) out[off + 7 + MAXP * 7 + k] = this.ray(P.h + (k * 2 * Math.PI) / I.sensors) / I.sensorMax;
+    out[off + 4] = P.v / I.speed; out[off + 5] = this.active ? 1 : 0;
+    out[off + 6] = this.active === 2 ? 1 : this.active === 1 ? -1 : 0; out[off + 7] = this.active ? this.swapIn / I.swap : 0;
+    // duas listas pela cor; em cada uma, do que vale mais ao que vale menos (empate: o mais perto primeiro),
+    // vistos pelo atleta (direção separada da distância: aprendizado 19). Sem cor (níveis 1 e 2) = primeira lista.
+    // Ordenar só pela distância deixou o nível 2 preso em "ir no mais perto"; uma lista só, com a cor como
+    // número (+1/-1), deixou o nível 3 sem aprender a ler o painel (aprendizado 25).
+    const on = this.posts.filter(p => p.on).map(p => ({ p, d: Math.hypot(p.x - P.x, p.z - P.z) })).sort((a, b) => b.p.value - a.p.value || a.d - b.d);
+    [on.filter(q => q.p.color !== 2), on.filter(q => q.p.color === 2)].forEach((list, g) => {
+      for (let k = 0; k < MAXP; k++) {
+        const o = off + 8 + (g * MAXP + k) * 6, q = list[k];
+        if (!q) { out.fill(0, o, o + 6); continue; }
+        const { p, d } = q, dx = p.x - P.x, dz = p.z - P.z, f = dx * c + dz * s, l = -dx * s + dz * c;
+        out[o] = 1; out[o + 1] = d > 1e-6 ? f / d : 1; out[o + 2] = d > 1e-6 ? l / d : 0; out[o + 3] = d / D;
+        out[o + 4] = p.value / 3; out[o + 5] = p.life0 ? p.life / 10 : 1;
+      }
+    });
+    for (let k = 0; k < I.sensors; k++) out[off + 8 + 2 * MAXP * 6 + k] = this.ray(P.h + (k * 2 * Math.PI) / I.sensors) / I.sensorMax;
   }
 
   /** ações = [girar 0..2, andar 0..2] */
