@@ -6,15 +6,21 @@
  * `drill` é o nome da atividade (padrão 'precisao').
  */
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from './precision.js';
-import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS, type Nivel } from './reflexo.js';
+import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from './painel.js';
+import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from './reflexo.js';
 import { Rng } from '../rng.js';
 
 interface Env { done: boolean; reward: number; observe(o: Float32Array, off: number): void; step(...a: number[]): void }
 const DRILLS: Record<string, { obs: number; acts: number; make(seed: number, nivel: number): Env; info(e: any): object }> = {
   precisao: { obs: PRECISION_OBS, acts: PRECISION_ACTIONS.length, make: s => new PrecisionDrill(s), info: (e: PrecisionDrill) => ({ hits: e.hits, kicks: e.kicks }) },
+  velocidade: {
+    obs: PAINEL_OBS, acts: PAINEL_ACTIONS.length, make: (s, n) => new PainelDrill(s, false, n as Nivel),
+    info: (e: PainelDrill) => ({ hits: e.hits, lights: e.lights, reds: e.reds, nivel: e.nivel }),
+  },
+  // lights = bolas disparadas e encerradas (o ppo_drill mede o domínio por hits/lights)
   reflexo: {
     obs: REFLEXO_OBS, acts: REFLEXO_ACTIONS.length, make: (s, n) => new ReflexoDrill(s, false, n as Nivel),
-    info: (e: ReflexoDrill) => ({ hits: e.hits, lights: e.lights, reds: e.reds, nivel: e.nivel }),
+    info: (e: ReflexoDrill) => ({ hits: e.hits, lights: e.shots, reds: 0, struck: e.struck, nivel: e.nivel }),
   },
 };
 

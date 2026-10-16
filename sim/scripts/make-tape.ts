@@ -7,7 +7,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
-import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS, type Nivel } from '../src/drills/reflexo.js';
+import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from '../src/drills/painel.js';
 import { Rng } from '../src/rng.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
@@ -72,13 +72,13 @@ const DRILLS: Record<string, DrillTape> = {
       add(firstWhere(e => e.hits >= maxHits * 0.95), 'Domínio: perto do máximo que este exercício permite.');
     },
   },
-  reflexo: {
-    title: 'Painel de reação', obs: REFLEXO_OBS, actions: REFLEXO_ACTIONS, dHits: 30, gap: total => total / 25,
+  velocidade: {
+    title: 'Painel de luzes', obs: PAINEL_OBS, actions: PAINEL_ACTIONS, dHits: 30, gap: total => total / 25,
     evaluate(brain, nivel, n = 24) {
-      const obs = new Float32Array(REFLEXO_OBS), a = [0, 0];
+      const obs = new Float32Array(PAINEL_OBS), a = [0, 0];
       let hits = 0, lights = 0, reds = 0, best = 0, dist = 0, ons = 0;
       for (let e = 0; e < n; e++) {
-        const env = new ReflexoDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
+        const env = new PainelDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
         while (!env.done) {
           const lit = env.state.some(s => s === 1);
           env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1]);
