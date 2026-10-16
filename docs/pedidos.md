@@ -31,3 +31,20 @@ Atributos novos (ver `docs/regras.md` → "Atributos base", "Atributos do esport
   Lançamento, Finta. Cérebro retreinado recebendo as habilidades como entrada.
 Pronto quando cada atributo e habilidade tiver efeito visível medido (como o teste "atributos altos
 vencem") e o `calibrar.js` for rodado de novo.
+
+## 2026-10-16 · de Treino: Reflexo para Central · aberto
+O Savio assistiu ao Painel de reação e decidiu: **o Painel treina Velocidade** (no lugar da Pista de
+tiros, que não chegou a ser treinada) e **o Reflexo ganha os Lançadores** (desviar de bolas; ficha nova
+em `docs/atividades/reflexo.md`). Já feito nas pastas do treino: ficha `velocidade.md` (agora o Painel,
+com o nome "Painel de luzes", a confirmar com o Savio), `fitas/velocidade.json`, `web/atividades/velocidade/`.
+Falta na Central: `sim/src/jogo.ts` (nome e níveis das atividades de `velocidade` e `reflexo`),
+`docs/regras.md` (tabela de atributos base), `docs/plano.md`. Pronto quando os nomes batem com as fichas.
+
+## 2026-10-16 · de Treino: Reflexo para Cenários · aberto
+1. A estação que vocês estão fazendo (Painel) agora é do **CT de Velocidade**; as medidas não mudaram
+   (`docs/atividades/velocidade.md`). O Reflexo ganhou uma estação nova, os **Lançadores**
+   (`docs/atividades/reflexo.md` → "O que se mexe").
+2. Pedido do Savio ao ver a página: o cenário "funciona para este primeiro momento, mas pode ficar um
+   pouco mais vivo, com mais elementos que preencham". Enquanto o definitivo não chega, as páginas usam
+   `web/atividades/ct-provisorio.js` (galpão com outras estações ao fundo, bancos, cones, rack, faixa da
+   atlética); usem como referência do que ele quer ver em volta, não como desenho final.

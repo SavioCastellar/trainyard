@@ -11,8 +11,9 @@ treino: entrega cenários prontos para as sessões de treino plugarem a simulaç
 > adversários: só o atleta e o ambiente. Ver `docs/produto.md`.
 
 ## É seu
-- `web/cenarios/` — um módulo por atividade (`web/cenarios/<atividade>.js`) e peças comuns
-  (`web/cenarios/comum.js`: ilha flutuante, céu, luz, grama, árvores, partículas…).
+- `web/cenarios/` — um módulo por estação (`web/cenarios/<atividade>.js`) e peças comuns
+  (`web/cenarios/comum.js`: o prédio do CT em 4 níveis de estrutura, piso, paredes, luz, cores da
+  atlética, partículas…).
 - `web/cenarios/vitrine/` — páginas de vitrine para o Savio aprovar cada cenário.
 
 ## Não é seu
@@ -29,16 +30,24 @@ treino: entrega cenários prontos para as sessões de treino plugarem a simulaç
 4. A Central abre a sessão de treino daquela atividade.
 
 ## Referências
-- Estilo aprovado: `prototipos/` (ilhas flutuantes low-poly, céu em degradê, sombras suaves) e a
-  arena do Treino de Precisão (`web/src/precision.template.html`, `buildIsland`, alvos, partículas).
+- Cada ficha em `docs/atividades/` tem a tabela **"Centro de treinamento (só visual)"** com o que
+  muda do nível 0 (improvisado: cimento, madeira, cones) ao 3 (CT moderno: piso iluminado, telão,
+  marca da atlética). O nível do CT nunca muda medidas nem física: só o que está em volta.
+- Estilo: low-poly colorido, tom sério (`docs/regras.md` → "Tom e mundo"). Das referências antigas
+  (`prototipos/`, `web/src/precision.template.html`), aproveite técnica de luz, sombra, partículas e
+  desempenho, não as ilhas nem o céu em degradê.
 - Meta: ≥ 30 fps num celular intermediário com 4 atletas em cena. Instâncias para objetos
   repetidos, poucas luzes com sombra, texturas geradas em canvas.
 
-## Marcos
-1. Extrair as peças comuns de `precision.template.html` para `web/cenarios/comum.js` e refazer a
-   arena da Precisão como `web/cenarios/precisao.js` no contrato §5 (vitrine publicada).
-2. Cenário do futebol 2x2 (campo na ilha, gols, torcida em instâncias) — ficha `docs/atividades/futebol.md`.
-3. Próximos cenários conforme a Central for criando fichas.
+## Marcos (refeitos em 2026-10-16)
+1. **O CT da atlética** em `web/cenarios/comum.js`: o espaço onde ficam as estações, nos 4 níveis de
+   estrutura, com as cores da atlética. Vitrine com um seletor de nível do CT.
+2. **Estação do Painel de reação** (`web/cenarios/reflexo.js`, ficha `docs/atividades/reflexo.md`):
+   é o primeiro treino novo. Vitrine com placas acendendo e o atleta andando sem IA.
+3. **Estação da Precisão** dentro do CT (refazer a arena atual sem a ilha).
+4. Pista de tiros, Trenó de carga, Plataformas de equilíbrio, Circuito de decisão, na ordem em
+   que as sessões de treino forem abertas.
+5. Futebol 2x2: espera o Savio definir o que é "urbano" para as partidas.
 
 ## Estado
-- Próximo: marco 1.
+- Próximo: marco 1 (antes era a arena da Precisão na ilha; trocado pela mudança de direção).
