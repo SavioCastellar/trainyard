@@ -12,7 +12,10 @@ import { Rng } from '../rng.js';
 
 interface Env { done: boolean; reward: number; observe(o: Float32Array, off: number): void; step(...a: number[]): void }
 const DRILLS: Record<string, { obs: number; acts: number; make(seed: number, nivel: number): Env; info(e: any): object }> = {
-  precisao: { obs: PRECISION_OBS, acts: PRECISION_ACTIONS.length, make: s => new PrecisionDrill(s), info: (e: PrecisionDrill) => ({ hits: e.hits, kicks: e.kicks }) },
+  precisao: {
+    obs: PRECISION_OBS, acts: PRECISION_ACTIONS.length, make: (s, n) => new PrecisionDrill(s, false, n as Nivel),
+    info: (e: PrecisionDrill) => ({ hits: e.hits, kicks: e.kicks, nivel: e.nivel }),
+  },
   velocidade: {
     obs: PAINEL_OBS, acts: PAINEL_ACTIONS.length, make: (s, n) => new PainelDrill(s, false, n as Nivel),
     info: (e: PainelDrill) => ({ hits: e.hits, lights: e.lights, reds: e.reds, nivel: e.nivel }),

@@ -23,9 +23,11 @@ import torch.nn as nn
 from torch.distributions import Categorical
 
 # tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
-DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6, (3, 3, 3))}
-# domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha
-DOMINIO = {"velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
+DRILLS = {"precisao": (5 + 3 * 7, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6, (3, 3, 3))}
+# domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha.
+# Valor acima de 1 é acertos por tentativa (Precisão; igual a PRECISION_DOMINIO em precision.ts).
+DOMINIO = {"precisao": {1: (27, None), 2: (27, None), 3: (26, None)},
+           "velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
            "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)}}
 OBS, ACTS = DRILLS["precisao"]
 BRIDGE = os.path.join(os.path.dirname(__file__), "..", "sim", "dist", "src", "drills", "bridge-drill.js")
@@ -168,12 +170,15 @@ def main():
         row = {"update": update, "steps": steps, "episodes": episodes, "mean_hits": round(mh, 2), "min": round((time.time() - t0) / 60, 2)}
         if dominio:
             w = lvl[-300:]
-            rate = sum(e["hits"] for e in w) / max(1, sum(e["lights"] for e in w))
-            reds = float(np.mean([e["reds"] for e in w])) if w else 0.0
-            row.update(nivel=nivel, rate=round(rate, 3), reds=round(reds, 2))
             thr, max_reds = dominio[nivel]
+            if thr > 1:
+                rate = float(np.mean([e["hits"] for e in w])) if w else 0.0
+            else:
+                rate = sum(e["hits"] for e in w) / max(1, sum(e["lights"] for e in w))
+            reds = float(np.mean([e.get("reds", 0) for e in w])) if w else 0.0
+            row.update(nivel=nivel, rate=round(rate, 3), reds=round(reds, 2))
             if mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
-                print(f"domínio do nível {nivel}: {rate:.1%} das luzes, {reds:.2f} vermelhas, {episodes} tentativas", flush=True)
+                print(f"domínio do nível {nivel}: {f'{rate:.1f} acertos' if thr > 1 else f'{rate:.1%} das luzes'}, {reds:.2f} vermelhas, {episodes} tentativas", flush=True)
                 row["dominio"] = nivel
                 if nivel < max(dominio):
                     nivel += 1; level_start = update; lvl = []; env.set_level(nivel)
