@@ -51,5 +51,20 @@ com visual provisório, e melhore a partir daí.
 5. Registrar em `docs/aprendizados.md` o que funcionou e o que não, principalmente sobre a
    dificuldade crescente, que é nova.
 
-## Estado
-- Próximo: marco 1.
+## Estado (2026-10-16)
+- **Feito — marco 1:** `sim/src/drills/reflexo.ts` com os 3 níveis; testes em `sim/test/reflexo.test.ts`
+  (determinismo nos 3 níveis, robô simples, regras de cada nível).
+- **Feito — marco 2:** ponte por nome (`drill`, `nivel`, op 3), `ppo_drill.py --drill reflexo` com nível
+  crescente (tabela `DOMINIO`), `make-tape.ts` com nível por foto e marcos por nível (contrato §3).
+  Treino de 20 min / 39.872 tentativas, do zero ao domínio dos 3 níveis. Domínios medidos e ficha
+  corrigida (nível 2 em 95% e nível 3 em 93% com < 0,3 vermelha; vermelha no caminho em metade das luzes).
+- **Feito — marco 3 (1ª rodada):** `fitas/reflexo.json` (63 fotos) e `web/atividades/reflexo/`
+  (`python web/atividades/reflexo/build.py` → `web/dist/treino-reflexo.html`), uma sessão por nível,
+  testada no navegador em desktop e celular (390×844, 60 quadros/s).
+- **Feito — marco 5 (parcial):** aprendizados 19–23.
+- **Próximo:** o Savio assistir e avaliar. Decisão em aberto na ficha: pausa maior entre as luzes para o
+  "voltar ao centro" ficar óbvio (hoje o recuo é sutil, ~0,6 m). Depois, marco 4 (cenário do CT).
+- Comandos:
+  `python ppo_drill.py --drill reflexo --minutes 240 --max-steps 4e8 --out runs/reflexo` (para sozinho
+  ~60 atualizações depois do domínio do nível 3), depois
+  `node ../sim/dist/scripts/make-tape.js runs/reflexo/checkpoints.json ../fitas/reflexo.json`.
