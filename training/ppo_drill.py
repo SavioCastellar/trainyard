@@ -23,10 +23,12 @@ import torch.nn as nn
 from torch.distributions import Categorical
 
 # tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
-DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6, (3, 3, 3))}
+DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6, (3, 3, 3)), "forca": (27, (3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha
 DOMINIO = {"velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
-           "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)}}
+           "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)},
+           # força: hits/lights = entregas por tentativa (a ponte manda lights = 5 marcas)
+           "forca": {1: (3.0, None), 2: (1.5, None), 3: (1.0, None)}}
 OBS, ACTS = DRILLS["precisao"]
 BRIDGE = os.path.join(os.path.dirname(__file__), "..", "sim", "dist", "src", "drills", "bridge-drill.js")
 

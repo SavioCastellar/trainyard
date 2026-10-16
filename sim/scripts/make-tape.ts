@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from '../src/drills/painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from '../src/drills/reflexo.js';
+import { ForcaDrill, FORCA_OBS, FORCA_ACTIONS } from '../src/drills/forca.js';
 import { Rng } from '../src/rng.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
@@ -41,6 +42,8 @@ function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
 
 /** domínio do Reflexo por nível (fração de bolas desviadas); igual ao DOMINIO do ppo_drill.py */
 const REFLEXO_DOMINIO: Record<number, number> = { 1: 0.9, 2: 0.95, 3: 0.97 };
+/** domínio da Força por nível (entregas por tentativa); igual ao DOMINIO do ppo_drill.py */
+const FORCA_DOMINIO: Record<number, number> = { 1: 3, 2: 1.5, 3: 1 };
 type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
 interface DrillTape {
   title: string; obs: number; actions: readonly number[];
@@ -136,6 +139,36 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(2, e => e.acc >= D[2]), `Domínio do nível 2: desvia ${Math.round(D[2] * 100)}% das bolas.`);
       add(at(3, () => true), 'Nível 3 · Pares: às vezes duas bolas saem juntas, e a segunda fecha a rota de fuga.', 3);
       add(at(3, e => e.acc >= D[3]), `Domínio do nível 3: desvia ${Math.round(D[3] * 100)}% das bolas.`);
+    },
+  },
+  forca: {
+    title: 'Trenó de carga', obs: FORCA_OBS, actions: FORCA_ACTIONS, dHits: 30, gap: total => total / 25,
+    evaluate(brain, nivel, n = 24) {
+      const obs = new Float32Array(FORCA_OBS), a = [0, 0];
+      let hits = 0, outs = 0, locks = 0, best = 0;
+      for (let e = 0; e < n; e++) {
+        const env = new ForcaDrill(9000 + e, false, nivel as 1 | 2 | 3), rng = new Rng(7000 + e);
+        while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1]); }
+        hits += env.hits; outs += env.outs; locks += env.locks; best = Math.max(best, env.hits);
+      }
+      // hits = marcas por tentativa; entregas = marcas / 5 (conta entrega parcial, como o domínio)
+      return { hits: hits / n, entregas: hits / n / 5, outs: outs / n, locks: locks / n, best };
+    },
+    marks(picked, add) {
+      const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
+      const D = FORCA_DOMINIO, fmt = (v: number) => String(v).replace('.', ',');
+      add(0, 'Primeira tentativa: anda em volta do trenó e não sabe por onde empurrar.');
+      add(at(1, e => e.hits >= 2), 'Começou a empurrar o trenó para a frente.');
+      add(at(1, e => e.entregas >= 1), 'Primeira entrega completa: levou o trenó até a linha final.');
+      add(at(1, e => e.entregas >= 2 && e.outs < 0.5), 'Aprendeu a ficar atrás e empurrar pelo centro: o trenó não sai mais da pista.');
+      add(at(1, e => e.entregas >= D[1]), `Domínio do nível 1: ${fmt(D[1])} entregas por tentativa.`);
+      add(at(2, () => true), 'Nível 2 · Carga pesada: o trenó pesa 3 vezes mais e, parado, trava no chão. Só sai com um arranque.', 2);
+      const l2 = at(2, () => true);
+      if (l2 >= 0) add(at(2, e => e.locks <= picked[l2].locks / 2 && e.entregas >= 0.8), 'Descobriu que parar custa caro: agora empurra sem soltar.');
+      add(at(2, e => e.entregas >= D[2]), `Domínio do nível 2: ${fmt(D[2])} entrega por tentativa com a carga pesada.`);
+      add(at(3, () => true), 'Nível 3 · Rampa: no meio da pista tem uma subida. Se soltar o trenó, ele escorrega para trás.', 3);
+      add(at(3, e => e.hits >= 3), 'Já sobe a rampa sem deixar o trenó voltar.');
+      add(at(3, e => e.entregas >= D[3]), `Domínio do nível 3: ${fmt(D[3])} entrega por tentativa subindo a rampa.`);
     },
   },
 };
