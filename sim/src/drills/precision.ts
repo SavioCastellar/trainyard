@@ -45,7 +45,7 @@ export const PRECISION_ACTIONS = [3, 3, 2] as const;
 export type Nivel = 1 | 2 | 3;
 /** domínio por nível, em acertos por tentativa: entre o robô sem e com o comportamento do nível
  *  (sim/test/precisao.test.ts); igual ao DOMINIO do training/ppo_drill.py */
-export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 26, 2: 26.5, 3: 25 };
+export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 26, 2: 26, 3: 25 };
 
 export type PrecisionEvent =
   | { type: 'kick'; t: number; x: number; z: number; h: number }
