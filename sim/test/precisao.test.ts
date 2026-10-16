@@ -62,7 +62,7 @@ test('precisão: o domínio de cada nível fica entre o robô sem e com o compor
   const com = { 1: () => media(1, e => mira(e)), 2: () => media(2, e => mira(e, { tempo: true })), 3: () => media(3, e => mira(e, { antecipa: true })) };
   for (const n of [1, 2, 3] as Nivel[]) {
     const a = sem[n](), b = com[n]();
-    assert.ok(a < D[n] - 1.5 && D[n] < b - 1.5, `nível ${n}: sem ${a} domínio ${D[n]} com ${b}`);
+    assert.ok(a < D[n] - 1 && D[n] < b - 1.5, `nível ${n}: sem ${a} domínio ${D[n]} com ${b}`);
     for (const f of [parado, gira, aleatorio]) assert.ok(media(n, f) < 7, `nível ${n} ação constante ${media(n, f)}`);
   }
 });

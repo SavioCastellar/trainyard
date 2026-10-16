@@ -9,7 +9,8 @@
  *
  * Observação: "posso chutar agora?", velocidade, distância e direção do centro; para cada alvo:
  * aceso, direção (cos, sen) e distância vistos pelo atleta, tempo aceso restante e velocidade
- * no referencial do atleta (aprendizado 19: direção separada da distância generaliza entre níveis).
+ * no referencial do atleta (aprendizado 19: direção separada da distância generaliza entre níveis);
+ * e os 16 raios da versão de 1 nível (alvos acesos e borda).
  * Ações: girar (esq/nada/dir), andar (ré/parado/frente), chutar (não/sim).
  */
 import { Rng } from '../rng.js';
@@ -32,16 +33,19 @@ export const PRECISION = {
   dark: 0.3,
   /** nível 3: velocidade dos alvos nos trilhos (a ficha propunha 1,5; com 2,0 a antecipação fica visível) */
   railSpeed: 2.0,
+  /** raios em volta do atleta que detectam alvos acesos e a borda (o "alvo na linha do chute" sai de graça) */
+  rays: 16,
+  rayLen: 16,
   maxTime: 30,
   dt: 1 / 30,
 } as const;
 
-export const PRECISION_OBS = 5 + PRECISION.targets * 7;
+export const PRECISION_OBS = 5 + PRECISION.targets * 7 + PRECISION.rays * 2;
 export const PRECISION_ACTIONS = [3, 3, 2] as const;
 export type Nivel = 1 | 2 | 3;
 /** domínio por nível, em acertos por tentativa: entre o robô sem e com o comportamento do nível
  *  (sim/test/precisao.test.ts); igual ao DOMINIO do training/ppo_drill.py */
-export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 27, 2: 27, 3: 26 };
+export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 26, 2: 26.5, 3: 25 };
 
 export type PrecisionEvent =
   | { type: 'kick'; t: number; x: number; z: number; h: number }
@@ -111,6 +115,22 @@ export class PrecisionDrill {
       const vx = -Math.sin(t.a) * t.dir, vz = Math.cos(t.a) * t.dir; // velocidade / railSpeed
       out[o + 5] = vx * c + vz * s; out[o + 6] = -vx * s + vz * c;
     });
+    const L = PRECISION.rayLen, o = off + 5 + PRECISION.targets * 7;
+    for (let k = 0; k < PRECISION.rays; k++) {
+      const a = P.h + (k * 2 * Math.PI) / PRECISION.rays, dx = Math.cos(a), dz = Math.sin(a);
+      let best: number = L;
+      for (const t of this.targets) {
+        if (t.off > 0) continue;
+        const mx = P.x - t.x, mz = P.z - t.z, b = mx * dx + mz * dz, cc = mx * mx + mz * mz - PRECISION.targetR ** 2;
+        if (cc > 0 && b > 0) continue;
+        const disc = b * b - cc;
+        if (disc < 0) continue;
+        best = Math.min(best, Math.max(0, -b - Math.sqrt(disc)));
+      }
+      const bw = P.x * dx + P.z * dz, cw = P.x * P.x + P.z * P.z - R * R;
+      out[o + k * 2] = best < L ? 1 - best / L : 0;
+      out[o + k * 2 + 1] = 1 - Math.min(L, -bw + Math.sqrt(Math.max(0, bw * bw - cw))) / L;
+    }
   }
 
   /** action = [girar 0..2, andar 0..2, chutar 0..1] */
