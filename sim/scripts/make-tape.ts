@@ -97,12 +97,17 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(1, e => e.acc >= 0.9), 'Domínio do nível 1: 9 em cada 10 luzes.');
       const l2 = at(2, () => true);
       add(l2, 'Nível 2 · Janela curta: agora as 12 placas acendem e cada luz dura só 2,5 s.', 2);
-      if (l2 >= 0) add(at(2, e => e.centro < picked[l2].centro - 1 && e.acc > picked[l2].acc + 0.15), 'Descobriu que precisa voltar ao centro entre uma luz e outra.');
-      add(at(2, e => e.acc >= 0.9), 'Domínio do nível 2.');
+      // no começo do nível 2 ele se afasta do centro (corre até as placas de fora e fica lá); depois aprende a recuar
+      if (l2 >= 0) {
+        const n2 = picked.filter(e => e.nivel === 2), pico = n2.reduce((a, e) => (e.centro > a.centro ? e : a), n2[0]);
+        add(picked.findIndex(e => e.nivel === 2 && e.c.episodes > pico.c.episodes && e.centro <= pico.centro - 0.4),
+          'Descobriu que vale recuar para o centro entre uma luz e outra: assim alcança qualquer placa.');
+      }
+      add(at(2, e => e.acc >= 0.95), 'Domínio do nível 2: 95% das luzes.');
       const l3 = at(3, () => true);
       add(l3, 'Nível 3 · Luzes proibidas: junto com a verde acendem 2 vermelhas. Pisar nelas trava 1 s.', 3);
       if (l3 >= 0) add(at(3, e => e.reds <= picked[l3].reds / 2 && e.reds < 0.5), 'Aprendeu a desviar das vermelhas.');
-      add(at(3, e => e.acc >= 0.88 && e.reds < 0.3), 'Domínio do nível 3: pisa as verdes e foge das vermelhas.');
+      add(at(3, e => e.acc >= 0.93 && e.reds < 0.3), 'Domínio do nível 3: pisa as verdes e foge das vermelhas.');
     },
   },
 };
