@@ -88,6 +88,9 @@ export class NomeDrill {
   (padrão `precisao`), e a ponte `bridge-drill.ts` recebe `drill` e `nivel` no init e o op 3 `{ nivel }`.
 - Métricas do Reflexo: `hits` (luzes pisadas), `lights` (luzes encerradas), `acc` (= hits/lights),
   `reds` (vermelhas pisadas), `centro` (distância média do centro quando a próxima luz acende), `best`.
+- Precisão com níveis (2026-10-16): mesmas métricas (`hits`, `kicks`, `acc`, `best`) e `nivel`; o domínio
+  dela é em acertos por tentativa (valor > 1 na tabela `DOMINIO` do `ppo_drill.py`). A observação mudou
+  (35 → 58 entradas): a fita de 1 nível não roda mais com a simulação nova.
 - Campos de métrica (`hits`, `kicks`, `acc`, `best`) são da Precisão; outras atividades podem ter
   outros, mas **`hits` deve existir como "desempenho principal"** (a curva usa ele) — ou renomear
   para `score` em todas de uma vez, combinando aqui.

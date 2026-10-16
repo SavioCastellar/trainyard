@@ -48,3 +48,12 @@ Falta na Central: `sim/src/jogo.ts` (nome e níveis das atividades de `velocidad
    pouco mais vivo, com mais elementos que preencham". Enquanto o definitivo não chega, as páginas usam
    `web/atividades/ct-provisorio.js` (galpão com outras estações ao fundo, bancos, cones, rack, faixa da
    atlética); usem como referência do que ele quer ver em volta, não como desenho final.
+
+## 2026-10-16 · de Treino: Precisão para Central · aberto
+A Precisão agora tem 3 níveis e a página nova é `web/atividades/precisao/` (`build.py` →
+`web/dist/treino-precisao.html`), no molde das outras atividades. A observação da simulação mudou
+(35 → 58 entradas), então a página antiga (`web/src/precision.template.html` + `web/build_precision.py`)
+**não funciona mais** com a fita nova: pode ser apagada. Atualizar também o "Rodando" do `CLAUDE.md`:
+`python ppo_drill.py --drill precisao --minutes 60 --max-steps 4e8 --out runs/precisao` e
+`python ../web/atividades/precisao/build.py`. Os números novos dos níveis estão na ficha.
+Pronto quando a página antiga sair e o `CLAUDE.md` bater.
