@@ -59,8 +59,8 @@ export class NomeDrill {
   // + estado público que a página desenha (posições, alvos, bola…)
 }
 ```
-- Para o treino, a atividade é registrada na ponte `bridge-drill.ts` (hoje só a Precisão;
-  generalizar por nome ao criar a segunda atividade).
+- Para o treino, a atividade é registrada na ponte `bridge-drill.ts` (tabela `DRILLS`, por nome;
+  Precisão e Reflexo). Atividades com níveis aceitam `nivel` como 3º argumento do construtor (padrão 1).
 - O futebol (`sim/src/soccer.ts`, `Match`) segue o mesmo espírito com 4 atletas; ver o arquivo.
 
 ## 3. Fita (compartilhado entre as sessões de treino; mudanças aditivas)
@@ -80,6 +80,14 @@ export class NomeDrill {
 ```
 - Cérebro: camadas ocultas com `tanh`, última camada linear dividida em logits por decisão;
   ações sorteadas de cada distribuição categórica (não usar argmax: o sorteio dá a variedade).
+- **Níveis (aditivo, 2026-10-16, sessão Treino: Reflexo):** atividades com níveis treinam uma fita só,
+  subindo de nível quando o atleta atinge o domínio da ficha (`training/ppo_drill.py`, tabela `DOMINIO`).
+  Cada foto ganha `nivel` (1, 2, 3; ausente = 1) e é avaliada nesse nível; os marcos de subida de nível
+  ganham `nivel` (`{ ck, text, nivel: 2 }` = primeira foto do nível 2). `make-tape.ts` sempre inclui a
+  última foto de um nível e a primeira do seguinte. A atividade vem do campo `drill` dos checkpoints
+  (padrão `precisao`), e a ponte `bridge-drill.ts` recebe `drill` e `nivel` no init e o op 3 `{ nivel }`.
+- Métricas do Reflexo: `hits` (luzes pisadas), `lights` (luzes encerradas), `acc` (= hits/lights),
+  `reds` (vermelhas pisadas), `centro` (distância média do centro quando a próxima luz acende), `best`.
 - Campos de métrica (`hits`, `kicks`, `acc`, `best`) são da Precisão; outras atividades podem ter
   outros, mas **`hits` deve existir como "desempenho principal"** (a curva usa ele) — ou renomear
   para `score` em todas de uma vez, combinando aqui.
@@ -92,7 +100,8 @@ int16 em base64 (bola x,z + por atleta x, z, direção, flags), eventos.
 Um módulo por atividade em `web/cenarios/<atividade>.js` (script clássico, como a `cabecudo-lib.js`;
 espera `THREE` e `TAU` no escopo), mais peças comuns em `web/cenarios/comum.js`.
 ```js
-const cen = construirCenario<Atividade>(scene, { qualidade: 'alta'|'leve' });
+const cen = construirCenario<Atividade>(scene, { qualidade: 'alta'|'leve', nivelCT: 0|1|2|3, cores: { p, s } });
+// nivelCT e cores (da atlética) são opcionais (padrão 0 e cores neutras); mudam só o visual em volta
 cen.raiz          // Group com todo o cenário; origem = centro da arena da simulação, y=0 = chão
 cen.objetos       // fábricas dos objetos que se mexem, nas medidas da ficha:
                   //   ex.: cen.objetos.bola(), cen.objetos.alvo() → { grupo, ...handles }

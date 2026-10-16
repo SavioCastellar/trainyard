@@ -1,9 +1,12 @@
-"""Treino PPO do Treino de Precisão, do zero até o domínio, gravando a "fita" de aprendizado.
+"""Treino PPO de uma atividade, do zero até o domínio, gravando a "fita" de aprendizado.
 
 A fita é uma sequência de fotos do cérebro (checkpoints) desde a primeira tentativa.
 Ela é gravada uma única vez e depois mostrada a todos os jogadores, em trechos.
+Atividades com níveis (ver DOMINIO) sobem de nível quando o atleta atinge o domínio da ficha;
+cada foto guarda o nível em que foi tirada.
 
 Uso: python ppo_drill.py --minutes 20 --out runs/precisao
+     python ppo_drill.py --drill velocidade --minutes 120 --out runs/velocidade
 """
 from __future__ import annotations
 
@@ -19,17 +22,20 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-OBS = 16 * 2 + 3
-ACTS = (3, 3, 2)
+# tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
+DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6, (3, 3, 3))}
+# domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha
+DOMINIO = {"velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
+           "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)}}
+OBS, ACTS = DRILLS["precisao"]
 BRIDGE = os.path.join(os.path.dirname(__file__), "..", "sim", "dist", "src", "drills", "bridge-drill.js")
-EP_STEPS = 900
 
 
 class Drill:
-    def __init__(self, n, seed):
+    def __init__(self, n, seed, drill):
         self.n = n
         self.p = subprocess.Popen(["node", BRIDGE], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        self._send(1, json.dumps({"nEnvs": n, "seed": seed}).encode())
+        self._send(1, json.dumps({"nEnvs": n, "seed": seed, "drill": drill}).encode())
         self.obs, *_ = self._recv()
 
     def _send(self, op, data):
@@ -53,6 +59,10 @@ class Drill:
         self._send(2, np.ascontiguousarray(a, np.int32).tobytes())
         self.obs, r, d, info = self._recv()
         return self.obs, r, d, info
+
+    def set_level(self, nivel):
+        """vale para as próximas tentativas; as que estão no meio terminam no nível antigo"""
+        self._send(3, json.dumps({"nivel": nivel}).encode())
 
     def close(self):
         self._send(9, b"")
@@ -90,6 +100,10 @@ def snapshot(net: Net):
     return layers
 
 
+def save(args, ckpts):
+    json.dump({"drill": args.drill, "obs": OBS, "actions": list(ACTS), "hidden": 64, "checkpoints": ckpts}, open(os.path.join(args.out, "checkpoints.json"), "w"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--minutes", type=float, default=20)
@@ -98,18 +112,24 @@ def main():
     ap.add_argument("--steps", type=int, default=128)
     ap.add_argument("--seed", type=int, default=3)
     ap.add_argument("--out", default="runs/precisao")
+    ap.add_argument("--drill", default="precisao", choices=list(DRILLS))
+    ap.add_argument("--after", type=int, default=60, help="atualizações extras depois de dominar o último nível")
     args = ap.parse_args()
+    global OBS, ACTS
+    OBS, ACTS = DRILLS[args.drill]
+    dominio = DOMINIO.get(args.drill)
+    nivel, level_start, mastered_at = 1, 0, None
     torch.set_num_threads(1); torch.manual_seed(args.seed); np.random.seed(args.seed)
     os.makedirs(args.out, exist_ok=True)
-    env = Drill(args.n_envs, args.seed)
+    env = Drill(args.n_envs, args.seed, args.drill)
     net = Net(); opt = torch.optim.Adam(net.parameters(), lr=3e-4, eps=1e-5)
     n, T = args.n_envs, args.steps
-    ckpts = [{"update": 0, "steps": 0, "episodes": 0, "layers": snapshot(net)}]
-    t0 = time.time(); steps = 0; episodes = 0; update = 0; recent = []
+    ckpts = [{"update": 0, "steps": 0, "episodes": 0, "nivel": 1, "layers": snapshot(net)}]
+    t0 = time.time(); steps = 0; episodes = 0; update = 0; recent = []; lvl = []  # lvl: tentativas no nível atual
     log = open(os.path.join(args.out, "log.jsonl"), "w")
     while time.time() - t0 < args.minutes * 60 and steps < args.max_steps:
         update += 1
-        Bo = np.zeros((T, n, OBS), np.float32); Ba = np.zeros((T, n, 3), np.int64)
+        Bo = np.zeros((T, n, OBS), np.float32); Ba = np.zeros((T, n, len(ACTS)), np.int64)
         Bl = np.zeros((T, n), np.float32); Bv = np.zeros((T, n), np.float32); Br = np.zeros((T, n), np.float32); Bd = np.zeros((T, n), np.float32)
         for t in range(T):
             o = torch.from_numpy(env.obs.copy())
@@ -120,6 +140,8 @@ def main():
             Br[t] = r; Bd[t] = d
             for e in info:
                 recent.append(e["hits"]); episodes += 1
+                if e.get("nivel", 1) == nivel:
+                    lvl.append(e)
         steps += T * n
         with torch.no_grad():
             lv = net.critic(torch.from_numpy(env.obs.copy())).squeeze(-1).numpy()
@@ -128,7 +150,7 @@ def main():
             nv = lv if t == T - 1 else Bv[t + 1]; nt = 1 - Bd[t]
             delta = Br[t] + 0.99 * nv * nt - Bv[t]; g = delta + 0.99 * 0.95 * nt * g; adv[t] = g
         ret = adv + Bv
-        O = torch.from_numpy(Bo.reshape(-1, OBS)); A = torch.from_numpy(Ba.reshape(-1, 3)); L = torch.from_numpy(Bl.reshape(-1))
+        O = torch.from_numpy(Bo.reshape(-1, OBS)); A = torch.from_numpy(Ba.reshape(-1, len(ACTS))); L = torch.from_numpy(Bl.reshape(-1))
         AD = torch.from_numpy(adv.reshape(-1)); R = torch.from_numpy(ret.reshape(-1)); AD = (AD - AD.mean()) / (AD.std() + 1e-8)
         for _ in range(4):
             perm = torch.randperm(len(O))
@@ -138,15 +160,34 @@ def main():
                 pg = -torch.min(ratio * AD[i], torch.clamp(ratio, 0.8, 1.2) * AD[i]).mean()
                 loss = pg + 0.5 * ((v - R[i]) ** 2).mean() - 0.01 * ent.mean()
                 opt.zero_grad(); loss.backward(); nn.utils.clip_grad_norm_(net.parameters(), 0.5); opt.step()
-        # fotos do cérebro: todas no começo (onde a mudança é rápida), depois espaçadas
-        if update <= 40 or (update <= 150 and update % 3 == 0) or update % 8 == 0:
-            ckpts.append({"update": update, "steps": steps, "episodes": episodes, "layers": snapshot(net)})
+        # fotos do cérebro: todas no começo de cada nível (onde a mudança é rápida), depois espaçadas
+        u = update - level_start
+        if u <= 40 or (u <= 150 and u % 3 == 0) or update % 8 == 0:
+            ckpts.append({"update": update, "steps": steps, "episodes": episodes, "nivel": nivel, "layers": snapshot(net)})
         mh = float(np.mean(recent[-200:])) if recent else 0.0
-        log.write(json.dumps({"update": update, "steps": steps, "episodes": episodes, "mean_hits": round(mh, 2), "min": round((time.time() - t0) / 60, 2)}) + "\n"); log.flush()
+        row = {"update": update, "steps": steps, "episodes": episodes, "mean_hits": round(mh, 2), "min": round((time.time() - t0) / 60, 2)}
+        if dominio:
+            w = lvl[-300:]
+            rate = sum(e["hits"] for e in w) / max(1, sum(e["lights"] for e in w))
+            reds = float(np.mean([e["reds"] for e in w])) if w else 0.0
+            row.update(nivel=nivel, rate=round(rate, 3), reds=round(reds, 2))
+            thr, max_reds = dominio[nivel]
+            if mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
+                print(f"domínio do nível {nivel}: {rate:.1%} das luzes, {reds:.2f} vermelhas, {episodes} tentativas", flush=True)
+                row["dominio"] = nivel
+                if nivel < max(dominio):
+                    nivel += 1; level_start = update; lvl = []; env.set_level(nivel)
+                else:
+                    mastered_at = update
+        log.write(json.dumps(row) + "\n"); log.flush()
         if update % 10 == 0:
-            print(f"update {update} passos {steps} tentativas {episodes} acertos/tentativa {mh:.2f} {(time.time()-t0)/60:.1f}min", flush=True)
-    ckpts.append({"update": update, "steps": steps, "episodes": episodes, "layers": snapshot(net)})
-    json.dump({"obs": OBS, "actions": list(ACTS), "hidden": 64, "checkpoints": ckpts}, open(os.path.join(args.out, "checkpoints.json"), "w"))
+            print(f"update {update} passos {steps} tentativas {episodes} acertos/tentativa {mh:.2f} {row.get('nivel', '')} {row.get('rate', '')} {(time.time()-t0)/60:.1f}min", flush=True)
+        if update % 50 == 0:  # ponytail: só guarda as fotos para não perder o treino; retomar exige rodar de novo
+            save(args, ckpts)
+        if mastered_at is not None and update - mastered_at >= args.after:
+            break
+    ckpts.append({"update": update, "steps": steps, "episodes": episodes, "nivel": nivel, "layers": snapshot(net)})
+    save(args, ckpts)
     env.close()
     print("fim", update, steps, episodes, len(ckpts))
 
