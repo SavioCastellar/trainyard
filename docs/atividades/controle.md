@@ -1,6 +1,6 @@
 # Ficha: Plataformas de equilíbrio
 
-Estação do centro de treinamento para **Controle**. Proposta do Claude (2026-10-16), aguardando o Savio.
+Estação do centro de treinamento para **Controle**. Proposta do Claude (2026-10-16), aprovada no papel pelo Savio; aprovação final só vendo rodando.
 
 - **Tipo:** treino de atributo base, individual. **Atributo:** Controle.
 - **Ideia:** uma trilha de plataformas redondas e baixas, encostadas umas nas outras, com curvas. O atleta tem embalo, então correr demais numa curva faz ele passar da plataforma. Quem sai cai no colchão e volta para a última plataforma pisada. Não tem gesto de esporte, robô nem adversário.
@@ -45,6 +45,6 @@ Valores estimados; a sessão de treino mede e ajusta.
 | 3 | plataformas com mecanismo aparente nas móveis, telão com o percurso |
 
 ## Estado
-- Ficha: proposta, aguardando o Savio.
+- Ficha: aprovada no papel (2026-10-16). Aprovação final só vendo o treino rodando.
 - Cenário: a fazer.
 - Treino: a fazer.

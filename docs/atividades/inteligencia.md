@@ -1,6 +1,6 @@
 # Ficha: Circuito de decisão
 
-Estação do centro de treinamento para **Inteligência**. Proposta do Claude (2026-10-16), aguardando o Savio.
+Estação do centro de treinamento para **Inteligência**. Proposta do Claude (2026-10-16), aprovada no papel pelo Savio; aprovação final só vendo rodando.
 
 - **Tipo:** treino de atributo base, individual. **Atributo:** Inteligência (qualidade da decisão).
 - **Ideia:**
@@ -55,6 +55,6 @@ Estação do centro de treinamento para **Inteligência**. Proposta do Claude (2
 | 3 | quadra com iluminação cênica, telão com o mapa da tentativa e as escolhas do atleta |
 
 ## Estado
-- Ficha: proposta, aguardando o Savio.
+- Ficha: aprovada no papel (2026-10-16). Aprovação final só vendo o treino rodando.
 - Cenário: a fazer.
 - Treino: a fazer (o mais arriscado da lista).

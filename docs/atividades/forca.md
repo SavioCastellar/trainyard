@@ -1,6 +1,6 @@
 # Ficha: Trenó de carga
 
-Estação do centro de treinamento para **Força**. Proposta do Claude (2026-10-16), aguardando o Savio.
+Estação do centro de treinamento para **Força**. Proposta do Claude (2026-10-16), aprovada no papel pelo Savio; aprovação final só vendo rodando.
 
 - **Tipo:** treino de atributo base, individual. **Atributo:** Força.
 - **Ideia:** empurrar um trenó com peso até a linha final, como nos treinos de força de verdade. O trenó só anda enquanto o atleta empurra. Empurrar fora do centro faz o trenó girar. Não tem gesto de esporte, robô nem adversário.
@@ -48,6 +48,6 @@ Valores estimados; a sessão de treino mede e ajusta.
 | 3 | pista coberta com rampa de verdade, telão com a carga levada pela atlética |
 
 ## Estado
-- Ficha: proposta, aguardando o Savio.
+- Ficha: aprovada no papel (2026-10-16). Aprovação final só vendo o treino rodando.
 - Cenário: a fazer.
 - Treino: a fazer.

@@ -1,6 +1,6 @@
 # Ficha: Treino de Precisão
 
-Estação do centro de treinamento para **Precisão**. A versão de 1 nível foi aprovada no protótipo. Os níveis 2 e 3 são proposta do Claude (2026-10-16), aguardando o Savio.
+Estação do centro de treinamento para **Precisão**. A versão de 1 nível foi aprovada no protótipo. Os níveis 2 e 3 são proposta do Claude (2026-10-16), aprovados no papel; aprovação final só vendo rodando.
 
 - **Tipo:** treino de atributo base, individual. **Atributo:** Precisão.
 - **Objetivo do atleta (recompensa):** acertar alvos chutando bolas. +1 por acerto, nenhuma outra recompensa. O chute fica, por decisão do Savio.
@@ -49,6 +49,6 @@ Estação do centro de treinamento para **Precisão**. A versão de 1 nível foi
 | 3 | trilhos embutidos no piso, telão com o replay do melhor chute, marca da atlética |
 
 ## Estado
-- Ficha: nível 1 aprovado; níveis 2 e 3 aguardando o Savio.
+- Ficha: nível 1 aprovado rodando; níveis 2 e 3 aprovados no papel (2026-10-16), aprovação final só vendo rodando.
 - Cenário: protótipo aprovado (dentro de `web/src/precision.template.html`), ainda numa ilha. Refazer dentro do CT (`web/cenarios/precisao.js`).
 - Treino: nível 1 feito (`fitas/precisao.json`); retreinar com os 3 níveis.

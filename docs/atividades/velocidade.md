@@ -1,6 +1,6 @@
 # Ficha: Pista de tiros
 
-Estação do centro de treinamento para **Velocidade**. Proposta do Claude (2026-10-16), aguardando o Savio.
+Estação do centro de treinamento para **Velocidade**. Proposta do Claude (2026-10-16), aprovada no papel pelo Savio; aprovação final só vendo rodando.
 
 - **Tipo:** treino de atributo base, individual. **Atributo:** Velocidade.
 - **Ideia:** o "vai e volta" dos testes físicos de verdade. O atleta corre entre duas linhas e precisa chegar à próxima linha antes do apito. A cada linha o apito fica mais apertado, até ele não conseguir mais. Não tem gesto de esporte, robô nem adversário.
@@ -47,6 +47,6 @@ Estação do centro de treinamento para **Velocidade**. Proposta do Claude (2026
 | 3 | pista coberta com iluminação de estádio, telão com o recorde da atlética |
 
 ## Estado
-- Ficha: proposta, aguardando o Savio.
+- Ficha: aprovada no papel (2026-10-16). Aprovação final só vendo o treino rodando.
 - Cenário: a fazer.
 - Treino: a fazer.
