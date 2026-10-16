@@ -18,6 +18,24 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
    assistir.** Precisão: de 0,6 para 29 acertos por tentativa em 5 min / 5.500 tentativas.
    → É o modelo a seguir para treinos.
 
+## Dificuldade crescente (níveis numa fita só) — Painel de reação, 2026-10-16
+19. **Observação por número de placa/alvo não generaliza entre níveis.** No nível 1 o atleta aprendeu
+    as 4 placas do meio "de cor" e no nível 2 pisou 0 de 219 luzes do anel de fora. Dar o alvo visto
+    pelo atleta como **direção (cos, sen do ângulo) + distância** resolveu: o "correr para a luz"
+    passou direto para as placas novas. → Em atividade com níveis, descreva alvos, perigos e o centro
+    em relação ao atleta, com direção separada da distância (posição relativa crua também falha:
+    distâncias maiores que as do nível 1 ficam fora do que a rede viu).
+20. **Domínio baixo demais pula o comportamento que se quer mostrar.** Com 90% no nível 2 o atleta
+    subia sem aprender a recuar ao centro (dá 90% só correndo de placa em placa). Com 95% ele precisa
+    recuar. → Antes de fixar o domínio, meça com um robô simples com e sem o comportamento
+    (`sim/test/reflexo.test.ts` tem o molde) e ponha o limite entre os dois.
+21. **Custo natural raro não ensina.** Vermelhas sorteadas ao acaso quase nunca ficavam no caminho e o
+    atleta não aprendeu a desviar (~0,9 pisada por tentativa, estável). Pondo uma vermelha no caminho em
+    metade das luzes, o custo (1 s parado) passou a tirar luzes e ele aprendeu a desviar (1,6 → 0,4).
+    Sem recompensa negativa.
+22. Subir de nível derruba a curva (95% → 30%) e ela volta a subir: isso dá uma boa história na fita.
+    Dividir as sessões da página por nível deixa a evolução clara.
+
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).
    → Hoje os atributos afetam **só a física** (velocidade, força do chute, precisão…), e o cérebro
@@ -57,3 +75,6 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 14. A máquina da sessão na nuvem pode reiniciar e matar treinos longos: salve fotos periodicamente e
     permita retomar de uma foto.
 15. `pkill -f` pode matar o próprio shell; use `pgrep -f "^python3 ppo"` + `kill`.
+23. No Windows, para parar um treino sem matar o de outra sessão, ache os processos pela linha de
+    comando (`Get-CimInstance Win32_Process | ? { $_.CommandLine -match 'ppo_drill|bridge-drill' }`) e
+    pare só os seus: o Python mostra o `--out runs/<nome>`, a ponte do Node mostra o caminho da sua cópia. Dois treinos em paralelo rodam sem perder velocidade (1 núcleo cada).
