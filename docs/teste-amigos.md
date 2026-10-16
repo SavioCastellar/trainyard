@@ -6,8 +6,7 @@ antes disso; ele existe para que as decisões de agora já levem o teste em cont
 ## Formato (decidido com o Savio em 2026-10-16)
 - **16 atléticas, 16 pessoas reais:** o Savio e mais 15 pessoas. Cada pessoa é a **diretora de uma
   atlética** e tem **o próprio atleta** nela. Não há atlética sem diretor real.
-- **40 atletas por atlética:** o atleta do diretor + 39 membros simulados (assumido; confirmar se
-  o atleta do diretor conta dentro dos 40).
+- **40 atletas por atlética:** o atleta do diretor + 39 membros simulados.
 - **Divisão única** com as 16 atléticas. Sem acesso, rebaixamento ou várias equipes por atlética
   neste teste (todas têm o mesmo tamanho, então o problema de tamanho não aparece).
 - **O diretor só decide o que fazer com o caixa da atlética** (hoje: centro de treinamento e
