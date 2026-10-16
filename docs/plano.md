@@ -7,6 +7,7 @@
 | Personagem | nuvem | `personagem` | `web/personagem/`, `web/src/cabecudo-lib.js` | `docs/sessoes/personagem.md` |
 | Cenários | nuvem | `cenarios` | `web/cenarios/` | `docs/sessoes/cenarios.md` |
 | Treino: Futebol | **computador do Savio** | `treino-futebol` | ver briefing | `docs/sessoes/treino-futebol.md` |
+| Treino: Reflexo | **computador do Savio** | `treino-reflexo` | ver briefing | `docs/sessoes/treino-reflexo.md` |
 | Treino: <atividade> | **computador do Savio** | `treino-<atividade>` | ver briefing | a partir de `docs/sessoes/treino-modelo.md` |
 
 Sessões de treino nascem conforme os cenários ficam prontos. Treinos rodam só no computador do
@@ -28,8 +29,10 @@ o cenário é ajustado, e plugar o cenário quando ele for aprovado.
 - Personagem: criador no repositório, boneco final, animações compartilhadas.
 - Cenários: peças comuns + cenários da Precisão e do Futebol; depois os das novas atividades.
 - Treino: Futebol jogando bem (começar já, em paralelo — é o maior risco).
-- Central: fichas de 2–3 atividades novas com o Savio.
-- Pronto quando: futebol bom de assistir; 3 atividades de treino com fita aprovada; boneco final em todas.
+- Central: fichas das 6 estações do lançamento (feitas em 2026-10-16, aprovadas no papel).
+- Treinos novos, um de cada vez no computador do Savio: Reflexo primeiro; depois Precisão com 3
+  níveis, Velocidade, Força, Controle e Inteligência.
+- Pronto quando: futebol bom de assistir; as 6 estações com fita aprovada **vendo rodando**; boneco final em todas.
 
 **Fase B — regras do jogo** (Central + Savio; proposta 1 em `docs/regras.md`, núcleo em `sim/src/jogo.ts`): atributos, habilidades, títulos, quanto rende cada
 treino, economia, temporada, convocação. Pronto quando `docs/produto.md` → "Em aberto" não tiver
