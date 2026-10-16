@@ -41,13 +41,15 @@ function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
 type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
 interface DrillTape {
   title: string; obs: number; actions: readonly number[];
+  /** nova foto quando o desempenho muda maxHits/dHits ou passam gap(total) tentativas */
+  dHits: number; gap(totalEpisodes: number): number;
   evaluate(brain: Brain, nivel: number): Metrics;
   marks(picked: Ev[], add: (i: number, text: string, nivel?: number) => void): void;
 }
 
 const DRILLS: Record<string, DrillTape> = {
   precisao: {
-    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS,
+    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS, dHits: 70, gap: () => 400,
     evaluate(brain, _nivel, n = 16) {
       const obs = new Float32Array(PRECISION_OBS), a = [0, 0, 0];
       let hits = 0, kicks = 0, best = 0;
@@ -71,7 +73,7 @@ const DRILLS: Record<string, DrillTape> = {
     },
   },
   reflexo: {
-    title: 'Painel de reação', obs: REFLEXO_OBS, actions: REFLEXO_ACTIONS,
+    title: 'Painel de reação', obs: REFLEXO_OBS, actions: REFLEXO_ACTIONS, dHits: 30, gap: total => total / 25,
     evaluate(brain, nivel, n = 24) {
       const obs = new Float32Array(REFLEXO_OBS), a = [0, 0];
       let hits = 0, lights = 0, reds = 0, best = 0, dist = 0, ons = 0;
@@ -107,12 +109,12 @@ const DRILLS: Record<string, DrillTape> = {
 
 const drill = src.drill ?? 'precisao', D = DRILLS[drill];
 const evals: Ev[] = src.checkpoints.map(c => { const nivel = c.nivel ?? 1; return { c, nivel, ...D.evaluate(makeBrain(c.layers, D.actions), nivel) }; });
-const maxHits = Math.max(...evals.map(e => e.hits));
+const maxHits = Math.max(...evals.map(e => e.hits)), maxGap = D.gap(evals[evals.length - 1].c.episodes);
 // escolha: sempre o começo, o fim e as duas pontas de cada subida de nível; no meio, uma foto sempre que o desempenho muda o suficiente
 const picked = [evals[0]];
 evals.slice(1, -1).forEach((e, k) => {
   const last = picked[picked.length - 1], next = evals[k + 2];
-  if (e.nivel !== last.nivel || e.nivel !== next.nivel || Math.abs(e.hits - last.hits) >= maxHits / 70 || e.c.episodes - last.c.episodes > 400) picked.push(e);
+  if (e.nivel !== last.nivel || e.nivel !== next.nivel || Math.abs(e.hits - last.hits) >= maxHits / D.dHits || e.c.episodes - last.c.episodes > maxGap) picked.push(e);
 });
 picked.push(evals[evals.length - 1]);
 
