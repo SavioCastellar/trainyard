@@ -109,7 +109,8 @@ cen.atualizar(dt) // anima o que é só decoração (grama, água, torcida, nuve
 ## 6. Regras do jogo (dono: Central)
 `sim/src/jogo.ts`: funções puras sobre um `Atleta` JSON (`novoAtleta`, `treinar`, `trabalhar`,
 `registrarPartida`, `expedicao`, `comprar`, `equipar`, `reparar`, `tratar`, `virarDia`,
-`novaTemporada`, `efetivo`, `forca`, `indiceConvocacao`, `convocar`, `titulos`, `sortearResultado`);
+`novaTemporada`, `atributoEsporte`, `forca`, `indiceConvocacao`, `convocar`, `especialidades`,
+`habilidades`, `atualizarEspecialidades`, `nivelAtividade`, `temperaturaDecisao`, `sortearResultado`);
 `treinar(a, atr, nivelCT, comPreparador)`; `Atleta.turnosHoje` (opcional) controla o salário
 decrescente. Formato da rodada em `REGRAS` (`duplasPorRodada`, `pontosPreparo`, `vantagemCampanha`). Ações inválidas
 lançam `Error` com mensagem em português (o backend mostra ao jogador). Sorte só via `Rng`.

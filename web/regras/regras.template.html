@@ -139,7 +139,13 @@
       <div class="card">
         <h2>Atributos</h2>
         <div id="f-attrs"></div>
-        <p class="hint" style="margin:8px 0 0">Barra escura: atributo treinado. Azul: bônus do equipamento de futebol já adaptado.</p>
+        <p class="hint" style="margin:8px 0 0">Atributos base, treinados no CT. "N2" = nível da atividade de treino.</p>
+      </div>
+      <div class="card">
+        <h2>Futebol (calculado)</h2>
+        <div id="f-esporte"></div>
+        <p class="hint" style="margin:8px 0 0">Combinação dos atributos base. Azul: bônus do equipamento adaptado. Já com a forma.</p>
+        <div style="padding-top:8px" id="f-hab"></div>
       </div>
     </div>
 
@@ -214,8 +220,8 @@
     <div class="card"><h2>Trabalho</h2><div class="tablewrap"><table id="t-func"></table></div><p class="hint" style="margin-top:8px">10% de todo pagamento vai para o caixa da atlética.</p></div>
     <div class="card"><h2>Prêmios</h2><div class="tablewrap"><table id="t-prem"></table></div></div>
     <div class="card"><h2>Equipamento por nível</h2><div class="tablewrap"><table id="t-niv"></table></div><p class="hint" style="margin-top:8px">Cada peça só vale na sua modalidade, leva 4 dias ativos para adaptar e perde a adaptação quando é trocada. Conserto: 35% do preço.</p></div>
-    <div class="card"><h2>Títulos</h2><div class="tablewrap"><table id="t-tit"></table></div></div>
-    <div class="card"><h2>Habilidades do futebol</h2><div class="tablewrap"><table id="t-hab"></table></div></div>
+    <div class="card"><h2>Especialidades</h2><div class="tablewrap"><table id="t-tit"></table></div><p class="hint" style="margin-top:8px">Perde a especialidade só abaixo do requisito − 5. Habilidades repetidas somam nível.</p></div>
+    <div class="card"><h2>Habilidades</h2><div class="tablewrap"><table id="t-hab"></table></div></div>
     <div class="card"><h2>Melhorias da atlética</h2><div class="tablewrap"><table id="t-mel"></table></div></div>
   </div>
 </section>
@@ -246,13 +252,15 @@ const diario = [];
 function anota(html, cls = '') { diario.unshift(`<div class="${cls}"><span class="mono" style="color:var(--ink-3)">D${dia}</span> · ${html}</div>`); }
 function tenta(f) { try { f(); } catch (e) { anota(esc(e.message), 'bad'); } render(); }
 
-$('sel-treino').innerHTML = ATRIBUTOS.map(k => `<option value="${k}">${ATIVIDADES[k].nome} · ${NOME_ATRIBUTO[k]}</option>`).join('');
+$('sel-treino').innerHTML = ATRIBUTOS.map(k => `<option value="${k}" ${ATIVIDADES[k].lancamento ? '' : 'disabled'}>${ATIVIDADES[k].nome} · ${NOME_ATRIBUTO[k]}${ATIVIDADES[k].lancamento ? '' : ' (depois do lançamento)'}</option>`).join('');
 $('sel-mod').innerHTML = Object.entries(MODALIDADES).map(([k, m]) => `<option value="${k}">${m.nome}${m.disponivel ? '' : ' (em breve)'}</option>`).join('');
 $('sel-treino').onchange = $('sel-trab').onchange = $('sel-mod').onchange = $('c-prep').onchange = render;
 
 $('b-treino').onclick = () => tenta(() => {
   const k = $('sel-treino').value, prep = $('c-prep').checked, r = treinar(A, k, 0, prep);
-  anota(`<b>${ATIVIDADES[k].nome}</b>${prep ? ' com preparador' : ''} (sessão ${r.sessao}/${SESSOES_POR_FITA}${r.dominou ? ', domínio' : ''}): ${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}.`);
+  anota(`<b>${ATIVIDADES[k].nome}</b>${prep ? ' com preparador' : ''}, nível ${r.nivel} (${ATIVIDADES[k].niveis[r.nivel - 1]}), sessão ${r.sessaoNoNivel}/${REGRAS.sessoesPorNivel}: ${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}.` +
+    (r.subiuNivel ? ` <span class="ok">Subiu para o nível ${r.nivel + 1}: ${ATIVIDADES[k].niveis[r.nivel]}.</span>` : '') +
+    r.especialidades.map(id => ` <span class="ok"><b>Especialidade conquistada: ${ESPECIALIDADES.find(e => e.id === id).nome}.</b></span>`).join(''));
 });
 $('b-trab').onclick = () => tenta(() => {
   const f = FUNCOES.find(x => x.id === $('sel-trab').value), r = trabalhar(A, f.id);
@@ -303,16 +311,23 @@ function render() {
   $('f-forca').textContent = fmt(forca(A, 'futebol'), 1);
   $('f-ind').textContent = fmt(indiceConvocacao(A, 'futebol'), 1);
   $('f-turnos').textContent = A.turnos;
-  const tit = titulos(A);
-  $('f-titulos').innerHTML = tit.length ? tit.map(t => `<span class="tag t">${t.nome}</span>`).join('') : '<span class="hint">Nenhum título. O primeiro exige 80 em um atributo.</span>';
+  const tit = especialidades(A);
+  $('f-titulos').innerHTML = tit.length ? tit.map(t => `<span class="tag t">${t.nome}</span>`).join('') : '<span class="hint">Nenhuma especialidade. A primeira exige 85 em Velocidade ou Reflexo.</span>';
   $('f-attrs').innerHTML = ATRIBUTOS.map(k => {
-    const v = A.atrib[k], semForma = efetivo(A, k, 'futebol') / (0.8 + 0.2 * A.forma / 100), b = Math.max(0, semForma - v);
-    return `<div class="attr"><span>${NOME_ATRIBUTO[k]}</span><div class="track"><i class="b" style="width:${v + b}%"></i><i class="v" style="width:${v}%"></i></div><span class="n mono">${fmt(v, 1)}${b > 0.05 ? ` <small>+${fmt(b, 1)}</small>` : ''}</span></div>`;
+    const v = A.atrib[k], niv = ATIVIDADES[k].lancamento ? `N${nivelAtividade(A, k)}` : '—';
+    return `<div class="attr"><span>${NOME_ATRIBUTO[k]}</span><div class="track"><i class="v" style="width:${v}%"></i></div><span class="n mono">${fmt(v, 1)} <small style="color:var(--muted)">${niv}</small></span></div>`;
   }).join('');
+  const ff = 0.8 + 0.2 * A.forma / 100;
+  $('f-esporte').innerHTML = Object.entries(MODALIDADES.futebol.atributos).map(([id, d]) => {
+    const puro = d.base.reduce((s, [k, w]) => s + w * A.atrib[k], 0) * ff, v = atributoEsporte(A, 'futebol', id), b = Math.max(0, v - puro);
+    return `<div class="attr"><span title="${d.base.map(([k, w]) => `${w * 100}% ${NOME_ATRIBUTO[k]}`).join(' + ')}">${d.nome}</span><div class="track"><i class="b" style="width:${v}%"></i><i class="v" style="width:${puro}%"></i></div><span class="n mono">${fmt(v, 1)}${b > 0.05 ? ` <small>+${fmt(b, 1)}</small>` : ''}</span></div>`;
+  }).join('');
+  const hab = habilidades(A, 'futebol');
+  $('f-hab').innerHTML = Object.entries(hab).map(([id, n]) => `<span class="tag">${HABILIDADES[id].nome} ${n}</span>`).join('');
 
   const k = $('sel-treino').value;
   const prep = $('c-prep').checked;
-  $('h-treino').textContent = `Ganho previsto: +${fmt(ganhoTreino(A.atrib[k], A.forma) * (prep ? 1 + REGRAS.bonusPreparador : 1), 2)}${prep ? ` por ${REGRAS.custoPreparador} créditos` : ''} · sessão ${Math.min((A.sessoes[k] ?? 0) + 1, SESSOES_POR_FITA)} de ${SESSOES_POR_FITA} da fita` + (ATIVIDADES[k].fita ? '' : ' (fita ainda não gravada)');
+  $('h-treino').textContent = `Ganho previsto: +${fmt(ganhoTreino(A.atrib[k], A.forma) * (prep ? 1 + REGRAS.bonusPreparador : 1), 2)}${prep ? ` por ${REGRAS.custoPreparador} créditos` : ''} · nível ${nivelAtividade(A, k)} de ${REGRAS.niveisAtividade}: ${ATIVIDADES[k].niveis[nivelAtividade(A, k) - 1]}` + (ATIVIDADES[k].fita ? '' : ' (fita ainda não gravada)');
   const sel = $('sel-trab').value, disp = funcoesDisponiveis(A);
   $('sel-trab').innerHTML = FUNCOES.map(f => {
     const ok = disp.includes(f);
@@ -355,13 +370,13 @@ function calcularBalanco() {
   return Object.keys(PERFIS).map((id, pi) => {
     const rs = Array.from({ length: N }, (_, s) => simularTemporada(id, s + 1));
     const media = f => Array.from({ length: DIAS_TEMPORADA }, (_, d) => rs.reduce((s, r) => s + f(r.dias[d]), 0) / N);
-    const tit = rs.filter(r => r.primeiroTitulo !== null);
+    const tit = rs.filter(r => r.primeiraEspecialidade !== null);
     return {
       id, nome: PERFIS[id].nome, descricao: PERFIS[id].descricao, cor: CORES[pi],
       forca: media(d => d.forca), cred: media(d => d.creditos),
       ganho: rs.reduce((s, r) => s + r.ganho, 0) / N, kit: rs.reduce((s, r) => s + r.gastoKit, 0) / N,
       medico: rs.reduce((s, r) => s + r.gastoMedico, 0) / N,
-      titulos: tit.length / N, diaTitulo: tit.length ? tit.reduce((s, r) => s + r.primeiroTitulo, 0) / tit.length : null,
+      titulos: tit.length / N, diaTitulo: tit.length ? tit.reduce((s, r) => s + r.primeiraEspecialidade, 0) / tit.length : null,
     };
   });
 }
@@ -398,7 +413,7 @@ function desenharBalanco() {
   $('legend').innerHTML = BAL.map(s => `<span><i style="background:var(${s.cor})"></i>${s.nome}</span>`).join('');
   grafico($('ch-forca'), BAL, 'forca', 1);
   grafico($('ch-cred'), BAL, 'cred', 0);
-  $('t-resumo').innerHTML = `<tr><th>Perfil</th><th>Rotina</th><th class="num">Força d21</th><th class="num">Força d42</th><th class="num">Com título</th><th class="num">Dia do 1º título</th><th class="num">Ganhou</th><th class="num">Equipamento</th><th class="num">Médico</th><th class="num">Saldo final</th></tr>` +
+  $('t-resumo').innerHTML = `<tr><th>Perfil</th><th>Rotina</th><th class="num">Força d21</th><th class="num">Força d42</th><th class="num">Com especialidade</th><th class="num">Dia da 1ª</th><th class="num">Ganhou</th><th class="num">Equipamento</th><th class="num">Médico</th><th class="num">Saldo final</th></tr>` +
     BAL.map(s => `<tr><td><b>${s.nome}</b></td><td>${s.descricao}</td><td class="num">${fmt(s.forca[20], 1)}</td><td class="num">${fmt(s.forca[41], 1)}</td><td class="num">${fmt(s.titulos * 100)}%</td><td class="num">${s.diaTitulo ? fmt(s.diaTitulo) : '—'}</td><td class="num">${fmt(s.ganho)}</td><td class="num">${fmt(s.kit)}</td><td class="num">${fmt(s.medico)}</td><td class="num">${fmt(s.cred[41])}</td></tr>`).join('');
 }
 
@@ -459,8 +474,8 @@ tabela('t-prem', ['Evento', 'Vitória#', 'Empate#', 'Derrota#'], [
   ['Expedição em grupo, 4 atletas (por atleta)', PREMIOS.expedicaoBase + PREMIOS.expedicaoPorMembroExtra, '—', '—'],
 ]);
 tabela('t-niv', ['Nível', 'Bônus#', 'Preço#', 'Usos#'], NIVEIS.map(n => [n.nome, '+' + n.bonus, fmt(n.preco), n.usos]));
-tabela('t-tit', ['Título', 'Exige'], TITULOS.map(t => [t.nome, req(t.requisito)]));
-tabela('t-hab', ['Habilidade', 'Exige', 'Sessões#'], Object.values(HABILIDADES).map(h => [h.nome, req(h.requisito), h.sessoes]));
+tabela('t-tit', ['Especialidade', 'Exige', 'Futebol', 'Queimada'], ESPECIALIDADES.map(t => [t.nome, req(t.requisito), HABILIDADES[t.habilidades.futebol]?.nome ?? '—', HABILIDADES[t.habilidades.queimada]?.nome ?? '—']));
+tabela('t-hab', ['Habilidade', 'Esporte', 'O que faz', 'Todos têm#'], Object.values(HABILIDADES).map(h => [h.nome, MODALIDADES[h.modalidade].nome, h.descricao, h.base ? `nível ${h.base}` : '—']));
 tabela('t-mel', ['Melhoria', 'Custos por nível', 'Efeito'], Object.values(MELHORIAS).map(m => [m.nome, m.custos.map(c => fmt(c)).join(' / '), m.efeito]));
 </script>
 </body>

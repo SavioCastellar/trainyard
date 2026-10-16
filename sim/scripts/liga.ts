@@ -1,7 +1,7 @@
 // Relatório de N ligas completas (6 atléticas × ${MEMBROS} membros · ${DUPLAS} dupla(s) por rodada · preparo ${PREPARO} · vantagem ${VANTAGEM ? 'sim' : 'não'}, 42 dias): pontuação, convocação e economia.
 // Uso: node dist/scripts/liga.js [ligas] [membros] [duplas] [pontos de preparo] [vantagem 0|1] (padrão: regras atuais)
 import { simularLiga, classificacao, PERFIS, FIM_FASE_REGULAR, Livro } from '../src/jogo-balanco.js';
-import { titulos, REGRAS } from '../src/jogo.js';
+import { especialidades, REGRAS } from '../src/jogo.js';
 
 const N = Number(process.argv[2] ?? 200), MEMBROS = Number(process.argv[3] ?? 12), DUPLAS = Number(process.argv[4] ?? REGRAS.duplasPorRodada), PREPARO = Number(process.argv[5] ?? REGRAS.pontosPreparo), VANTAGEM = (process.argv[6] ?? (REGRAS.vantagemCampanha ? '1' : '0')) === '1';
 const pct = (x: number) => (100 * x).toFixed(1) + '%';
@@ -33,7 +33,7 @@ for (let s = 1; s <= N; s++) {
     melhorias += at.ct + at.dm;
     for (const m of at.membros) {
       const q = (porPerfil[m.perfil] ??= { n: 0, conv: 0, saldo: 0, tit: 0, forca: 0 });
-      q.n++; q.conv += m.convocacoes; q.saldo += m.atleta.creditos; q.tit += titulos(m.atleta).length ? 1 : 0;
+      q.n++; q.conv += m.convocacoes; q.saldo += m.atleta.creditos; q.tit += especialidades(m.atleta).length ? 1 : 0;
       membros++;
     }
   }
@@ -60,7 +60,7 @@ console.log(`  campeão = líder da fase       ${pct(campeaoLider / N)}`);
 
 console.log('\nCONVOCAÇÃO E PROGRESSÃO POR PERFIL (por atleta)');
 for (const [id, q] of Object.entries(porPerfil))
-  console.log(`  ${PERFIS[id].nome.padEnd(14)} n=${String(q.n).padStart(5)}  convocações ${f1(q.conv / q.n).padStart(5)}  com título ${pct(q.tit / q.n).padStart(6)}  saldo final ${f1(q.saldo / q.n).padStart(7)}`);
+  console.log(`  ${PERFIS[id].nome.padEnd(14)} n=${String(q.n).padStart(5)}  convocações ${f1(q.conv / q.n).padStart(5)}  com especialidade ${pct(q.tit / q.n).padStart(6)}  saldo final ${f1(q.saldo / q.n).padStart(7)}`);
 
 console.log('\nECONOMIA (média por atleta na temporada)');
 const pm = (k: string) => f1((livroTotal[k] ?? 0) / membros).padStart(8);

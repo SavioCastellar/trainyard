@@ -7,7 +7,7 @@
 import { Rng } from './rng.js';
 import {
   Atleta, Atributo, Encaixe, CATALOGO, MELHORIAS, novoAtleta, treinar, trabalhar, funcoesDisponiveis,
-  registrarPartida, expedicao, comprar, equipar, reparar, tratar, custoTratamento, virarDia, forca, titulos,
+  registrarPartida, expedicao, comprar, equipar, reparar, tratar, custoTratamento, virarDia, forca, especialidades,
   convocar, sortearResultado, Resultado, REGRAS, novaTemporada,
 } from './jogo.js';
 
@@ -22,17 +22,20 @@ export interface Perfil {
   ausente: (dia: number) => boolean;
 }
 
+// atributos com treino no lançamento
+const TODOS: Atributo[] = ['precisao', 'reflexo', 'inteligencia', 'velocidade', 'forca'];
+
 export const PERFIS: Record<string, Perfil> = {
-  dedicado: { nome: 'Dedicado', descricao: '5 ações todo dia: 2 treinos, 2 trabalhos, 1 amistoso.',
-    treinos: 2, trabalhos: 2, amistosos: 1, foco: ['velocidade', 'chute', 'precisao'], ausente: () => false },
-  especialista: { nome: 'Especialista', descricao: '4 treinos e 1 trabalho, só Chute e Precisão (busca o título Artilheiro).',
-    treinos: 4, trabalhos: 1, amistosos: 0, foco: ['chute', 'precisao'], ausente: () => false },
+  dedicado: { nome: 'Dedicado', descricao: '5 ações todo dia: 2 treinos (os 5 atributos do lançamento), 2 trabalhos, 1 amistoso.',
+    treinos: 2, trabalhos: 2, amistosos: 1, foco: TODOS, ausente: () => false },
+  especialista: { nome: 'Especialista', descricao: '4 treinos e 1 trabalho, só Força e Precisão (busca a especialidade Artilheiro).',
+    treinos: 4, trabalhos: 1, amistosos: 0, foco: ['forca', 'precisao'], ausente: () => false },
   trabalhador: { nome: 'Trabalhador', descricao: '1 treino e 4 trabalhos: compra o melhor equipamento cedo.',
-    treinos: 1, trabalhos: 4, amistosos: 0, foco: ['velocidade', 'chute', 'precisao'], ausente: () => false },
+    treinos: 1, trabalhos: 4, amistosos: 0, foco: TODOS, ausente: () => false },
   casual: { nome: 'Casual', descricao: '3 ações por dia, some 2 dias por semana.',
-    treinos: 1, trabalhos: 1, amistosos: 1, foco: ['velocidade', 'chute', 'precisao'], ausente: d => d % 7 >= 5 },
+    treinos: 1, trabalhos: 1, amistosos: 1, foco: TODOS, ausente: d => d % 7 >= 5 },
   abandono: { nome: 'Some 10 dias', descricao: 'Dedicado, mas some do dia 15 ao 24.',
-    treinos: 2, trabalhos: 2, amistosos: 1, foco: ['velocidade', 'chute', 'precisao'], ausente: d => d >= 15 && d <= 24 },
+    treinos: 2, trabalhos: 2, amistosos: 1, foco: TODOS, ausente: d => d >= 15 && d <= 24 },
 };
 
 /** Força média dos adversários ao longo da temporada (estimativa para o atleta isolado). */
@@ -85,7 +88,7 @@ function manter(a: Atleta, livro: Livro) {
   for (let g; (g = comprarMelhoria(a)); ) lancar(livro, 'equipamento', g);
 }
 
-export interface DiaBalanco { dia: number; creditos: number; forma: number; forca: number; maior: number; titulos: string[]; kit: number; lesao: number }
+export interface DiaBalanco { dia: number; creditos: number; forma: number; forca: number; maior: number; especialidades: string[]; kit: number; lesao: number }
 
 /** Um atleta contra a liga média. Com `temporadas` > 1 a temporada recomeça (dia 1) com `novaTemporada`. */
 export function simularTemporada(perfilId: string, seed: number, temporadas = 1, usarPreparador = true) {
@@ -103,12 +106,12 @@ export function simularTemporada(perfilId: string, seed: number, temporadas = 1,
     virarDia(a);
     const kit = Object.values(a.kit).reduce((s, q) => s + Number(q!.id.slice(-1)), 0);
     dias.push({ dia, creditos: a.creditos, forma: a.forma, forca: forca(a, 'futebol'),
-      maior: Math.max(...Object.values(a.atrib)), titulos: titulos(a).map(t => t.nome), kit, lesao: a.lesao });
+      maior: Math.max(...Object.values(a.atrib)), especialidades: especialidades(a).map(t => t.nome), kit, lesao: a.lesao });
   }
   const ganho = (livro.salario ?? 0) + (livro.amistoso ?? 0) + (livro.oficial ?? 0);
   const gastoKit = (livro.equipamento ?? 0) + (livro.reparo ?? 0);
-  const primeiroTitulo = dias.find(d => d.titulos.length)?.dia ?? null;
-  return { perfil: p.nome, dias, ganho, gastoKit, gastoMedico: livro.medico ?? 0, primeiroTitulo, final: a, livro };
+  const primeiraEspecialidade = dias.find(d => d.especialidades.length)?.dia ?? null;
+  return { perfil: p.nome, dias, ganho, gastoKit, gastoMedico: livro.medico ?? 0, primeiraEspecialidade, final: a, livro };
 }
 
 // ---------------------------------------------------------------- liga

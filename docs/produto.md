@@ -31,13 +31,16 @@
 - Partidas oficiais rodam no servidor e o jogador assiste ao replay.
 
 ## Progressão
-- **Treino físico** sobe atributos (ex.: Velocidade, Precisão, Chute, Controle, Reflexo, Fôlego).
-- **Treino de habilidade** libera habilidades do esporte (ex.: futebol: chute de longe, drible,
-  carrinho). As habilidades devem gerar estratégias novas e contraestratégias (ex.: um defensor
-  passa a ficar recuado contra quem tem chute de longe).
-- **Títulos de especialista** no estilo FIFA: 80+ de Velocidade = "Velocista"; 80+ de Velocidade e
-  Força = "Avalanche". Cada título tem um **cérebro especializado**, ajustado a partir do cérebro
-  base, que joga de um jeito reconhecível.
+(Decidido em 2026-10-16; detalhes e números em `docs/regras.md`.)
+- **Atributos base** (Velocidade, Força, Precisão, Reflexo, Inteligência, Controle, Fôlego): do
+  corpo, iguais em todo esporte, os únicos treinados. Treinos genéricos, sem gesto de esporte.
+- **Atributos do esporte** (futebol: Finalização, Passe, Marcação, Drible, Defesa): combinação dos
+  base, não são treinados.
+- **Especialidades** (Velocista, Paredão, Artilheiro, Avalanche, Maestro, Malandro, Maratonista):
+  conquistadas pelos atributos base; dão habilidades em cada esporte, que somam nível. Ilimitadas.
+  As habilidades devem gerar estratégias novas e contraestratégias (ex.: um defensor passa a ficar
+  recuado contra quem tem Chute de longe). O cérebro do esporte é retreinado para usar cada uma.
+- No lançamento: treinos de Precisão, Reflexo, Inteligência, Velocidade e Força.
 
 ## O dia do jogador
 - **5 ações por dia.** Treinar, trabalhar e jogar uma partida custam 1 ação cada.

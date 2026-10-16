@@ -1,6 +1,7 @@
 /**
- * Regras do jogo: atributos, treino, trabalho, economia, equipamentos, forma, lesão, títulos e
- * convocação. Texto das regras e justificativas: `docs/regras.md`.
+ * Regras do jogo: atributos base e do esporte, treino com progressão de atividade, especialidades e
+ * habilidades, trabalho, economia, equipamentos, forma, lesão e convocação. Texto das regras e
+ * justificativas: `docs/regras.md`.
  *
  * Tudo aqui é função pura sobre objetos JSON simples (o backend guarda o `Atleta` como está).
  * Sorte só pelo `Rng` com semente. Resultado de partida vem de fora (a simulação do esporte);
@@ -8,24 +9,45 @@
  */
 import { Rng } from './rng.js';
 
-export const ATRIBUTOS = ['velocidade', 'forca', 'precisao', 'chute', 'controle', 'reflexo', 'folego'] as const;
+// Atributos base: propriedades do corpo, iguais em todos os esportes. São os únicos treinados.
+export const ATRIBUTOS = ['velocidade', 'forca', 'precisao', 'controle', 'reflexo', 'folego', 'inteligencia'] as const;
 export type Atributo = typeof ATRIBUTOS[number];
 export type Atributos = Record<Atributo, number>;
 
 export const NOME_ATRIBUTO: Record<Atributo, string> = {
-  velocidade: 'Velocidade', forca: 'Força', precisao: 'Precisão', chute: 'Chute',
-  controle: 'Controle', reflexo: 'Reflexo', folego: 'Fôlego',
+  velocidade: 'Velocidade', forca: 'Força', precisao: 'Precisão', controle: 'Controle',
+  reflexo: 'Reflexo', folego: 'Fôlego', inteligencia: 'Inteligência',
+};
+
+/** O que cada atributo base muda na física, em qualquer esporte (pedidos às sessões de treino). */
+export const EFEITO_ATRIBUTO: Record<Atributo, string> = {
+  velocidade: 'velocidade máxima',
+  forca: 'potência (empurrar, arremessar, chutar) e disputa de corpo',
+  precisao: 'erro de mira em qualquer lançamento',
+  controle: 'aceleração, frenagem e giro do corpo',
+  reflexo: 'tempo entre ver e agir',
+  folego: 'barra de arrancada: quanto tempo corre no máximo e quão rápido recupera',
+  inteligencia: 'qualidade da decisão: menos aleatoriedade na escolha das ações',
 };
 
 export const REGRAS = {
   acoesPorDia: 5,
   horasPorAcao: 2,
-  // treino: ganho = ganhoBase × (1 − valor/100)^curvaGanho × fator de forma
+  // treino: ganho = ganhoBase × (1 − valor/100)^curvaGanho × fator de forma × (1 + bônus do CT)
   ganhoBase: 4,
   curvaGanho: 1.5,
   tetoAtributo: 99,
   inicialMin: 25,
   inicialMax: 40,
+  bonusCTPorNivel: 0.1,      // cada nível do CT da atlética: +10% de ganho (e estrutura visual maior)
+  // progressão da atividade: cada atividade tem 3 níveis; o atleta sobe ao cumprir as sessões do nível
+  niveisAtividade: 3,
+  sessoesPorNivel: 3,
+  // especialidades: conquista no requisito, perde só abaixo do requisito − margem
+  margemEspecialidade: 5,
+  // inteligência: temperatura do sorteio das ações do cérebro (1 = como foi treinado)
+  temperaturaMax: 1.3,
+  temperaturaMin: 0.9,
   // forma (condição física, 0–100)
   formaInicial: 80,
   formaDiaAtivo: 10,
@@ -56,46 +78,77 @@ export const REGRAS = {
   vantagemCampanha: true,    // no mata-mata (melhor de 3) o melhor colocado começa com 1 vitória
 } as const;
 
-export type ModalidadeId = 'futebol' | 'queimada' | 'bandeira';
-export const MODALIDADES: Record<ModalidadeId, { nome: string; vagas: number; pesos: Partial<Atributos>; disponivel: boolean }> = {
-  futebol: { nome: 'Futebol 2x2', vagas: 2, disponivel: true, pesos: { velocidade: .25, chute: .2, precisao: .2, controle: .15, reflexo: .1, folego: .1 } },
-  queimada: { nome: 'Queimada 3x3', vagas: 3, disponivel: false, pesos: { forca: .3, reflexo: .3, precisao: .25, velocidade: .15 } },
-  bandeira: { nome: 'Rouba-bandeira 3x3', vagas: 3, disponivel: false, pesos: { velocidade: .35, folego: .25, reflexo: .2, controle: .2 } },
+/** Temperatura do sorteio das ações para um valor de Inteligência (o cérebro aplica). */
+export const temperaturaDecisao = (inteligencia: number) =>
+  REGRAS.temperaturaMax - (REGRAS.temperaturaMax - REGRAS.temperaturaMin) * inteligencia / 100;
+
+// Atividades de treino: uma estação do CT por atributo base, com 3 níveis que mudam a atividade.
+// `lancamento` = entra na primeira versão; `fita` = arquivo em fitas/ quando o treino já foi gravado.
+export const ATIVIDADES: Record<Atributo, { nome: string; niveis: [string, string, string]; lancamento: boolean; fita: string | null }> = {
+  precisao: { nome: 'Treino de Precisão', niveis: ['alvos fixos', 'alvos que acendem e apagam', 'alvos móveis'], lancamento: true, fita: 'precisao' },
+  reflexo: { nome: 'Painel de reação', niveis: ['luzes lentas', 'janela curta', 'luzes proibidas'], lancamento: true, fita: null },
+  inteligencia: { nome: 'Circuito de decisão', niveis: ['poucos pontos', 'caminhos bloqueados', 'regras que mudam no meio'], lancamento: true, fita: null },
+  velocidade: { nome: 'Pista de tiros', niveis: ['tiros curtos', 'tiros longos', 'tiros com mudança de direção'], lancamento: true, fita: null },
+  forca: { nome: 'Trenó de carga', niveis: ['carga leve', 'carga pesada', 'rampa'], lancamento: true, fita: null },
+  controle: { nome: 'Plataformas de equilíbrio', niveis: ['plataformas largas', 'estreitas', 'móveis'], lancamento: false, fita: null },
+  folego: { nome: 'Circuito de arrancadas', niveis: ['pontos próximos', 'pontos distantes', 'terreno pesado'], lancamento: false, fita: null },
+};
+export const nivelAtividade = (a: Atleta, atr: Atributo) =>
+  Math.min(REGRAS.niveisAtividade, Math.floor((a.sessoes[atr] ?? 0) / REGRAS.sessoesPorNivel) + 1);
+
+// Modalidades e atributos do esporte: combinação ponderada dos atributos base (não são treinados).
+export type ModalidadeId = 'futebol' | 'queimada';
+export interface AtributoEsporte { nome: string; base: [Atributo, number][]; peso: number }
+export const MODALIDADES: Record<ModalidadeId, { nome: string; vagas: number; disponivel: boolean; atributos: Record<string, AtributoEsporte> }> = {
+  futebol: {
+    nome: 'Futebol 2x2', vagas: 2, disponivel: true, atributos: {
+      finalizacao: { nome: 'Finalização', base: [['precisao', .6], ['forca', .4]], peso: .25 },
+      passe: { nome: 'Passe', base: [['precisao', .6], ['controle', .4]], peso: .2 },
+      marcacao: { nome: 'Marcação', base: [['forca', .6], ['velocidade', .4]], peso: .2 },
+      drible: { nome: 'Drible', base: [['inteligencia', .6], ['controle', .4]], peso: .15 },
+      defesa: { nome: 'Defesa', base: [['reflexo', .6], ['inteligencia', .4]], peso: .2 },
+    },
+  },
+  queimada: {
+    nome: 'Queimada 3x3', vagas: 3, disponivel: false, atributos: {
+      arremesso: { nome: 'Arremesso', base: [['forca', .6], ['precisao', .4]], peso: .35 },
+      esquiva: { nome: 'Esquiva', base: [['reflexo', .6], ['velocidade', .4]], peso: .35 },
+      pegada: { nome: 'Pegada', base: [['reflexo', .6], ['forca', .4]], peso: .3 },
+    },
+  },
 };
 
-// Uma atividade de treino por atributo. `fita` = arquivo em fitas/ quando o treino já foi gravado.
-export const ATIVIDADES: Record<Atributo, { nome: string; fita: string | null }> = {
-  precisao: { nome: 'Treino de Precisão', fita: 'precisao' },
-  velocidade: { nome: 'Tiro de velocidade', fita: null },
-  forca: { nome: 'Empurrar o trenó', fita: null },
-  chute: { nome: 'Chute de força', fita: null },
-  controle: { nome: 'Condução entre cones', fita: null },
-  reflexo: { nome: 'Defesa de reflexo', fita: null },
-  folego: { nome: 'Circuito de resistência', fita: null },
-};
-export const SESSOES_POR_FITA = 3;
-
-export const HABILIDADES: Record<string, { nome: string; modalidade: ModalidadeId; requisito: Partial<Atributos>; sessoes: number }> = {
-  chuteLonge: { nome: 'Chute de longe', modalidade: 'futebol', requisito: { chute: 60 }, sessoes: 3 },
-  goleiro: { nome: 'Goleiro', modalidade: 'futebol', requisito: { reflexo: 55 }, sessoes: 3 },
-  drible: { nome: 'Drible', modalidade: 'futebol', requisito: { controle: 65 }, sessoes: 4 },
-  carrinho: { nome: 'Carrinho', modalidade: 'futebol', requisito: { forca: 55 }, sessoes: 3 },
+// Habilidades: mecânicas extras no esporte. `base` = nível que todo atleta tem.
+export const HABILIDADES: Record<string, { nome: string; modalidade: ModalidadeId; base: number; descricao: string }> = {
+  goleiro: { nome: 'Goleiro', modalidade: 'futebol', base: 1, descricao: 'mergulho; nível maior = mais alcance e recarga menor' },
+  chuteLonge: { nome: 'Chute de longe', modalidade: 'futebol', base: 0, descricao: 'percebe o gol livre e chuta por cobertura de longe; força a defesa a recuar alguém' },
+  carrinho: { nome: 'Carrinho', modalidade: 'futebol', base: 0, descricao: 'desarme deslizando' },
+  arrancada: { nome: 'Arrancada', modalidade: 'futebol', base: 0, descricao: 'velocidade extra ao disparar com espaço' },
+  pressao: { nome: 'Pressão', modalidade: 'futebol', base: 0, descricao: 'arrancadas sem gastar fôlego por alguns segundos' },
+  lancamento: { nome: 'Lançamento', modalidade: 'futebol', base: 0, descricao: 'passe longo no espaço, à frente do companheiro' },
+  finta: { nome: 'Finta', modalidade: 'futebol', base: 0, descricao: 'drible de corpo que tira o marcador do lance' },
+  esquiva: { nome: 'Esquiva', modalidade: 'queimada', base: 0, descricao: 'desvio rápido da bola' },
+  curva: { nome: 'Curva', modalidade: 'queimada', base: 0, descricao: 'arremesso com efeito' },
+  arremessoPesado: { nome: 'Arremesso pesado', modalidade: 'queimada', base: 0, descricao: 'bola mais rápida e difícil de pegar' },
+  segundoFolego: { nome: 'Segundo fôlego', modalidade: 'queimada', base: 0, descricao: 'recupera a arrancada mais rápido' },
+  arremessoFalso: { nome: 'Arremesso falso', modalidade: 'queimada', base: 0, descricao: 'gesto de arremesso sem soltar a bola' },
 };
 
-export const TITULOS: { id: string; nome: string; requisito: Partial<Atributos> }[] = [
-  { id: 'velocista', nome: 'Velocista', requisito: { velocidade: 80 } },
-  { id: 'artilheiro', nome: 'Artilheiro', requisito: { chute: 80, precisao: 75 } },
-  { id: 'maestro', nome: 'Maestro', requisito: { controle: 80, precisao: 70 } },
-  { id: 'paredao', nome: 'Paredão', requisito: { reflexo: 80 } },
-  { id: 'maratonista', nome: 'Maratonista', requisito: { folego: 85 } },
-  { id: 'avalanche', nome: 'Avalanche', requisito: { velocidade: 80, forca: 80 } },
-  { id: 'completo', nome: 'Atleta completo', requisito: { velocidade: 70, forca: 70, precisao: 70, chute: 70, controle: 70, reflexo: 70, folego: 70 } },
+// Especialidades: conquistadas por atributos base; cada uma dá uma habilidade por esporte (somam nível).
+export const ESPECIALIDADES: { id: string; nome: string; requisito: Partial<Atributos>; habilidades: Partial<Record<ModalidadeId, string>> }[] = [
+  { id: 'maratonista', nome: 'Maratonista', requisito: { folego: 85 }, habilidades: { futebol: 'pressao', queimada: 'segundoFolego' } },
+  { id: 'velocista', nome: 'Velocista', requisito: { velocidade: 85 }, habilidades: { futebol: 'arrancada', queimada: 'esquiva' } },
+  { id: 'paredao', nome: 'Paredão', requisito: { reflexo: 85 }, habilidades: { futebol: 'goleiro', queimada: 'esquiva' } },
+  { id: 'artilheiro', nome: 'Artilheiro', requisito: { forca: 80, precisao: 75 }, habilidades: { futebol: 'chuteLonge', queimada: 'curva' } },
+  { id: 'avalanche', nome: 'Avalanche', requisito: { forca: 80, velocidade: 75 }, habilidades: { futebol: 'carrinho', queimada: 'arremessoPesado' } },
+  { id: 'maestro', nome: 'Maestro', requisito: { controle: 80, precisao: 75 }, habilidades: { futebol: 'lancamento', queimada: 'curva' } },
+  { id: 'malandro', nome: 'Malandro', requisito: { inteligencia: 80, controle: 75 }, habilidades: { futebol: 'finta', queimada: 'arremessoFalso' } },
 ];
 
 export const FUNCOES: { id: string; nome: string; salario: number; turnos: number; requisito?: Partial<Atributos> }[] = [
   { id: 'monitor', nome: 'Monitor de escolinha', salario: 40, turnos: 0 },
   { id: 'arbitro', nome: 'Árbitro de categorias de base', salario: 55, turnos: 15 },
-  { id: 'preparador', nome: 'Assistente de preparação física', salario: 70, turnos: 40, requisito: { folego: 50 } },
+  { id: 'preparador', nome: 'Assistente de preparação física', salario: 70, turnos: 40, requisito: { forca: 50 } },
   { id: 'instrutor', nome: 'Instrutor técnico', salario: 90, turnos: 80, requisito: { precisao: 65 } },
 ];
 
@@ -107,19 +160,20 @@ export const PREMIOS = {
 } as const;
 export type Resultado = 'v' | 'e' | 'd';
 
-// Equipamentos: 3 encaixes; cada peça só vale na sua modalidade e precisa de adaptação.
+// Equipamentos: 3 encaixes; cada peça soma a um atributo do esporte e só vale nessa modalidade.
 export type Encaixe = 'calcado' | 'roupa' | 'acessorio';
 export const NIVEIS = [
   { nome: 'Básico', bonus: 3, preco: 150, usos: 15 },
   { nome: 'Profissional', bonus: 6, preco: 400, usos: 25 },
   { nome: 'Elite', bonus: 10, preco: 1000, usos: 40 },
 ] as const;
-const PECAS: Record<ModalidadeId, [Encaixe, string, Atributo][]> = {
-  futebol: [['calcado', 'Chuteira', 'chute'], ['roupa', 'Uniforme leve', 'velocidade'], ['acessorio', 'Caneleira', 'controle']],
-  queimada: [['calcado', 'Tênis de quadra', 'reflexo'], ['roupa', 'Camisa de compressão', 'forca'], ['acessorio', 'Luva de aderência', 'precisao']],
-  bandeira: [['calcado', 'Sapatilha de corrida', 'velocidade'], ['roupa', 'Roupa térmica', 'folego'], ['acessorio', 'Tornozeleira', 'controle']],
+const PECAS: Record<ModalidadeId, [Encaixe, string, string][]> = {
+  futebol: [['calcado', 'Chuteira', 'finalizacao'], ['roupa', 'Uniforme leve', 'drible'], ['acessorio', 'Caneleira', 'marcacao']],
+  queimada: [['calcado', 'Tênis de quadra', 'esquiva'], ['roupa', 'Camisa de compressão', 'arremesso'], ['acessorio', 'Luva de aderência', 'pegada']],
 };
-export interface ItemCatalogo { id: string; nome: string; modalidade: ModalidadeId; encaixe: Encaixe; atributo: Atributo; nivel: number; bonus: number; preco: number; usos: number }
+/** Atributos base ligados a uma peça (para o desgaste no treino). */
+const basesDe = (m: ModalidadeId, esp: string) => MODALIDADES[m].atributos[esp].base.map(([k]) => k);
+export interface ItemCatalogo { id: string; nome: string; modalidade: ModalidadeId; encaixe: Encaixe; atributo: string; nivel: number; bonus: number; preco: number; usos: number }
 export const CATALOGO: ItemCatalogo[] = (Object.keys(PECAS) as ModalidadeId[]).flatMap(m =>
   PECAS[m].flatMap(([encaixe, nome, atributo]) => NIVEIS.map((n, nivel) => ({
     id: `${m}-${encaixe}-${nivel + 1}`, nome: `${nome} ${n.nome.toLowerCase()}`, modalidade: m, encaixe, atributo,
@@ -133,7 +187,7 @@ export const item = (id: string) => {
 
 // Melhorias coletivas compradas com o caixa da atlética.
 export const MELHORIAS = {
-  centroTreino: { nome: 'Centro de treinamento', custos: [5000, 12000, 25000], efeito: 'ganho de treino +5% por nível' },
+  centroTreino: { nome: 'Centro de treinamento', custos: [5000, 12000, 25000], efeito: 'estrutura maior no cenário dos treinos e +10% de ganho de treino por nível' },
   departamentoMedico: { nome: 'Departamento médico', custos: [4000, 10000], efeito: 'lesões 1 dia mais curtas por nível' },
 } as const;
 
@@ -145,8 +199,8 @@ export interface Atleta {
   creditos: number;
   turnos: number;               // turnos de trabalho cumpridos (sobe de função)
   turnosHoje?: number;          // turnos no dia (salário decrescente)
-  sessoes: Partial<Record<Atributo, number>>;   // sessões de fita assistidas por atividade
-  habilidades: Record<string, number>;          // sessões cumpridas; liberada ao chegar em `sessoes`
+  sessoes: Partial<Record<Atributo, number>>;   // sessões cumpridas por atividade (define o nível dela)
+  especialidades: string[];     // ids conquistados (ver `atualizarEspecialidades`)
   kit: Partial<Record<Encaixe, Peca>>;
   guardados: Peca[];
   lesao: number;                // dias restantes
@@ -160,13 +214,36 @@ export function novoAtleta(seed: number): Atleta {
   const atrib = {} as Atributos;
   for (const k of ATRIBUTOS) atrib[k] = Math.round(r.range(REGRAS.inicialMin, REGRAS.inicialMax));
   return {
-    atrib, base: { ...atrib }, forma: REGRAS.formaInicial, creditos: 0, turnos: 0, sessoes: {}, habilidades: {},
+    atrib, base: { ...atrib }, forma: REGRAS.formaInicial, creditos: 0, turnos: 0, sessoes: {}, especialidades: [],
     kit: {}, guardados: [], lesao: 0, acoesHoje: 0, diasAusente: 0, presenca: [],
   };
 }
 
-const atende = (a: Atleta, req: Partial<Atributos> = {}) =>
-  (Object.keys(req) as Atributo[]).every(k => a.atrib[k] >= req[k]!);
+const atende = (a: Atleta, req: Partial<Atributos> = {}, folga = 0) =>
+  (Object.keys(req) as Atributo[]).every(k => a.atrib[k] >= req[k]! - folga);
+
+/**
+ * Conquista e perda de especialidades. Conquista ao atingir o requisito; só perde quando algum
+ * atributo cai abaixo do requisito − margem (evita ganhar e perder no mesmo dia). Devolve as novas.
+ */
+export function atualizarEspecialidades(a: Atleta) {
+  const novas: string[] = [];
+  a.especialidades = ESPECIALIDADES.filter(e => {
+    const tem = a.especialidades.includes(e.id);
+    if (!tem && atende(a, e.requisito)) { novas.push(e.id); return true; }
+    return tem && atende(a, e.requisito, REGRAS.margemEspecialidade);
+  }).map(e => e.id);
+  return novas;
+}
+export const especialidades = (a: Atleta) => ESPECIALIDADES.filter(e => a.especialidades.includes(e.id));
+
+/** Nível de cada habilidade da modalidade: o nível base + 1 por especialidade que a dá. */
+export function habilidades(a: Atleta, m: ModalidadeId) {
+  const out: Record<string, number> = {};
+  for (const [id, h] of Object.entries(HABILIDADES)) if (h.modalidade === m && h.base) out[id] = h.base;
+  for (const e of especialidades(a)) { const h = e.habilidades[m]; if (h) out[h] = (out[h] ?? 0) + 1; }
+  return out;
+}
 
 function gastarAcao(a: Atleta, permiteLesionado = false) {
   if (a.acoesHoje >= REGRAS.acoesPorDia) throw new Error('Sem ações restantes hoje.');
@@ -175,33 +252,26 @@ function gastarAcao(a: Atleta, permiteLesionado = false) {
 }
 
 export const ganhoTreino = (valor: number, forma: number, nivelCT = 0) =>
-  REGRAS.ganhoBase * Math.pow(1 - valor / 100, REGRAS.curvaGanho) * (0.6 + 0.4 * forma / 100) * (1 + 0.05 * nivelCT);
+  REGRAS.ganhoBase * Math.pow(1 - valor / 100, REGRAS.curvaGanho) * (0.6 + 0.4 * forma / 100) * (1 + REGRAS.bonusCTPorNivel * nivelCT);
 
 export function treinar(a: Atleta, atr: Atributo, nivelCT = 0, comPreparador = false) {
+  if (!ATIVIDADES[atr].lancamento) throw new Error(`${ATIVIDADES[atr].nome} ainda não está disponível.`);
   if (comPreparador && a.creditos < REGRAS.custoPreparador) throw new Error('Créditos insuficientes para o preparador.');
   gastarAcao(a);
   if (comPreparador) a.creditos -= REGRAS.custoPreparador;
+  const nivel = nivelAtividade(a, atr);
   const bruto = ganhoTreino(a.atrib[atr], a.forma, nivelCT) * (comPreparador ? 1 + REGRAS.bonusPreparador : 1);
   const ganho = Math.min(bruto, REGRAS.tetoAtributo - a.atrib[atr]);
   a.atrib[atr] += ganho;
-  // a peça ligada ao atributo treinado também se gasta no treino
-  for (const p of Object.values(a.kit)) if (item(p!.id).atributo === atr && p!.usos > 0) p!.usos--;
-  const sessao = (a.sessoes[atr] ?? 0) + 1;
-  a.sessoes[atr] = sessao;
-  // depois da última sessão da fita o atleta segue treinando no nível de domínio
-  return { ganho, sessao: Math.min(sessao, SESSOES_POR_FITA), dominou: sessao >= SESSOES_POR_FITA };
+  // a peça ligada a um atributo do esporte que usa este atributo base também se gasta no treino
+  for (const p of Object.values(a.kit)) {
+    const it = item(p!.id);
+    if (basesDe(it.modalidade, it.atributo).includes(atr) && p!.usos > 0) p!.usos--;
+  }
+  a.sessoes[atr] = (a.sessoes[atr] ?? 0) + 1;
+  const sessaoNoNivel = nivel === REGRAS.niveisAtividade ? REGRAS.sessoesPorNivel : (a.sessoes[atr]! - 1) % REGRAS.sessoesPorNivel + 1;
+  return { ganho, nivel, sessaoNoNivel, subiuNivel: nivelAtividade(a, atr) > nivel, especialidades: atualizarEspecialidades(a) };
 }
-
-export function treinarHabilidade(a: Atleta, id: string) {
-  const h = HABILIDADES[id];
-  if (!h) throw new Error(`Habilidade desconhecida: ${id}`);
-  if (!atende(a, h.requisito)) throw new Error(`Requisito não atendido para ${h.nome}.`);
-  if (temHabilidade(a, id)) throw new Error(`${h.nome} já liberada.`);
-  gastarAcao(a);
-  a.habilidades[id] = (a.habilidades[id] ?? 0) + 1;
-  return { sessao: a.habilidades[id], liberou: temHabilidade(a, id) };
-}
-export const temHabilidade = (a: Atleta, id: string) => (a.habilidades[id] ?? 0) >= HABILIDADES[id].sessoes;
 
 export const funcoesDisponiveis = (a: Atleta) => FUNCOES.filter(f => a.turnos >= f.turnos && atende(a, f.requisito));
 
@@ -223,18 +293,23 @@ export function trabalhar(a: Atleta, funcao: string) {
   return receber(a, salarioDoTurno(f.salario, hoje));
 }
 
-export const efetivo = (a: Atleta, atr: Atributo, m: ModalidadeId) => {
-  let v = a.atrib[atr];
+const fatorForma = (a: Atleta) => 0.8 + 0.2 * a.forma / 100;
+
+/** Atributo do esporte efetivo: combinação dos base + equipamento adaptado, multiplicado pela forma. */
+export function atributoEsporte(a: Atleta, m: ModalidadeId, id: string) {
+  const def = MODALIDADES[m].atributos[id];
+  if (!def) throw new Error(`Atributo desconhecido: ${id}`);
+  let v = def.base.reduce((s, [k, w]) => s + w * a.atrib[k], 0);
   for (const p of Object.values(a.kit)) {
     const it = item(p!.id);
-    if (it.modalidade === m && it.atributo === atr && p!.usos > 0) v += it.bonus * p!.adaptacao / 100;
+    if (it.modalidade === m && it.atributo === id && p!.usos > 0) v += it.bonus * p!.adaptacao / 100;
   }
-  return Math.min(REGRAS.tetoAtributo, v) * (0.8 + 0.2 * a.forma / 100);
-};
+  return Math.min(REGRAS.tetoAtributo, v) * fatorForma(a);
+}
 
-/** Força na modalidade (0–100): média ponderada dos atributos efetivos. */
+/** Força na modalidade (0–100): média ponderada dos atributos do esporte efetivos. */
 export const forca = (a: Atleta, m: ModalidadeId) =>
-  (Object.entries(MODALIDADES[m].pesos) as [Atributo, number][]).reduce((s, [k, w]) => s + w * efetivo(a, k, m), 0);
+  Object.entries(MODALIDADES[m].atributos).reduce((s, [id, d]) => s + d.peso * atributoEsporte(a, m, id), 0);
 
 /**
  * Índice da convocação interna: força na modalidade + presença nos últimos 7 dias.
@@ -324,9 +399,7 @@ export function tratar(a: Atleta) {
   a.lesao = 0;
 }
 
-export const titulos = (a: Atleta) => TITULOS.filter(t => atende(a, t.requisito));
-
-/** Fecha o dia: forma, adaptação do kit, regressão por ausência, recuperação de lesão. */
+/** Fecha o dia: forma, adaptação do kit, regressão por ausência, especialidades, lesão. */
 export function virarDia(a: Atleta) {
   const ativo = a.acoesHoje > 0;
   a.forma = Math.max(0, Math.min(100, a.forma + (ativo ? REGRAS.formaDiaAtivo : REGRAS.formaDiaAusente)));
@@ -334,6 +407,7 @@ export function virarDia(a: Atleta) {
   if (ativo) for (const p of Object.values(a.kit)) p!.adaptacao = Math.min(100, p!.adaptacao + REGRAS.adaptacaoPorDia);
   if (a.diasAusente > REGRAS.diasAteRegredir)
     for (const k of ATRIBUTOS) a.atrib[k] = Math.max(a.base[k], a.atrib[k] - REGRAS.regressaoPorDia);
+  atualizarEspecialidades(a);
   if (a.lesao > 0) a.lesao--;
   a.presenca = [...a.presenca, ativo].slice(-7);
   a.acoesHoje = 0;
@@ -343,4 +417,5 @@ export function virarDia(a: Atleta) {
 /** Entre temporadas: atributos voltam 15% em direção ao valor inicial; o resto fica. */
 export function novaTemporada(a: Atleta) {
   for (const k of ATRIBUTOS) a.atrib[k] -= 0.15 * (a.atrib[k] - a.base[k]);
+  atualizarEspecialidades(a);
 }

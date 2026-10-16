@@ -221,13 +221,14 @@
   </section>
 
   <section class="prancha" id="evolucao">
-    <div class="rotulo"><span class="eyebrow">Progressão</span><h2>Evolução do atleta</h2><p>Treinar rende muito no começo e pouco perto do topo. Títulos exigem 80 ou mais. Sumir derruba a forma e, depois de 2 dias, os atributos.</p></div>
+    <div class="rotulo"><span class="eyebrow">Progressão</span><h2>Evolução do atleta</h2><p>Treinar rende muito no começo e pouco perto do topo. Especialidades exigem 80 a 85. Sumir derruba a forma e, depois de 2 dias, os atributos.</p></div>
     <div class="conteudo">
       <div class="duas">
         <div class="quadro"><h3>Um atributo treinado 2 vezes por dia</h3><div class="legenda" id="leg-evo" style="margin:8px 0"></div><div class="grafico" id="g-evo"></div></div>
         <div class="quadro"><h3>Quanto vale cada coisa no jogo</h3><p class="muted small" style="margin:6px 0 8px">Força no futebol de um atleta com atributos em 50, somando cada fonte separadamente.</p><div id="t-valor"></div></div>
       </div>
-      <div class="quadro"><h3>Títulos</h3><div class="rolagem" style="margin-top:8px"><table id="t-titulos"></table></div></div>
+      <div class="quadro"><h3>Atributos do futebol</h3><p class="muted small" style="margin:6px 0 8px">Não são treinados: saem dos atributos base. O equipamento de futebol soma a eles.</p><div class="rolagem"><table id="t-esporte"></table></div></div>
+      <div class="quadro"><h3>Especialidades</h3><p class="muted small" style="margin:6px 0 8px">Cada uma dá uma habilidade em cada esporte; habilidades repetidas somam nível. Perde só abaixo do requisito − ${R.margemEspecialidade}. Dias: treinando só os atributos dela, 2 vezes por dia, sem CT.</p><div class="rolagem"><table id="t-titulos"></table></div></div>
     </div>
   </section>
 
@@ -308,10 +309,10 @@ const DETALHE = {
   jogador: ['Você abre o app', [`O dia tem <b>${R.acoesPorDia} ações</b>; cada uma ocupa o atleta por ${R.horasPorAcao} horas. Ações não acumulam de um dia para o outro.`,
     `Dia com pelo menos uma ação: forma <b>+${R.formaDiaAtivo}</b>. Dia sem nenhuma: forma <b>${R.formaDiaAusente}</b>; a partir do ${R.diasAteRegredir + 1}º dia seguido, todos os atributos perdem ${fmt(R.regressaoPorDia, 1)} por dia.`,
     `Toda ação também conta para os <b>pontos de preparo</b> da sua atlética, e só é convocado quem fez alguma ação no dia.`]],
-  treinar: ['Treinar', [`Escolhe um atributo; o atleta assiste à próxima sessão da fita daquela atividade (${SESSOES_POR_FITA} sessões até o domínio).`,
-    `Ganho = ${R.ganhoBase} × (1 − valor/100)^${fmt(R.curvaGanho, 1)} × fator de forma. Aos 35 rende ~${fmt(ganhoTreino(35, 100), 1)}; aos 70, ~${fmt(ganhoTreino(70, 100), 1)}.`,
-    `Com <b>preparador</b>: +${R.bonusPreparador * 100}% de ganho por ${R.custoPreparador} créditos. A peça de equipamento ligada ao atributo gasta 1 uso.`,
-    `Também existe o treino de habilidade (Chute de longe, Goleiro, Drible, Carrinho), que exige um mínimo de atributo.`]],
+  treinar: ['Treinar', [`Escolhe uma estação do CT; cada uma treina um atributo base. No lançamento: ${ATRIBUTOS.filter(k => ATIVIDADES[k].lancamento).map(k => ATIVIDADES[k].nome).join(', ')}.`,
+    `Cada atividade tem <b>${R.niveisAtividade} níveis</b> que mudam o treino (ex.: Precisão: ${ATIVIDADES.precisao.niveis.join(' → ')}). O atleta sobe a cada ${R.sessoesPorNivel} sessões.`,
+    `Ganho = ${R.ganhoBase} × (1 − valor/100)^${fmt(R.curvaGanho, 1)} × fator de forma × CT (+${R.bonusCTPorNivel * 100}% por nível). Aos 35 rende ~${fmt(ganhoTreino(35, 100), 1)}; aos 70, ~${fmt(ganhoTreino(70, 100), 1)}.`,
+    `Com <b>preparador</b>: +${R.bonusPreparador * 100}% de ganho por ${R.custoPreparador} créditos.`]],
   trabalhar: ['Trabalhar', [`Funções: ${FUNCOES.map(f => `${f.nome} (${f.salario})`).join(', ')}. As melhores liberam com turnos acumulados e atributos.`,
     `Cada turno a mais no mesmo dia paga <b>${R.quedaPorTurno * 100}% menos</b>: trabalhar o dia inteiro não compensa.`,
     `Lesionado pode trabalhar. ${R.taxaCaixa * 100}% do salário vai para o caixa da atlética.`]],
@@ -320,8 +321,8 @@ const DETALHE = {
   expedicao: ['Expedição em grupo', [`De 3 a 4 atletas da mesma atlética, cada um gasta 1 ação. Paga <b>${PREMIOS.expedicaoBase}</b> por atleta (+${PREMIOS.expedicaoPorMembroExtra} com 4).`,
     `Risco de lesão de <b>${R.lesaoExpedicao * 100}%</b> para cada um. É a forma mais rápida de ganhar dinheiro e exige combinar com os colegas.`]],
   atributos: ['Atributos', [`${ATRIBUTOS.map(k => NOME_ATRIBUTO[k]).join(', ')}. Começam entre ${R.inicialMin} e ${R.inicialMax}; teto ${R.tetoAtributo}.`,
-    `No futebol pesam: ${Object.entries(MODALIDADES.futebol.pesos).map(([k, w]) => `${NOME_ATRIBUTO[k]} ${w * 100}%`).join(', ')}.`,
-    `Títulos (Velocista, Artilheiro…) dependem dos valores atuais: quem deixa regredir perde o título.`]],
+    `São do corpo e valem em todo esporte. Cada esporte combina os base em atributos próprios: no futebol, ${Object.values(MODALIDADES.futebol.atributos).map(d => `${d.nome} (${d.base.map(([k, w]) => `${w * 100}% ${NOME_ATRIBUTO[k]}`).join(' + ')})`).join(', ')}.`,
+    `Especialidades (Velocista, Artilheiro…) saem dos atributos base e dão habilidades em cada esporte.`]],
   creditos: ['Créditos', [`Não se compram e não viram dinheiro real. O prêmio do campeonato é pago à atlética pela organização, fora do jogo.`,
     `Entram por salário, rodada oficial (${PREMIOS.oficial.v} / ${PREMIOS.oficial.e} / ${PREMIOS.oficial.d}), amistoso e expedição.`,
     `Saem em equipamento, conserto, preparador e departamento médico (${R.tratamentoPorDia} por dia de lesão).`]],
@@ -333,7 +334,7 @@ const DETALHE = {
   loja: ['Equipamento e preparador', [`3 encaixes (calçado, roupa, acessório) e 3 níveis: ${NIVEIS.map(n => `${n.nome} +${n.bonus} por ${fmt(n.preco)}`).join(', ')}.`,
     `Cada peça só vale na sua modalidade e leva ${100 / R.adaptacaoPorDia} dias ativos para adaptar; trocar zera a adaptação. Isso penaliza quem quer ser bom em vários esportes.`,
     `Peças se gastam em partidas e treinos; conserto custa ${R.reparo * 100}% do preço. O preparador é o gasto que nunca acaba.`]],
-  forca: ['Força no futebol', [`Média ponderada dos atributos efetivos: atributo + bônus do equipamento adaptado, multiplicado pela forma.`,
+  forca: ['Força no futebol', [`Média ponderada dos atributos do futebol (${Object.values(MODALIDADES.futebol.atributos).map(d => `${d.nome} ${d.peso * 100}%`).join(', ')}), com o equipamento adaptado e multiplicada pela forma.`,
     `Decide a chance de vitória: com 10 pontos de vantagem, ~${fmt(chanceVitoria(55, 45) * 100)}% de vitória; com 30, ~${fmt(chanceVitoria(65, 35) * 100)}%. Empates em ${EMPATE * 100}%.`,
     `Curva medida no futebol simulado com robôs; será medida de novo com o cérebro treinado.`]],
   convocacao: ['Convocação', [`Índice = força + ${R.presencaPorDia} por dia ativo nos últimos 7.`,
@@ -399,7 +400,7 @@ function desenharDia(id) {
     for (let t = 0; t < p.treinos; t++) {
       const k = p.foco.reduce((m, x) => (a.atrib[x] < a.atrib[m] ? x : m));
       const r = treinar(a, k);
-      blocos.push(['treino', 'Treino', `${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}`, `sessão ${r.sessao} de ${SESSOES_POR_FITA}`]);
+      blocos.push(['treino', 'Treino', `${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}`, `nível ${r.nivel} · ${ATIVIDADES[k].niveis[r.nivel - 1]}`]);
     }
     for (let t = 0; t < p.trabalhos; t++) {
       const f = funcoesDisponiveis(a).at(-1), r = trabalhar(a, f.id);
@@ -419,7 +420,7 @@ function desenharDia(id) {
   html += `<div class="bloco livre" style="grid-column:9 / span 4"><b>Virada do dia</b><span>Forma ${a.acoesHoje ? `+${R.formaDiaAtivo}` : R.formaDiaAusente}</span><span class="r">ações voltam a ${R.acoesPorDia}</span></div>`;
   $('relogio').innerHTML = html;
   const final = sim.dias.at(-1);
-  $('resumo-dia').innerHTML = `<span>Dia 10: créditos <b>${fmt(antes.cred)} → ${fmt(a.creditos)}</b></span><span>Força <b>${fmt(antes.forca, 1)} → ${fmt(forca(a, 'futebol'), 1)}</b></span><span>Fim da temporada: força <b>${fmt(final.forca, 1)}</b>${final.titulos.length ? `, título <b>${final.titulos[0]}</b>` : ', sem título'}</span>`;
+  $('resumo-dia').innerHTML = `<span>Dia 10: créditos <b>${fmt(antes.cred)} → ${fmt(a.creditos)}</b></span><span>Força <b>${fmt(antes.forca, 1)} → ${fmt(forca(a, 'futebol'), 1)}</b></span><span>Fim da temporada: força <b>${fmt(final.forca, 1)}</b>${final.especialidades.length ? `, especialidade <b>${final.especialidades[0]}</b>` : ', sem especialidade'}</span>`;
 }
 // estado do atleta do perfil ao fim do dia `n` (versão curta do balanço, sem loja)
 function simularTemporadaAte(id, seed, n) {
@@ -498,21 +499,33 @@ function desenharEvolucao() {
     { nome: 'Forma 40', cor: '--s2', v: curva(false, 40) },
   ];
   $('leg-evo').innerHTML = s.map(x => `<span><i style="background:var(${x.cor})"></i>${x.nome} (dia 42: ${fmt(x.v.at(-1), 0)})</span>`).join('');
-  grafico($('g-evo'), s, { min: 30, max: 100, xmax: 42, xlab: d => `d${d}`, ylinhas: [30, 50, 70, 90], yref: [[80, 'título']] });
+  grafico($('g-evo'), s, { min: 30, max: 100, xmax: 42, xlab: d => `d${d}`, ylinhas: [30, 50, 70, 90], yref: [[85, 'especialidade']] });
   // quanto vale cada coisa: atleta com tudo em 50
   const base = novoAtleta(1); for (const k of ATRIBUTOS) base.atrib[k] = 50; base.forma = 100;
   const f0 = forca(base, 'futebol');
   const kit = JSON.parse(JSON.stringify(base)); for (const e of ['calcado', 'roupa', 'acessorio']) kit.kit[e] = { id: `futebol-${e}-3`, usos: 40, adaptacao: 100 };
-  const treino = JSON.parse(JSON.stringify(base)); for (let i = 0; i < 20; i++) treino.atrib.velocidade += ganhoTreino(treino.atrib.velocidade, 100);
+  const treino = JSON.parse(JSON.stringify(base)); for (let i = 0; i < 20; i++) treino.atrib.forca += ganhoTreino(treino.atrib.forca, 100);
   const sem = JSON.parse(JSON.stringify(base)); sem.forma = 25;
   const linhas = [
     ['Kit Elite completo (3.000 créditos)', forca(kit, 'futebol') - f0],
-    ['20 treinos de Velocidade (10 dias)', forca(treino, 'futebol') - f0],
+    ['20 treinos de Força (10 dias)', forca(treino, 'futebol') - f0],
     ['5 dias sem entrar (forma 100 → 25)', forca(sem, 'futebol') - f0],
   ];
   $('t-valor').innerHTML = `<table><tr><th>O que muda</th><th class="num">Força</th></tr><tr><td>Atleta base (tudo 50, forma 100)</td><td class="num">${fmt(f0, 1)}</td></tr>${linhas.map(([n, d]) => `<tr><td>${n}</td><td class="num" style="color:var(${d >= 0 ? '--campo' : '--risco'})">${d >= 0 ? '+' : ''}${fmt(d, 1)}</td></tr>`).join('')}</table>
     <p class="small muted" style="margin-top:8px">Com 10 pontos de vantagem a chance de vitória vai de ${fmt(chanceVitoria(50, 50) * 100)}% para ${fmt(chanceVitoria(60, 50) * 100)}%.</p>`;
-  $('t-titulos').innerHTML = `<tr><th>Título</th><th>Exige</th><th>Estilo de jogo</th></tr>` + TITULOS.map(t => `<tr><td><b>${t.nome}</b></td><td class="num" style="text-align:left">${Object.entries(t.requisito).map(([k, v]) => `${NOME_ATRIBUTO[k]} ${v}`).join(' · ')}</td><td class="muted">cérebro especializado (a treinar)</td></tr>`).join('');
+  $('t-esporte').innerHTML = `<tr><th>Atributo</th><th>Vem de</th><th class="num">Peso na força</th><th>Equipamento</th></tr>` + Object.entries(MODALIDADES.futebol.atributos).map(([id, d]) => `<tr><td><b>${d.nome}</b></td><td>${d.base.map(([k, w]) => `${w * 100}% ${NOME_ATRIBUTO[k]}`).join(' + ')}</td><td class="num">${d.peso * 100}%</td><td class="muted">${CATALOGO.find(i => i.modalidade === 'futebol' && i.atributo === id)?.nome.split(' ')[0] ?? '—'}</td></tr>`).join('');
+  const diasAte = e => {
+    const req = Object.entries(e.requisito);
+    if (req.some(([k]) => !ATIVIDADES[k].lancamento)) return null;
+    let t = 0;
+    for (let s = 1; s <= 10; s++) {
+      const a = novoAtleta(s); a.forma = 100; let d = 0;
+      while (!a.especialidades.includes(e.id) && d < 200) { d++; for (let i = 0; i < 2; i++) { const [k] = req.reduce((m, r) => (a.atrib[r[0]] - r[1] < a.atrib[m[0]] - m[1] ? r : m)); treinar(a, k); } virarDia(a); a.forma = 100; }
+      t += d;
+    }
+    return t / 10;
+  };
+  $('t-titulos').innerHTML = `<tr><th>Especialidade</th><th>Exige</th><th>Futebol</th><th>Queimada</th><th class="num">Dias</th></tr>` + ESPECIALIDADES.map(t => { const d = diasAte(t); return `<tr><td><b>${t.nome}</b></td><td>${Object.entries(t.requisito).map(([k, v]) => `${NOME_ATRIBUTO[k]} ${v}`).join(' · ')}</td><td>${HABILIDADES[t.habilidades.futebol]?.nome ?? '—'}</td><td>${HABILIDADES[t.habilidades.queimada]?.nome ?? '—'}</td><td class="num">${d === null ? '<span class="tag ruim">sem treino</span>' : fmt(d)}</td></tr>`; }).join('');
 }
 
 // ------------------------------------------------------------------ convocação e temporada
@@ -544,6 +557,7 @@ function desenharTemporada(L) {
 // ------------------------------------------------------------------ laboratório
 const PARAMS = [
   ['ganhoBase', 'Ganho por treino', 2, 8, 0.5, 'Quanto um treino sobe o atributo (aos 35, rende ~metade disso).', v => fmt(v, 1)],
+  ['bonusCTPorNivel', 'Ganho extra por nível do CT', 0, 0.3, 0.05, 'Quanto cada nível do centro de treinamento acelera o treino.', v => `+${fmt(v * 100)}%`],
   ['bonusPreparador', 'Bônus do preparador', 0, 1, 0.1, 'Ganho extra do treino pago.', v => `+${fmt(v * 100)}%`],
   ['custoPreparador', 'Custo do preparador', 0, 300, 25, 'Créditos por sessão com preparador.', v => fmt(v)],
   ['quedaPorTurno', 'Queda do salário no mesmo dia', 0, 0.5, 0.05, 'Cada turno a mais no dia paga esta fração a menos.', v => `${fmt(v * 100)}%`],
@@ -571,7 +585,7 @@ function medir(vals, nLigas = 60) {
     saldo += tot / sd.length; gini += tot ? sd.reduce((a, x, i) => a + (2 * (i + 1) - sd.length - 1) * x, 0) / (sd.length * tot) : 0;
   }
   const media = (id, f) => { let t = 0; for (let s = 1; s <= 20; s++) t += f(simularTemporada(id, s)); return t / 20; };
-  const tit = (() => { let t = 0, n = 0; for (let s = 1; s <= 20; s++) { const r = simularTemporada('especialista', s); if (r.primeiroTitulo) { t += r.primeiroTitulo; n++; } } return n ? t / n : 99; })();
+  const tit = (() => { let t = 0, n = 0; for (let s = 1; s <= 20; s++) { const r = simularTemporada('especialista', s); if (r.primeiraEspecialidade) { t += r.primeiraEspecialidade; n++; } } return n ? t / n : 99; })();
   const out = {
     spear: spear / nLigas, lider: lider / nLigas, camp: camp / nLigas, zebra: zebra / dec, saldo: saldo / nLigas, gini: gini / nLigas,
     titulo: tit,
@@ -586,7 +600,7 @@ const METRICAS = [
   ['spear', 'Atividade da atlética × posição final', v => fmt(v, 2), +1, 'perto de 1: quem joga mais termina na frente'],
   ['camp', 'Atlética mais ativa é campeã', v => fmt(v * 100) + '%', +1, 'aleatório seria 17%'],
   ['zebra', 'Zebras por jogo', v => fmt(v * 100) + '%', 0, 'abaixo de 50%: o mais forte ganha mais'],
-  ['titulo', 'Dia do 1º título do especialista', v => v >= 99 ? 'nunca' : `dia ${fmt(v)}`, 0, 'temporada tem 42 dias'],
+  ['titulo', 'Dia da 1ª especialidade do especialista', v => v >= 99 ? 'nunca' : `dia ${fmt(v)}`, 0, 'temporada tem 42 dias'],
   ['dedicado', 'Força do dedicado no fim', v => fmt(v, 1), 0, 'casual aparece no cartão abaixo'],
   ['casual', 'Força do casual no fim', v => fmt(v, 1), 0, 'diferença para o dedicado = valor de jogar todo dia'],
   ['sumir', 'Custo de sumir 10 dias (força)', v => fmt(v, 1), 0, 'quanto mais negativo, mais dói abandonar'],

@@ -22,33 +22,92 @@ Páginas (`python web/regras/build.py`):
   interface, nomes e situações.
 
 ## O dia
-- **5 ações por dia**, cada uma ocupa o atleta por 2 h: treinar, treinar habilidade, trabalhar,
-  amistoso, expedição em grupo. A rodada oficial **não** gasta ação.
+- **5 ações por dia**, cada uma ocupa o atleta por 2 h: treinar, trabalhar, amistoso, expedição em
+  grupo. A rodada oficial **não** gasta ação.
 - O dia vira à meia-noite (horário de Brasília). Ações não acumulam.
 
-## Atributos
-- Sete: **Velocidade, Força, Precisão, Chute, Controle, Reflexo, Fôlego.** Força entra (para
-  Avalanche, queimada e o carrinho do futebol; pedido ao Treino: Futebol abaixo).
-- Começam entre 25 e 40 (sorteados por semente), teto 99.
-- **Ganho por treino** = 4 × (1 − valor/100)^1,5 × (0,6 + 0,4 × forma/100).
-  Aos 35 sobe ~2,1 por treino; aos 70, ~0,66; aos 85, ~0,23. Treinando 2× por dia o mesmo
-  atributo, 35 → 80 leva ~25 dias. Retorno decrescente premia especializar e deixa o topo raro.
-- **Treino e fita:** cada atributo tem uma atividade (Precisão → Treino de Precisão; demais a
-  definir em fichas). A fita tem 3 sessões de 2 h; o atleta assiste à sessão seguinte a cada treino.
-  Depois da 3ª ele já domina a atividade e os treinos seguintes mostram o nível de domínio
-  (com jogadas diferentes a cada vez), enquanto o atributo segue subindo devagar.
+## Atributos base (decididos com o Savio em 2026-10-16)
+São propriedades do corpo, iguais em todos os esportes, e os **únicos treinados**. Começam entre 25
+e 40 (sorteados por semente), teto 99.
 
-## Habilidades
-Treino de habilidade gasta 1 ação e só pode começar com o requisito atingido; libera após N sessões.
-Futebol: Chute de longe (Chute 60, 3), Goleiro (Reflexo 55, 3), Drible (Controle 65, 4),
-Carrinho (Força 55, 3).
+| Atributo | O que muda na física (em qualquer esporte) | Treino (estação do CT) | Lançamento |
+|---|---|---|---|
+| Velocidade | velocidade máxima | Pista de tiros | sim |
+| Força | potência (empurrar, arremessar, chutar) e disputa de corpo | Trenó de carga | sim |
+| Precisão | erro de mira em qualquer lançamento | Treino de Precisão (já gravado) | sim |
+| Reflexo | tempo entre ver e agir | Painel de reação | sim |
+| Inteligência | qualidade da decisão: o cérebro sorteia as ações com temperatura 1,3 (Inteligência 0) a 0,9 (100) | Circuito de decisão | sim |
+| Controle | aceleração, frenagem e giro do corpo | Plataformas de equilíbrio | depois |
+| Fôlego | **barra de arrancada**: quanto tempo corre no máximo e quão rápido recupera | Circuito de arrancadas | depois |
 
-## Títulos
-Calculados a partir dos atributos atuais (perde o título quem deixa o atributo regredir).
-Velocista (Vel 80), Artilheiro (Chute 80 + Prec 75), Maestro (Contr 80 + Prec 70), Paredão
-(Refl 80), Maratonista (Fôl 85), Avalanche (Vel 80 + Força 80), Atleta completo (todos ≥ 70).
-No balanço, quem foca chega ao primeiro título por volta do **dia 26** de 42; quem divide treino
-entre três atributos não chega na primeira temporada.
+- **Ganho por treino** = 4 × (1 − valor/100)^1,5 × (0,6 + 0,4 × forma/100) × (1 + 10% por nível do CT).
+  Aos 35 sobe ~2,1 por treino; aos 70, ~0,66; aos 85, ~0,23.
+- **Treinos dos atributos base são genéricos:** só o atleta contra a estação, sem robô, sem
+  adversário e sem gesto de esporte. (Exceção aceita pelo Savio: a Precisão segue chutando.)
+- Controle e Fôlego existem desde já, mas sem treino no lançamento ficam no valor inicial.
+
+## Progressão da atividade e centro de treinamento
+- **Progressão da atividade (do atleta):** cada estação tem **3 níveis** que mudam o treino em si
+  (ex.: Precisão: alvos fixos → alvos que acendem e apagam → alvos móveis). O atleta sobe de nível
+  a cada 3 sessões. A fita de cada estação é treinada uma vez com dificuldade crescente; o atleta
+  assiste ao trecho do seu nível. Todo jogador vê a progressão, qualquer que seja o CT.
+- **Nível do CT (da atlética):** muda só o visual do cenário (estrutura maior e mais equipada) e o
+  ganho de treino (+10% por nível). Comprado com o caixa da atlética.
+
+## Atributos do esporte
+Não são treinados: cada esporte combina os atributos base em atributos próprios, com **média
+ponderada 60/40** (o primeiro é o principal), para cada um ter identidade e um atleta equilibrado
+não ser bom em tudo. O equipamento do esporte soma a eles.
+
+| Futebol 2x2 | Vem de | Peso na força | Equipamento |
+|---|---|---|---|
+| Finalização | 60% Precisão + 40% Força | 25% | Chuteira |
+| Passe | 60% Precisão + 40% Controle | 20% | — |
+| Marcação | 60% Força + 40% Velocidade | 20% | Caneleira |
+| Drible | 60% Inteligência + 40% Controle | 15% | Uniforme leve |
+| Defesa | 60% Reflexo + 40% Inteligência | 20% | — |
+
+Queimada (quando existir): Arremesso (Força + Precisão), Esquiva (Reflexo + Velocidade), Pegada
+(Reflexo + Força). Rouba-bandeira saiu da lista até ter desenho.
+
+**Marcação** só tem efeito quando o futebol tiver **desarme e disputa de corpo** (pedido ao Treino:
+Futebol em `docs/pedidos.md`). Até lá ela entra na força, mas não muda a partida.
+
+## Especialidades e habilidades
+Conquistadas pelos atributos base; cada uma dá uma habilidade em cada esporte. **Ilimitadas.**
+**Habilidades repetidas somam nível.** Conquista no requisito e só perde quando algum atributo cai
+abaixo do requisito − 5 (sem ganhar e perder no mesmo dia).
+
+| Especialidade | Exige | Futebol | Queimada |
+|---|---|---|---|
+| Maratonista | Fôlego 85 | Pressão* | Segundo fôlego* |
+| Velocista | Velocidade 85 | Arrancada* | Esquiva |
+| Paredão | Reflexo 85 | Goleiro (+1 nível) | Esquiva |
+| Artilheiro | Força 80 + Precisão 75 | Chute de longe | Curva |
+| Avalanche | Força 80 + Velocidade 75 | Carrinho | Arremesso pesado* |
+| Maestro | Controle 80 + Precisão 75 | Lançamento* | Curva |
+| Malandro | Inteligência 80 + Controle 75 | Finta | Arremesso falso |
+
+\* sugestões do Claude onde a tabela do Savio tinha (+) ou estava vazia. A habilidade de drible do
+Malandro chama "Finta" para não confundir com o atributo Drible.
+
+- **Goleiro:** todo atleta tem o nível 1 (mergulho básico); o Paredão soma +1.
+- **Chute de longe:** só com Artilheiro. O atleta percebe o gol livre e chuta por cobertura de
+  longe; isso tem que forçar um comportamento novo da defesa (sem a bola, pelo menos um defensor
+  recua para o gol). Não é habilidade básica.
+- **Cérebros:** o cérebro do futebol é treinado de novo para aprender cada habilidade nova (recebe as
+  habilidades como entrada); esse retreino não é considerado custo alto.
+- **Treino de habilidade deixa de existir:** habilidades vêm só das especialidades.
+- **No lançamento** só dá para conquistar Velocista, Paredão, Artilheiro e Avalanche: Maestro,
+  Malandro e Maratonista dependem de Controle ou Fôlego, que ainda não têm treino.
+- Tempo até a especialidade, treinando só os atributos dela (`node sim/dist/scripts/especialidades.js`):
+
+  | | CT 0 | CT 1 | CT 2 | CT 3 |
+  |---|---|---|---|---|
+  | Velocista / Paredão, 2 treinos por dia | 34 dias | 31 | 28 | 26 |
+  | Artilheiro / Avalanche, 2 treinos por dia | 45 | 41 | 38 | 35 |
+  | Velocista / Paredão, 4 treinos por dia | 17 | 16 | 14 | 13 |
+  | Artilheiro / Avalanche, 4 treinos por dia | 23 | 21 | 19 | 18 |
 
 ## Forma, ausência e lesão
 - **Forma** (0–100, começa em 80): +10 por dia com alguma ação, −15 por dia sem nenhuma.
@@ -67,7 +126,7 @@ do campeonato é pago à atlética pela organização, fora da economia do jogo)
 **Entradas**
 | Fonte | Valor |
 |---|---|
-| Trabalho (1 ação; cada turno a mais no mesmo dia paga 25% menos) | Monitor de escolinha 40 · Árbitro de base 55 (15 turnos) · Assistente de preparação física 70 (40 turnos, Fôlego 50) · Instrutor técnico 90 (80 turnos, Precisão 65) |
+| Trabalho (1 ação; cada turno a mais no mesmo dia paga 25% menos) | Monitor de escolinha 40 · Árbitro de base 55 (15 turnos) · Assistente de preparação física 70 (40 turnos, Força 50) · Instrutor técnico 90 (80 turnos, Precisão 65) |
 | Rodada oficial (convocados) | vitória 80 · empate 40 · derrota 20 |
 | Amistoso (1 ação) | 20 · 10 · 5 |
 | Expedição em grupo (1 ação, 3–4 atletas) | 120 por atleta (+40 com 4) |
@@ -150,14 +209,16 @@ Entradas por atleta numa temporada: salário 63%, rodada oficial 19%, expediçã
 Saídas: equipamento 84%, conserto 13%, médico 3%, mais o preparador. Caixa da atlética: ~5.700 por
 temporada; compra a 1ª melhoria por volta do dia 25.
 
-Também verificado: mesma semente = mesma liga; só especialistas chegam a título na 1ª temporada
+Também verificado: mesma semente = mesma liga; só especialistas chegam a especialidade na 1ª temporada
 (dia ~26); sumir 10 dias tira o atleta da convocação e derruba a força de ~51 para ~35.
 
 ## Pendências desta proposta
 - Trabalhador puro ainda acumula ~4.000 cr por temporada a partir da 2ª. Opções: contribuição
   voluntária ao caixa com reconhecimento no ranking interno, ou kits das próximas modalidades.
-- Dedicado que divide o treino em 3 atributos só chega a título na 2ª temporada. Ok se título for
-  marca de especialista; revisar se parecer frustrante.
+- Dedicado que divide o treino entre os 5 atributos não chega a especialidade na 1ª temporada. Ok se
+  especialidade for marca de quem foca; revisar se parecer frustrante.
+- 3 sessões por nível de atividade fazem quem foca chegar ao nível 3 em poucos dias. O número certo
+  depende do tamanho de cada fita; ajustar quando as fitas existirem.
 - Atributos mexem pouco no futebol com robôs (30 pontos de vantagem = 66%). Pedido ao Treino:
   Futebol em `docs/pedidos.md`. Medir de novo com o cérebro treinado (`calibrar.js`).
 - Habilidades de queimada e rouba-bandeira; atividades de treino para os atributos sem fita.
