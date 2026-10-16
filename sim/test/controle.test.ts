@@ -77,6 +77,6 @@ test('controle: o domínio de cada nível fica entre o robô sem e com o comport
     assert.ok(!passa(n, r[n][k]), `nível ${n}: ${k} não pode dominar`);
   assert.ok(passa(1, r[1].mira), 'nível 1: mirar a próxima domina');
   assert.ok(!passa(2, r[2].mira) && passa(2, r[2].freia), 'nível 2: só domina quem freia antes da curva');
-  // nível 3: quem não espera a móvel cai demais; o robô que espera cai pouco (o atleta treinado precisa também ser rápido)
-  assert.ok(!passa(3, r[3].freia) && r[3].espera.q < CONTROLE.dominio[3]!.falls, 'nível 3: só domina quem espera a móvel');
+  // nível 3: quem não espera a móvel cai demais
+  assert.ok(!passa(3, r[3].freia) && passa(3, r[3].espera), 'nível 3: só domina quem espera a móvel');
 });

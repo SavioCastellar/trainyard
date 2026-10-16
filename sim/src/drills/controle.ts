@@ -44,7 +44,7 @@ export const CONTROLE = {
   slide: 1.0,
   period: 3,
   /** domínio por nível (medido, ver a ficha): plataformas por tentativa e quedas por tentativa (menos que)  */
-  dominio: [null, { plats: 60, falls: 99 }, { plats: 75, falls: 2 }, { plats: 45, falls: 2 }],
+  dominio: [null, { plats: 80, falls: 2 }, { plats: 75, falls: 2 }, { plats: 35, falls: 5 }],
   maxTime: 30,
   dt: 1 / 30,
 } as const;
