@@ -4,9 +4,10 @@
 iluminação, céu, clima, efeitos (partículas, impacto, comemoração). Não mexe em simulação nem em
 treino: entrega cenários prontos para as sessões de treino plugarem a simulação.
 
-> **Mudança de direção (2026-10-16):** o Savio trocou as ilhas flutuantes por **cenários urbanos**
-> (quadras de rua, galpões, canteiros de obra, ladeiras, paredões). As referências de ilha abaixo
-> ficam só como referência de estilo low-poly, luz e desempenho. Nos treinos não há robôs nem
+> **Mudança de direção (2026-10-16):** sem ilhas flutuantes; o ambiente é urbano. Os **treinos
+> acontecem no centro de treinamento da atlética**, cuja estrutura cresce com o nível do CT (cada
+> cenário de treino vai precisar de versões por nível). As referências de ilha abaixo ficam só como
+> referência de estilo low-poly, luz e desempenho. Nos treinos não há robôs nem
 > adversários: só o atleta e o ambiente. Ver `docs/produto.md`.
 
 ## É seu

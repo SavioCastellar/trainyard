@@ -55,8 +55,10 @@
   do cérebro ao longo do treino são gravadas e divididas em sessões de 2h. Todos os jogadores veem o
   mesmo treino; só a aparência do atleta muda. O navegador re-simula cada tentativa com sementes
   próprias, então as jogadas exatas variam de jogador para jogador.
-- **Cenários urbanos** (decidido em 2026-10-16): quadras de rua, galpões, canteiros de obra, ladeiras,
-  paredões, estacionamentos. Nada de temas forçados de vida universitária.
+- **Ambiente urbano** (2026-10-16), sem ilhas. Detalhe do que é "urbano" para mapa e partidas: em aberto.
+- **Treinos acontecem no centro de treinamento (CT) da atlética.** Quanto maior o nível do CT, maior e
+  mais equipada é a estrutura onde o atleta treina. Como o nível afeta o treino: em aberto (ver
+  `docs/regras.md`). Nada de temas forçados de vida universitária.
 - **Treinos sem robôs nem adversários:** o atleta treina sozinho contra o ambiente (portões, luzes,
   cargas, vigas, objetos em movimento), nunca contra outro personagem ou máquina que o persiga.
 - **Treinos dos atributos base são genéricos:** nada de gesto de um esporte (chutar, driblar, defender
