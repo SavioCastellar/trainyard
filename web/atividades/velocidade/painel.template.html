@@ -253,13 +253,9 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshS
 ground.material.map.wrapS = ground.material.map.wrapT = THREE.RepeatWrapping; ground.material.map.repeat.set(40, 40);
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
-// paredes baixas e pilares ao fundo (galpão), só para dar escala
-const wallMat = new THREE.MeshStandardMaterial({ color: 0xc3c7cd, roughness: .95 });
-const pillarMat = new THREE.MeshStandardMaterial({ color: 0x5c616b, roughness: .8 });
-for (const [x, z, w, d] of [[0, -20, 70, 1], [-30, 5, 1, 50], [48, 5, 1, 50]]) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, 5, d), wallMat); m.position.set(x, 2.5, z); m.receiveShadow = true; scene.add(m);
-}
-for (let i = -3; i <= 4; i++) { const p = new THREE.Mesh(new THREE.BoxGeometry(.7, 5.4, .7), pillarMat); p.position.set(i * 9, 2.7, -19.3); scene.add(p); }
+// galpão do CT (provisório, comum às páginas de treino)
+/*CT*/
+construirCTProvisorio(scene, { livre: (x, z) => Math.hypot(x, z) > 9.5 && Math.hypot(x - 18, z) > 9.5 && z < 12 });
 
 const ARENA_GAP = 18;
 const padGeo = new THREE.CylinderGeometry(R.padR, R.padR, .06, 36);

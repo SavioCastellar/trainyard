@@ -13,6 +13,7 @@ tape = json.dumps(json.load(open(tape_path, encoding='utf8')), separators=(',', 
 out = (open(os.path.join(here, 'painel.template.html'), encoding='utf8').read()
        .replace('/*DRILL*/', drill)
        .replace('/*CABECUDO*/', read('web/src/cabecudo-lib.js'))
+       .replace('/*CT*/', read('web/atividades/ct-provisorio.js'))
        .replace('/*TAPE*/', tape))
 os.makedirs(os.path.join(web, 'dist'), exist_ok=True)
 dst = os.path.join(web, 'dist', 'treino-velocidade.html')

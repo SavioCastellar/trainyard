@@ -1,8 +1,8 @@
-# Ficha: Painel de reação
+# Ficha: Painel de luzes
 
-Estação do centro de treinamento para **Reflexo**. Proposta do Claude, aprovada no papel pelo Savio (2026-10-16); aprovação final só vendo rodando.
+Estação do centro de treinamento para **Velocidade**. Nasceu como "Painel de reação" para o Reflexo; o Savio assistiu ao treino (2026-10-16), gostou e decidiu que ele treina **Velocidade**, no lugar da Pista de tiros (que não chegou a ser treinada). O Reflexo ganhou os Lançadores (`reflexo.md`).
 
-- **Tipo:** treino de atributo base, individual. **Atributo:** Reflexo.
+- **Tipo:** treino de atributo base, individual. **Atributo:** Velocidade.
 - **Ideia:** o piso da estação tem placas que acendem. O atleta precisa pisar na placa acesa antes que ela apague. É o treino de reação com luzes usado em centros de treinamento de verdade. Não tem gesto de esporte, robô nem adversário.
 - **Objetivo do atleta (recompensa):** +1 por placa verde pisada a tempo. Nenhuma outra recompensa.
 - **Duração da tentativa:** 30 s.
@@ -77,5 +77,6 @@ A física e a fita são as mesmas em qualquer nível do CT; muda a estrutura em 
 ## Estado
 - Ficha: aprovada no papel (2026-10-16). Aprovação final só vendo o treino rodando.
 - Cenário: a fazer (sessão Cenários, dentro do CT).
-- Treino: feito (2026-10-16), fita `fitas/reflexo.json`, página `web/atividades/reflexo/` (visual
-  provisório). Aguarda o Savio assistir.
+- Treino: feito (2026-10-16), fita `fitas/velocidade.json`, página `web/atividades/velocidade/`
+  (visual provisório). Assistido e aprovado pelo Savio como treino de Velocidade.
+- Código: `sim/src/drills/painel.ts`, atividade `velocidade` na ponte e no `ppo_drill.py`.
