@@ -40,6 +40,8 @@ ligadas às fitas, partidas oficiais no servidor com replay, rankings.
 
 **Fase D — app**: interface do jogador (mobile primeiro).
 
+**Fase E — teste com amigos** (com o jogo quase completo): `docs/teste-amigos.md`.
+
 ## Como o trabalho se junta
 - Cada sessão no seu ramo; pull request para `main` a cada marco. Sessões locais usam
   `git worktree` (uma pasta por sessão).

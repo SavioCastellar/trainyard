@@ -64,9 +64,8 @@
   - **Nível do CT** (da atlética): muda só o visual do cenário e quanto o atributo sobe por treino.
 
 ## Primeiro teste (com amigos)
-- Cada amigo é **diretor de uma atlética** e tem o **próprio atleta** nela; os outros membros são
-  simulados. ~16 atléticas com 40 atletas cada (atléticas sem amigo têm diretor simulado).
-- Formato de liga, papel do diretor e comportamento dos membros simulados: em discussão.
+16 atléticas com diretor real, 40 atletas cada, divisão única; o diretor só decide o caixa. Só
+quando o jogo estiver quase completo. Detalhes: `docs/teste-amigos.md`.
 - **Treinos sem robôs nem adversários:** o atleta treina sozinho contra o ambiente (portões, luzes,
   cargas, vigas, objetos em movimento), nunca contra outro personagem ou máquina que o persiga.
 - **Treinos dos atributos base são genéricos:** nada de gesto de um esporte (chutar, driblar, defender
