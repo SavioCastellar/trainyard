@@ -7,8 +7,9 @@
  * Medidas em docs/atividades/controle.md.
  *
  * Observação: velocidade e queda do atleta; para a plataforma atual (a mais adiantada já pisada) e as
- * 4 seguintes: direção (cos, sen) e distância vistas pelo atleta, raio, velocidade no referencial dele
- * e se é móvel.
+ * 4 seguintes: direção (cos, sen) e distância vistas pelo atleta, raio, velocidade no referencial dele,
+ * se é móvel e a folga até a anterior (negativa = sobrepostas) e quanto ela muda por segundo; na atual,
+ * no lugar da folga, quanto falta para o atleta chegar à beira.
  * Ações: girar (esq/nada/dir), andar (ré/nada/frente). "Nada" deixa o embalo seguir (atrito leve).
  */
 import { Rng } from '../rng.js';
@@ -50,7 +51,7 @@ export const CONTROLE = {
 } as const;
 
 export const CONTROLE_LOOK = 5;
-export const CONTROLE_OBS = 2 + CONTROLE_LOOK * 7;
+export const CONTROLE_OBS = 2 + CONTROLE_LOOK * 9;
 export const CONTROLE_ACTIONS = [3, 3] as const;
 export type Nivel = 1 | 2 | 3;
 
@@ -165,13 +166,17 @@ export class ControleDrill {
     const P = this.player, c = Math.cos(P.h), s = Math.sin(P.h), L = 6;
     out[off] = P.v / CONTROLE.speed; out[off + 1] = P.fall > 0 ? 1 : 0;
     for (let k = 0; k < CONTROLE_LOOK; k++) {
-      const p = this.plats[this.best + k], o = off + 2 + k * 7;
-      if (!p) { out.fill(0, o, o + 7); continue; }
+      const p = this.plats[this.best + k], o = off + 2 + k * 9;
+      if (!p) { out.fill(0, o, o + 9); continue; }
       const dx = p.x - P.x, dz = p.z - P.z, f = dx * c + dz * s, l = -dx * s + dz * c, d = Math.hypot(f, l);
       out[o] = d > 1e-6 ? f / d : 1; out[o + 1] = d > 1e-6 ? l / d : 0; out[o + 2] = d / L;
       out[o + 3] = p.r;
       out[o + 4] = (p.vx * c + p.vz * s) / 2; out[o + 5] = (-p.vx * s + p.vz * c) / 2;
       out[o + 6] = p.ax || p.az ? 1 : 0;
+      if (k === 0) { out[o + 7] = (p.r - Math.hypot(P.x - p.x, P.z - p.z)) / p.r; out[o + 8] = 0; continue; }
+      // folga até a anterior: a móvel "chega" quando ela fica negativa
+      const q = this.plats[this.best + k - 1], gx = p.x - q.x, gz = p.z - q.z, gd = Math.hypot(gx, gz) || 1;
+      out[o + 7] = gd - p.r - q.r; out[o + 8] = ((p.vx - q.vx) * gx + (p.vz - q.vz) * gz) / gd / 2;
     }
   }
 

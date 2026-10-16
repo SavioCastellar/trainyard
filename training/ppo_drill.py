@@ -24,7 +24,7 @@ from torch.distributions import Categorical
 
 # tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
 DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6, (3, 3, 3)),
-          "controle": (2 + 5 * 7, (3, 3))}
+          "controle": (2 + 5 * 9, (3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha
 DOMINIO = {"velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
            "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)},

@@ -166,10 +166,11 @@ const DRILLS: Record<string, DrillTape> = {
       const l2 = at(2, () => true);
       add(l2, 'Nível 2 · Estreitas: plataformas menores e curvas fechadas. Correndo demais, ele passa direto.', 2);
       if (l2 >= 0) add(at(2, e => e.falls <= picked[l2].falls / 2), 'Aprendeu a frear antes da curva: cai metade das vezes.');
-      add(at(2, ok(2)), `Domínio do nível 2: ${D[2]!.plats} plataformas e quase sem quedas.`);
-      const l3 = at(3, () => true);
+      // o domínio é medido no treino; nas sementes da fita a última foto do nível pode ficar um pouco abaixo
+      const l3 = at(3, () => true), d2 = at(2, ok(2));
+      add(d2 >= 0 ? d2 : l3 - 1, `Domínio do nível 2: mais de ${D[2]!.plats} plataformas e quase sem quedas.`);
       add(l3, 'Nível 3 · Móveis: algumas plataformas deslizam de um lado para o outro.', 3);
-      if (l3 >= 0) add(at(3, e => e.falls <= picked[l3].falls / 2), 'Começou a esperar a plataforma móvel chegar antes de pisar.');
+      if (l3 >= 0) add(at(3, e => e.falls <= picked[l3].falls / 2), 'Começou a acertar o tempo da plataforma móvel: chega quando ela encosta na vizinha.');
       add(at(3, ok(3)), `Domínio do nível 3: ${D[3]!.plats} plataformas e menos de ${D[3]!.falls} quedas.`);
     },
   },
