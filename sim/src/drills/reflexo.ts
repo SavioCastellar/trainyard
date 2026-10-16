@@ -4,7 +4,7 @@
  * No nível 3 acendem também 2 vermelhas; pisar numa deixa o atleta 1 s parado (custo natural).
  * Medidas em docs/atividades/reflexo.md.
  *
- * Observação: atleta (posição, direção, velocidade, parado) e, para cada placa, cor, tempo
+ * Observação: atleta (posição, direção, velocidade, parado), centro e verde acesa vistos pelo atleta e, para cada placa, cor, tempo
  * restante e posição relativa ao atleta (frente/lado), para o cérebro não ter de aprender trigonometria.
  * Ações: girar (esq/nada/dir), andar (ré/parado/frente).
  */
@@ -31,7 +31,7 @@ export const REFLEXO = {
   dt: 1 / 30,
 } as const;
 
-export const REFLEXO_OBS = 6 + REFLEXO.pads.length * 5;
+export const REFLEXO_OBS = 12 + REFLEXO.pads.length * 5;
 export const REFLEXO_ACTIONS = [3, 3] as const;
 export type Nivel = 1 | 2 | 3;
 
@@ -94,8 +94,12 @@ export class ReflexoDrill {
     out[off] = P.x / R; out[off + 1] = P.z / R; out[off + 2] = c; out[off + 3] = s;
     out[off + 4] = P.v / REFLEXO.speed; out[off + 5] = P.frozen > 0 ? 1 : 0;
     const lit = this.green >= 0 && this.state[this.green] === 1, tl = lit ? this.timer / REFLEXO.window[this.nivel] : 0;
+    // centro e verde acesa vistos pelo atleta (frente/lado): o "correr para a luz" vale para qualquer placa
+    out[off + 6] = (-P.x * c - P.z * s) / R; out[off + 7] = (P.x * s - P.z * c) / R;
+    const g = lit ? REFLEXO.pads[this.green] : null, gx = g ? g.x - P.x : 0, gz = g ? g.z - P.z : 0;
+    out[off + 8] = lit ? 1 : 0; out[off + 9] = (gx * c + gz * s) / R; out[off + 10] = (-gx * s + gz * c) / R; out[off + 11] = tl;
     REFLEXO.pads.forEach((p, i) => {
-      const o = off + 6 + i * 5, dx = p.x - P.x, dz = p.z - P.z, st = this.state[i];
+      const o = off + 12 + i * 5, dx = p.x - P.x, dz = p.z - P.z, st = this.state[i];
       out[o] = st === 1 ? 1 : 0; out[o + 1] = st === 2 ? 1 : 0; out[o + 2] = st ? tl : 0;
       out[o + 3] = (dx * c + dz * s) / R; out[o + 4] = (-dx * s + dz * c) / R;
     });
