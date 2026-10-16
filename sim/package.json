@@ -1,9 +1,9 @@
 {
-  "name": "@cabecudos/sim",
+  "name": "@trainyard/sim",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Física e regras dos esportes dos Cabeçudos. Fonte única usada pelo treino, pelo servidor e pelo navegador.",
+  "description": "Física e regras dos esportes do jogo. Fonte única usada pelo treino, pelo servidor e pelo navegador.",
   "scripts": {
     "build": "tsc -p .",
     "test": "npm run build && node --test dist/test/*.test.js"

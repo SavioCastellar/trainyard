@@ -7,11 +7,13 @@
   sem entrar deve parecer perder progresso e abandonar o seu atleta.
 - Inspirações: Tamagotchi (presença diária) e Punch Club (evolução do personagem pelo que ele faz).
 - Cada atlética compete contra as outras diariamente. Prêmio em dinheiro no fim do campeonato.
-- Tom: **humor, mas competitivo**.
+- Tom: **sério e competitivo** (mudou em 2026-10-14; antes era "humor, mas competitivo").
+- Regras, economia, temporada, convocação e mundo: proposta em `docs/regras.md` (números em
+  `sim/src/jogo.ts`).
 
 ## O atleta
-- Cada membro da atlética tem o **seu próprio atleta de IA**, o **Cabeçudo**: uma caricatura de
-  cabeça grande do estudante, construída em código (`web/src/cabecudo-lib.js`). Venceu o "Feijão"
+- Cada membro da atlética tem o **seu próprio atleta de IA**, uma caricatura de cabeça grande
+  do estudante, construída em código (`web/src/cabecudo-lib.js`). Esse estilo venceu o "Feijão"
   (corpo estilo Fall Guys) na escolha de personagem.
 - Personalização atual: pele, cabelo (curto, black power, moicano, coque, boné, careca), cor do
   cabelo, óculos (nenhum, redondo, escuro), barba (nenhuma, bigode, barba cheia), expressão
@@ -29,13 +31,16 @@
 - Partidas oficiais rodam no servidor e o jogador assiste ao replay.
 
 ## Progressão
-- **Treino físico** sobe atributos (ex.: Velocidade, Precisão, Chute, Controle, Reflexo, Fôlego).
-- **Treino de habilidade** libera habilidades do esporte (ex.: futebol: chute de longe, drible,
-  carrinho). As habilidades devem gerar estratégias novas e contraestratégias (ex.: um defensor
-  passa a ficar recuado contra quem tem chute de longe).
-- **Títulos de especialista** no estilo FIFA: 80+ de Velocidade = "Velocista"; 80+ de Velocidade e
-  Força = "Avalanche". Cada título tem um **cérebro especializado**, ajustado a partir do cérebro
-  base, que joga de um jeito reconhecível.
+(Decidido em 2026-10-16; detalhes e números em `docs/regras.md`.)
+- **Atributos base** (Velocidade, Força, Precisão, Reflexo, Inteligência, Controle, Fôlego): do
+  corpo, iguais em todo esporte, os únicos treinados. Treinos genéricos, sem gesto de esporte.
+- **Atributos do esporte** (futebol: Finalização, Passe, Marcação, Drible, Defesa): combinação dos
+  base, não são treinados.
+- **Especialidades** (Velocista, Paredão, Artilheiro, Avalanche, Maestro, Malandro, Maratonista):
+  conquistadas pelos atributos base; dão habilidades em cada esporte, que somam nível. Ilimitadas.
+  As habilidades devem gerar estratégias novas e contraestratégias (ex.: um defensor passa a ficar
+  recuado contra quem tem Chute de longe). O cérebro do esporte é retreinado para usar cada uma.
+- No lançamento: treinos de Precisão, Reflexo, Inteligência, Velocidade, Força e Controle (Fôlego depois).
 
 ## O dia do jogador
 - **5 ações por dia.** Treinar, trabalhar e jogar uma partida custam 1 ação cada.
@@ -53,11 +58,28 @@
   do cérebro ao longo do treino são gravadas e divididas em sessões de 2h. Todos os jogadores veem o
   mesmo treino; só a aparência do atleta muda. O navegador re-simula cada tentativa com sementes
   próprias, então as jogadas exatas variam de jogador para jogador.
-- Atividades com tema genérico (arenas, ilhas, campos), não temas forçados de vida universitária.
+- **Ambiente urbano** (2026-10-16), sem ilhas. Detalhe do que é "urbano" para mapa e partidas: em aberto.
+- **Treinos acontecem no centro de treinamento (CT) da atlética.** Nada de temas forçados de vida
+  universitária. Duas progressões separadas (decidido em 2026-10-16):
+  - **Progressão da atividade** (de cada atleta): cada treino tem níveis que mudam a atividade em si
+    (ex.: alvos fixos → alvos que acendem → alvos móveis). O atleta sobe de nível ao dominar o atual,
+    então todo jogador vê a progressão, qualquer que seja o CT.
+  - **Nível do CT** (da atlética): muda só o visual do cenário e quanto o atributo sobe por treino.
+
+## Primeiro teste (com amigos)
+16 atléticas com diretor real, 40 atletas cada, divisão única; o diretor só decide o caixa. Só
+quando o jogo estiver quase completo. Detalhes: `docs/teste-amigos.md`.
+- **Treinos sem robôs nem adversários:** o atleta treina sozinho contra o ambiente (portões, luzes,
+  cargas, vigas, objetos em movimento), nunca contra outro personagem ou máquina que o persiga.
+- **Treinos dos atributos base são genéricos:** nada de gesto de um esporte (chutar, driblar, defender
+  gol). Os atributos base valem para todas as modalidades futuras.
   Boa fonte de ideias: os ambientes de exemplo do Unity ML-Agents e os vídeos do AI Warehouse.
 - Protótipo aprovado: **Treino de Precisão** (chutar bolas em alvos que aparecem pela arena).
 
 ## Rejeitado (não propor de novo)
+- "Cabeçudo(s)" como nome do jogo ou dos personagens.
+- Ilhas flutuantes e céu em degradê como ambiente do jogo (trocados por cenários urbanos).
+- Robôs, pegadores ou adversários controlados nos treinos.
 - Treinos que são exercícios de luta (chatos de assistir).
 - Sumô. Cabeça como mecânica.
 - Treinos com temática de faculdade forçada; cenas realistas (caras e sem graça).
@@ -67,11 +89,7 @@
 - Treinar um cérebro por usuário.
 
 ## Em aberto (perguntar ao Savio antes de decidir)
-- Incluir o atributo **Força** (necessário para o título "Avalanche"; hoje o futebol não tem).
-- Lista final de atributos e de habilidades.
-- Quanto um treino de 2h sobe um atributo; teto de atributos; quantos treinos até um título.
-- Duração da temporada e formato do campeonato entre atléticas (e do prêmio).
-- Economia: preços, salários do "trabalhar", lista de equipamentos.
-- Como funciona a convocação interna (ranking? votação? desempenho?).
-- Lore do mundo.
-- O que acontece quando o jogador some por dias (perda de forma? lesão?).
+- **Nome do jogo e nome dos personagens.** Até lá: "o jogo" e "o atleta".
+- Revisar a proposta 1 de `docs/regras.md` (atributos com Força, ganho de treino, títulos,
+  economia, convocação automática, temporada de 6 semanas, ausência, mundo). Até o Savio revisar,
+  as outras sessões seguem essa proposta.

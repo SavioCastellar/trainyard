@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regras e economia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f2ef; --surface: #fcfcfb; --surface-2: #f0efeb; --line: #dddbd4;
+    --ink: #121212; --ink-2: #52514e; --ink-3: #85847f;
+    --accent: #1f5f8b; --accent-ink: #ffffff;
+    --good: #2f7d3b; --warn: #a86a00; --bad: #b3261e;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+    --bar: #3b3a36; --bar-bonus: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --line: #34332f;
+      --ink: #f4f4f2; --ink-2: #c3c2b7; --ink-3: #8f8e86;
+      --accent: #5fa3d6; --accent-ink: #0b0b0b;
+      --good: #5cb86a; --warn: #d9a03a; --bad: #e66767;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+      --bar: #d6d5cf; --bar-bonus: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --line: #34332f;
+    --ink: #f4f4f2; --ink-2: #c3c2b7; --ink-3: #8f8e86;
+    --accent: #5fa3d6; --accent-ink: #0b0b0b;
+    --good: #5cb86a; --warn: #d9a03a; --bad: #e66767;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+    --bar: #d6d5cf; --bar-bonus: #3987e5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Inter, system-ui, sans-serif; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  header { padding: 28px 16px 8px; max-width: 1120px; margin: 0 auto; }
+  header .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: 11px; color: var(--ink-3); font-weight: 600; }
+  h1 { font-size: 26px; margin: 4px 0 6px; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--ink-2); max-width: 70ch; }
+  nav { display: flex; gap: 4px; max-width: 1120px; margin: 16px auto 0; padding: 0 16px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  nav button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; font: 600 13px Inter, sans-serif; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+  nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  main { max-width: 1120px; margin: 0 auto; padding: 16px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: 300px 1fr 300px; align-items: start; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); margin: 0 0 10px; font-weight: 600; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .kv { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .kv:last-child { border-bottom: 0; }
+  .kv span:first-child { color: var(--ink-2); }
+  .big { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+  .pips { display: flex; gap: 4px; }
+  .pip { width: 14px; height: 14px; border-radius: 3px; background: var(--accent); }
+  .pip.off { background: var(--surface-2); border: 1px solid var(--line); }
+  .meter { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .meter > i { display: block; height: 100%; background: var(--ink-2); }
+  .attr { display: grid; grid-template-columns: 82px 1fr 64px; align-items: center; gap: 8px; padding: 4px 0; }
+  .attr .track { height: 8px; background: var(--surface-2); border-radius: 4px; position: relative; overflow: hidden; }
+  .attr .track i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 0 4px 4px 0; }
+  .attr .track i.v { background: var(--bar); }
+  .attr .track i.b { background: var(--bar-bonus); }
+  .attr .n { text-align: right; }
+  .attr .n small { color: var(--bar-bonus); }
+  .row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px; flex-wrap: wrap; }
+  select, button.act { font: 500 13px Inter, sans-serif; border-radius: 6px; padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  select { flex: 1; min-width: 0; }
+  button.act { cursor: pointer; background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  button.act.sec { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+  button.act:disabled { opacity: .4; cursor: not-allowed; }
+  .hint { font-size: 12px; color: var(--ink-3); margin: -2px 0 10px; }
+  .log { max-height: 420px; overflow: auto; font-size: 13px; }
+  .log div { padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .log b { font-weight: 600; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--ink-2); margin: 2px 4px 2px 0; }
+  .tag.t { border-color: var(--accent); color: var(--accent); }
+  .ok { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-weight: 600; }
+  td.num, th.num { text-align: right; font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+  .shop-item { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 7px 0; border-bottom: 1px solid var(--line); align-items: center; }
+  .shop-item small { color: var(--ink-3); display: block; }
+  .shop-item button { padding: 5px 9px; font-size: 12px; }
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
+  .chart { position: relative; }
+  .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart .grid line { stroke: var(--line); }
+  .chart text { fill: var(--ink-3); font: 11px "JetBrains Mono", monospace; }
+  .chart path.s { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .xh { stroke: var(--ink-3); stroke-dasharray: 3 3; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.12); min-width: 170px; }
+  .tip .r { display: flex; justify-content: space-between; gap: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 10px; font-size: 12px; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .prose { max-width: 72ch; color: var(--ink-2); }
+  .prose p { margin: 0 0 10px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Liga Universitária · Temporada 1</div>
+  <h1>Regras e economia</h1>
+  <p>Proposta de regras para o dia a dia do atleta: treino, trabalho, equipamentos, forma, lesão, convocação e temporada. Teste no simulador do dia e confira o balanço de uma temporada inteira por perfil de jogador.</p>
+</header>
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-tab="dia">Simulador do dia</button>
+  <button role="tab" aria-selected="false" data-tab="balanco">Balanço da temporada</button>
+  <button role="tab" aria-selected="false" data-tab="liga">Liga simulada</button>
+  <button role="tab" aria-selected="false" data-tab="tabelas">Tabelas</button>
+</nav>
+
+<main>
+<section id="tab-dia">
+  <div class="grid">
+    <div class="stack">
+      <div class="card">
+        <h2>Ficha do atleta</h2>
+        <div class="kv"><span>Dia da temporada</span><b class="mono" id="f-dia"></b></div>
+        <div class="kv"><span>Ações restantes</span><div class="pips" id="f-acoes"></div></div>
+        <div class="kv"><span>Créditos</span><b class="mono" id="f-cred"></b></div>
+        <div class="kv"><span>Caixa da atlética (sua parte)</span><span class="mono" id="f-caixa"></span></div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--line)"><div class="kv" style="border:0;padding:0"><span>Forma</span><b class="mono" id="f-forma"></b></div><div class="meter"><i id="f-forma-bar"></i></div></div>
+        <div class="kv"><span>Situação</span><b id="f-sit"></b></div>
+        <div class="kv"><span>Força no futebol</span><b class="mono" id="f-forca"></b></div>
+        <div class="kv"><span>Índice de convocação</span><b class="mono" id="f-ind"></b></div>
+        <div class="kv"><span>Turnos de trabalho</span><span class="mono" id="f-turnos"></span></div>
+        <div style="padding-top:8px" id="f-titulos"></div>
+      </div>
+      <div class="card">
+        <h2>Atributos</h2>
+        <div id="f-attrs"></div>
+        <p class="hint" style="margin:8px 0 0">Atributos base, treinados no CT. "N2" = nível da atividade de treino.</p>
+      </div>
+      <div class="card">
+        <h2>Futebol (calculado)</h2>
+        <div id="f-esporte"></div>
+        <p class="hint" style="margin:8px 0 0">Combinação dos atributos base. Azul: bônus do equipamento adaptado. Já com a forma.</p>
+        <div style="padding-top:8px" id="f-hab"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2>Ações do dia</h2>
+        <div class="row"><select id="sel-treino"></select><button class="act" id="b-treino">Treinar</button></div>
+        <label class="hint" style="display:flex;gap:6px;align-items:center;margin:0 0 6px"><input type="checkbox" id="c-prep"> Sessão com preparador (+50% de ganho, custa créditos)</label>
+        <p class="hint" id="h-treino"></p>
+        <div class="row"><select id="sel-trab"></select><button class="act" id="b-trab">Trabalhar</button></div>
+        <p class="hint" id="h-trab"></p>
+        <div class="row"><button class="act" id="b-amistoso">Amistoso de futebol</button><button class="act" id="b-exped">Expedição em grupo</button></div>
+        <p class="hint">Amistoso: 1 ação, prêmio pequeno, desgasta o equipamento. Expedição: 1 ação, você e dois colegas; paga bem, 12% de risco de lesão.</p>
+        <div class="row"><button class="act sec" id="b-tratar">Tratar lesão</button><button class="act sec" id="b-dia">Encerrar o dia</button></div>
+        <p class="hint" id="h-dia"></p>
+      </div>
+      <div class="card">
+        <h2>Diário</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2>Equipamento em uso</h2>
+        <div id="kit"></div>
+      </div>
+      <div class="card">
+        <h2>Armário</h2>
+        <div id="armario"></div>
+      </div>
+      <div class="card">
+        <h2>Loja</h2>
+        <div class="row"><select id="sel-mod"></select></div>
+        <div id="loja"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-balanco" hidden>
+  <div class="card" style="margin-bottom:12px">
+    <h2>Como ler</h2>
+    <div class="prose"><p>Cada perfil joga os 42 dias da temporada com as mesmas regras (média de 20 atletas com sementes diferentes). Compra equipamento de futebol assim que pode, conserta quando está gasto e trata lesões. Joga metade das rodadas oficiais; os adversários ficam mais fortes ao longo da temporada.</p></div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="charts">
+    <div class="card"><h2>Força no futebol</h2><div class="chart" id="ch-forca"></div></div>
+    <div class="card"><h2>Créditos em caixa</h2><div class="chart" id="ch-cred"></div></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <h2>Resumo por perfil</h2>
+    <div class="tablewrap"><table id="t-resumo"></table></div>
+  </div>
+</section>
+
+<section id="tab-liga" hidden>
+  <div class="card" style="margin-bottom:12px">
+    <h2>Como ler</h2>
+    <div class="prose"><p>Seis atléticas de 12 membros jogam a temporada inteira com as regras atuais. A atlética A tem os membros menos ativos e a F, os mais ativos (mais dedicados e especialistas, menos casuais). Cada rodada: 3 duplas contra 3 duplas, mais pontos de preparo pela fração das ações dos membros usadas no dia. Mata-mata em melhor de 3, com o melhor colocado começando com 1 vitória. O resultado de cada jogo segue a curva calibrada no futebol simulado.</p></div>
+  </div>
+  <div class="charts">
+    <div class="card"><h2>Uma temporada (semente <span class="mono" id="l-seed"></span>)</h2>
+      <div class="row"><button class="act sec" id="b-outra">Outra temporada</button></div>
+      <div class="tablewrap"><table id="t-classif"></table></div><p class="hint" id="l-mm" style="margin-top:8px"></p></div>
+    <div class="card"><h2>Em <span id="l-n"></span> temporadas</h2><div class="tablewrap"><table id="t-valid"></table></div></div>
+  </div>
+</section>
+
+<section id="tab-tabelas" hidden>
+  <div class="charts">
+    <div class="card"><h2>Trabalho</h2><div class="tablewrap"><table id="t-func"></table></div><p class="hint" style="margin-top:8px">10% de todo pagamento vai para o caixa da atlética.</p></div>
+    <div class="card"><h2>Prêmios</h2><div class="tablewrap"><table id="t-prem"></table></div></div>
+    <div class="card"><h2>Equipamento por nível</h2><div class="tablewrap"><table id="t-niv"></table></div><p class="hint" style="margin-top:8px">Cada peça só vale na sua modalidade, leva 4 dias ativos para adaptar e perde a adaptação quando é trocada. Conserto: 35% do preço.</p></div>
+    <div class="card"><h2>Especialidades</h2><div class="tablewrap"><table id="t-tit"></table></div><p class="hint" style="margin-top:8px">Perde a especialidade só abaixo do requisito − 5. Habilidades repetidas somam nível.</p></div>
+    <div class="card"><h2>Habilidades</h2><div class="tablewrap"><table id="t-hab"></table></div></div>
+    <div class="card"><h2>Melhorias da atlética</h2><div class="tablewrap"><table id="t-mel"></table></div></div>
+  </div>
+</section>
+</main>
+
+<script>
+/*JOGO*/
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+// ---------- abas
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  for (const t of ['dia', 'balanco', 'liga', 'tabelas']) $('tab-' + t).hidden = t !== b.dataset.tab;
+  if (b.dataset.tab === 'balanco') desenharBalanco();
+  if (b.dataset.tab === 'liga') desenharLiga();
+});
+
+// ---------- simulador do dia
+const SEED = 20261014;
+let A = novoAtleta(SEED), dia = 1, caixa = 0, nAcao = 0;
+const colegas = [novoAtleta(SEED + 1), novoAtleta(SEED + 2)];
+const rng = () => new Rng(SEED + dia * 1009 + (++nAcao) * 31);
+const diario = [];
+function anota(html, cls = '') { diario.unshift(`<div class="${cls}"><span class="mono" style="color:var(--ink-3)">D${dia}</span> · ${html}</div>`); }
+function tenta(f) { try { f(); } catch (e) { anota(esc(e.message), 'bad'); } render(); }
+
+$('sel-treino').innerHTML = ATRIBUTOS.map(k => `<option value="${k}" ${ATIVIDADES[k].lancamento ? '' : 'disabled'}>${ATIVIDADES[k].nome} · ${NOME_ATRIBUTO[k]}${ATIVIDADES[k].lancamento ? '' : ' (depois do lançamento)'}</option>`).join('');
+$('sel-mod').innerHTML = Object.entries(MODALIDADES).map(([k, m]) => `<option value="${k}">${m.nome}${m.disponivel ? '' : ' (em breve)'}</option>`).join('');
+$('sel-treino').onchange = $('sel-trab').onchange = $('sel-mod').onchange = $('c-prep').onchange = render;
+
+$('b-treino').onclick = () => tenta(() => {
+  const k = $('sel-treino').value, prep = $('c-prep').checked, r = treinar(A, k, 0, prep);
+  anota(`<b>${ATIVIDADES[k].nome}</b>${prep ? ' com preparador' : ''}, nível ${r.nivel} (${ATIVIDADES[k].niveis[r.nivel - 1]}), sessão ${r.sessaoNoNivel}/${REGRAS.sessoesPorNivel}: ${NOME_ATRIBUTO[k]} +${fmt(r.ganho, 2)}.` +
+    (r.subiuNivel ? ` <span class="ok">Subiu para o nível ${r.nivel + 1}: ${ATIVIDADES[k].niveis[r.nivel]}.</span>` : '') +
+    r.especialidades.map(id => ` <span class="ok"><b>Especialidade conquistada: ${ESPECIALIDADES.find(e => e.id === id).nome}.</b></span>`).join(''));
+});
+$('b-trab').onclick = () => tenta(() => {
+  const f = FUNCOES.find(x => x.id === $('sel-trab').value), r = trabalhar(A, f.id);
+  caixa += r.caixa;
+  anota(`Turno como <b>${f.nome}</b>: +${r.liquido} créditos (${r.caixa} para a atlética).`);
+});
+function jogo(oficial) {
+  const p = chanceVitoria(forca(A, 'futebol'), forcaLiga(dia)), res = sortearResultado(forca(A, 'futebol'), forcaLiga(dia), rng().next());
+  const r = registrarPartida(A, 'futebol', res, oficial, rng());
+  caixa += r.caixa;
+  const nome = { v: 'Vitória', e: 'Empate', d: 'Derrota' }[res];
+  anota(`${oficial ? '<b>Rodada oficial</b>' : 'Amistoso'}: ${nome} (chance de vitória ${fmt(p * 100)}%). +${r.premio} créditos.` +
+    (r.lesao ? ` <span class="bad">Lesão: ${r.lesao} dias fora.</span>` : ''), res === 'v' ? 'ok' : '');
+}
+$('b-amistoso').onclick = () => tenta(() => jogo(false));
+$('b-exped').onclick = () => tenta(() => {
+  colegas.forEach(c => { c.acoesHoje = 0; c.lesao = 0; });
+  const r = expedicao([A, ...colegas], rng())[0];
+  caixa += r.caixa;
+  anota(`<b>Expedição</b> com dois colegas: +${r.liquido} créditos.` + (r.lesao ? ` <span class="bad">Lesão: ${r.lesao} dias fora.</span>` : ''));
+});
+$('b-tratar').onclick = () => tenta(() => { const c = custoTratamento(A); tratar(A); anota(`Departamento médico: lesão tratada por ${c} créditos.`); });
+$('b-dia').onclick = () => tenta(() => {
+  const ausente = A.acoesHoje === 0;
+  if (dia % 2 === 0) {
+    if (indiceConvocacao(A, 'futebol') > 0) jogo(true);
+    else anota(A.lesao ? 'Fora da rodada oficial: lesionado.' : 'Fora da rodada oficial: sem nenhuma ação hoje, o atleta não foi convocado.', 'warn');
+  }
+  virarDia(A);
+  if (ausente) anota(`Dia sem atividade. Forma caiu para ${fmt(A.forma)}.` + (A.diasAusente > REGRAS.diasAteRegredir ? ' Atributos regredindo.' : ''), 'warn');
+  dia++;
+  if (dia > DIAS_TEMPORADA) { anota('<b>Fim da temporada.</b> Recarregue a página para recomeçar.'); dia = DIAS_TEMPORADA; }
+});
+
+function equiparDe(i) { tenta(() => { const id = A.guardados[i].id; equipar(A, i); anota(`Equipou ${item(id).nome}. Adaptação recomeça do zero.`); }); }
+function compra(id) { tenta(() => { comprar(A, id); anota(`Comprou ${item(id).nome} por ${item(id).preco} créditos.`); }); }
+function conserta(enc) { tenta(() => { const c = custoReparo(A.kit[enc]); reparar(A, enc); anota(`Conserto: ${c} créditos.`); }); }
+
+const ENC = { calcado: 'Calçado', roupa: 'Roupa', acessorio: 'Acessório' };
+function render() {
+  $('f-dia').textContent = `${dia} de ${DIAS_TEMPORADA}`;
+  $('f-acoes').innerHTML = Array.from({ length: REGRAS.acoesPorDia }, (_, i) => `<i class="pip ${i < REGRAS.acoesPorDia - A.acoesHoje ? '' : 'off'}"></i>`).join('');
+  $('f-cred').textContent = fmt(A.creditos);
+  $('f-caixa').textContent = fmt(caixa);
+  $('f-forma').textContent = fmt(A.forma);
+  $('f-forma-bar').style.width = A.forma + '%';
+  $('f-sit').innerHTML = A.lesao ? `<span class="bad">Lesionado · ${A.lesao} dia(s)</span>` : '<span class="ok">Apto</span>';
+  $('f-forca').textContent = fmt(forca(A, 'futebol'), 1);
+  $('f-ind').textContent = fmt(indiceConvocacao(A, 'futebol'), 1);
+  $('f-turnos').textContent = A.turnos;
+  const tit = especialidades(A);
+  $('f-titulos').innerHTML = tit.length ? tit.map(t => `<span class="tag t">${t.nome}</span>`).join('') : '<span class="hint">Nenhuma especialidade. A primeira exige 85 em Velocidade ou Reflexo.</span>';
+  $('f-attrs').innerHTML = ATRIBUTOS.map(k => {
+    const v = A.atrib[k], niv = ATIVIDADES[k].lancamento ? `N${nivelAtividade(A, k)}` : '—';
+    return `<div class="attr"><span>${NOME_ATRIBUTO[k]}</span><div class="track"><i class="v" style="width:${v}%"></i></div><span class="n mono">${fmt(v, 1)} <small style="color:var(--muted)">${niv}</small></span></div>`;
+  }).join('');
+  const ff = 0.8 + 0.2 * A.forma / 100;
+  $('f-esporte').innerHTML = Object.entries(MODALIDADES.futebol.atributos).map(([id, d]) => {
+    const puro = d.base.reduce((s, [k, w]) => s + w * A.atrib[k], 0) * ff, v = atributoEsporte(A, 'futebol', id), b = Math.max(0, v - puro);
+    return `<div class="attr"><span title="${d.base.map(([k, w]) => `${w * 100}% ${NOME_ATRIBUTO[k]}`).join(' + ')}">${d.nome}</span><div class="track"><i class="b" style="width:${v}%"></i><i class="v" style="width:${puro}%"></i></div><span class="n mono">${fmt(v, 1)}${b > 0.05 ? ` <small>+${fmt(b, 1)}</small>` : ''}</span></div>`;
+  }).join('');
+  const hab = habilidades(A, 'futebol');
+  $('f-hab').innerHTML = Object.entries(hab).map(([id, n]) => `<span class="tag">${HABILIDADES[id].nome} ${n}</span>`).join('');
+
+  const k = $('sel-treino').value;
+  const prep = $('c-prep').checked;
+  $('h-treino').textContent = `Ganho previsto: +${fmt(ganhoTreino(A.atrib[k], A.forma) * (prep ? 1 + REGRAS.bonusPreparador : 1), 2)}${prep ? ` por ${REGRAS.custoPreparador} créditos` : ''} · nível ${nivelAtividade(A, k)} de ${REGRAS.niveisAtividade}: ${ATIVIDADES[k].niveis[nivelAtividade(A, k) - 1]}` + (ATIVIDADES[k].fita ? '' : ' (fita ainda não gravada)');
+  const sel = $('sel-trab').value, disp = funcoesDisponiveis(A);
+  $('sel-trab').innerHTML = FUNCOES.map(f => {
+    const ok = disp.includes(f);
+    const req = f.requisito ? Object.entries(f.requisito).map(([a, v]) => `${NOME_ATRIBUTO[a]} ${v}`).join(', ') : '';
+    return `<option value="${f.id}" ${ok ? '' : 'disabled'}>${f.nome} · ${salarioDoTurno(f.salario, A.turnosHoje ?? 0)} cr${ok ? '' : ` (exige ${f.turnos} turnos${req ? ', ' + req : ''})`}</option>`;
+  }).join('');
+  $('sel-trab').value = disp.some(f => f.id === sel) ? sel : disp.at(-1).id;
+  $('h-trab').textContent = `${A.turnos} turnos cumpridos. Cada turno a mais no mesmo dia paga ${REGRAS.quedaPorTurno * 100}% menos. Funções melhores liberam com experiência e atributos.`;
+  const sem = A.acoesHoje >= REGRAS.acoesPorDia;
+  $('b-treino').disabled = $('b-amistoso').disabled = $('b-exped').disabled = sem || A.lesao > 0;
+  $('b-trab').disabled = sem;
+  $('b-tratar').disabled = !A.lesao;
+  $('b-tratar').textContent = A.lesao ? `Tratar lesão (${custoTratamento(A)} cr)` : 'Tratar lesão';
+  $('h-dia').innerHTML = (dia % 2 === 0 ? 'Hoje tem rodada oficial: ao encerrar o dia, o atleta joga se estiver apto e tiver feito alguma ação hoje. ' : 'Rodada oficial amanhã. ') +
+    (A.acoesHoje === 0 ? '<span class="warn">Encerrar sem nenhuma ação conta como ausência: a forma cai 15.</span>' : '');
+
+  $('kit').innerHTML = Object.keys(ENC).map(enc => {
+    const p = A.kit[enc];
+    if (!p) return `<div class="shop-item"><div>${ENC[enc]}<small>vazio</small></div></div>`;
+    const it = item(p.id), gasto = p.usos <= 0;
+    return `<div class="shop-item"><div>${it.nome}<small>${MODALIDADES[it.modalidade].nome} · +${it.bonus} ${NOME_ATRIBUTO[it.atributo]} · adaptação ${p.adaptacao}% · <span class="${gasto ? 'bad' : p.usos <= 3 ? 'warn' : ''}">${p.usos}/${it.usos} usos</span></small></div>` +
+      `<button class="act sec" onclick="conserta('${enc}')" ${p.usos === it.usos ? 'disabled' : ''}>Consertar ${custoReparo(p)}</button></div>`;
+  }).join('');
+  $('armario').innerHTML = A.guardados.length ? A.guardados.map((p, i) => {
+    const it = item(p.id);
+    return `<div class="shop-item"><div>${it.nome}<small>${ENC[it.encaixe]} · ${p.usos}/${it.usos} usos</small></div><button class="act" onclick="equiparDe(${i})">Equipar</button></div>`;
+  }).join('') : '<span class="hint">Vazio.</span>';
+  const m = $('sel-mod').value;
+  $('loja').innerHTML = CATALOGO.filter(i => i.modalidade === m).map(i =>
+    `<div class="shop-item"><div>${i.nome}<small>${ENC[i.encaixe]} · +${i.bonus} ${NOME_ATRIBUTO[i.atributo]} · ${i.usos} usos</small></div><button class="act" onclick="compra('${i.id}')" ${A.creditos < i.preco ? 'disabled' : ''}>${fmt(i.preco)}</button></div>`).join('');
+  $('log').innerHTML = diario.join('') || '<span class="hint">Nada ainda. Cada ação ocupa o atleta por 2 horas.</span>';
+}
+render();
+
+// ---------- balanço
+const CORES = ['--s1', '--s2', '--s3', '--s4', '--s5'];
+let BAL = null;
+function calcularBalanco() {
+  const N = 20;
+  return Object.keys(PERFIS).map((id, pi) => {
+    const rs = Array.from({ length: N }, (_, s) => simularTemporada(id, s + 1));
+    const media = f => Array.from({ length: DIAS_TEMPORADA }, (_, d) => rs.reduce((s, r) => s + f(r.dias[d]), 0) / N);
+    const tit = rs.filter(r => r.primeiraEspecialidade !== null);
+    return {
+      id, nome: PERFIS[id].nome, descricao: PERFIS[id].descricao, cor: CORES[pi],
+      forca: media(d => d.forca), cred: media(d => d.creditos),
+      ganho: rs.reduce((s, r) => s + r.ganho, 0) / N, kit: rs.reduce((s, r) => s + r.gastoKit, 0) / N,
+      medico: rs.reduce((s, r) => s + r.gastoMedico, 0) / N,
+      titulos: tit.length / N, diaTitulo: tit.length ? tit.reduce((s, r) => s + r.primeiraEspecialidade, 0) / tit.length : null,
+    };
+  });
+}
+function grafico(el, series, campo, casas) {
+  const W = 520, H = 260, L = 40, R = 12, T = 10, B = 26;
+  const max = Math.max(...series.flatMap(s => s[campo])), top = Math.ceil(max / (max > 200 ? 500 : 10)) * (max > 200 ? 500 : 10);
+  const min = campo === 'forca' ? 30 : 0;
+  const x = d => L + (W - L - R) * d / (DIAS_TEMPORADA - 1), y = v => T + (H - T - B) * (1 - (v - min) / (top - min));
+  const ticks = Array.from({ length: 5 }, (_, i) => min + (top - min) * i / 4);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${campo}">
+    <g class="grid">${ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`).join('')}</g>
+    ${[1, 7, 14, 21, 28, 35, 42].map(d => `<text x="${x(d - 1)}" y="${H - 6}" text-anchor="middle">d${d}</text>`).join('')}
+    ${series.map(s => `<path class="s" style="stroke:var(${s.cor})" d="${s[campo].map((v, d) => `${d ? 'L' : 'M'}${x(d).toFixed(1)},${y(v).toFixed(1)}`).join('')}"/>`).join('')}
+    <line class="xh" y1="${T}" y2="${H - B}" visibility="hidden"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>
+  </svg><div class="tip" hidden></div>`;
+  const svg = el.querySelector('svg'), xh = svg.querySelector('.xh'), tip = el.querySelector('.tip');
+  svg.querySelector('rect').onpointermove = e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+    const d = Math.max(0, Math.min(DIAS_TEMPORADA - 1, Math.round((px - L) / (W - L - R) * (DIAS_TEMPORADA - 1))));
+    xh.setAttribute('x1', x(d)); xh.setAttribute('x2', x(d)); xh.setAttribute('visibility', 'visible');
+    const ord = [...series].sort((a, b) => b[campo][d] - a[campo][d]);
+    tip.innerHTML = `<b>Dia ${d + 1}</b>` + ord.map(s => `<div class="r"><span><i style="display:inline-block;width:10px;height:3px;background:var(${s.cor});vertical-align:middle;margin-right:6px"></i>${s.nome}</span><span class="mono">${fmt(s[campo][d], casas)}</span></div>`).join('');
+    tip.hidden = false;
+    const left = x(d) / W * r.width;
+    tip.style.left = (left > r.width / 2 ? left - tip.offsetWidth - 12 : left + 12) + 'px';
+    tip.style.top = '8px';
+  };
+  svg.querySelector('rect').onpointerleave = () => { tip.hidden = true; xh.setAttribute('visibility', 'hidden'); };
+}
+function desenharBalanco() {
+  if (BAL) return;
+  BAL = calcularBalanco();
+  $('legend').innerHTML = BAL.map(s => `<span><i style="background:var(${s.cor})"></i>${s.nome}</span>`).join('');
+  grafico($('ch-forca'), BAL, 'forca', 1);
+  grafico($('ch-cred'), BAL, 'cred', 0);
+  $('t-resumo').innerHTML = `<tr><th>Perfil</th><th>Rotina</th><th class="num">Força d21</th><th class="num">Força d42</th><th class="num">Com especialidade</th><th class="num">Dia da 1ª</th><th class="num">Ganhou</th><th class="num">Equipamento</th><th class="num">Médico</th><th class="num">Saldo final</th></tr>` +
+    BAL.map(s => `<tr><td><b>${s.nome}</b></td><td>${s.descricao}</td><td class="num">${fmt(s.forca[20], 1)}</td><td class="num">${fmt(s.forca[41], 1)}</td><td class="num">${fmt(s.titulos * 100)}%</td><td class="num">${s.diaTitulo ? fmt(s.diaTitulo) : '—'}</td><td class="num">${fmt(s.ganho)}</td><td class="num">${fmt(s.kit)}</td><td class="num">${fmt(s.medico)}</td><td class="num">${fmt(s.cred[41])}</td></tr>`).join('');
+}
+
+// ---------- liga simulada
+let ligaSeed = 1, VALID = null;
+function desenharLiga() {
+  const L = simularLiga(ligaSeed), ord = classificacao(L.ats), nome = i => L.ats[i].nome;
+  const nivel = ['muito baixa', 'baixa', 'média-baixa', 'média-alta', 'alta', 'muito alta'];
+  $('l-seed').textContent = ligaSeed;
+  tabela('t-classif', ['#', 'Atlética', 'Atividade', 'Pts#', 'V#', 'E#', 'D#'], ord.map((i, pos) => {
+    const at = L.ats[i];
+    return [pos + 1, `<b>${at.nome}</b>${i === L.campeao ? ' <span class="tag t">Campeã</span>' : ''}`, nivel[i], fmt(at.pts), at.v, at.e, at.d];
+  }));
+  $('l-mm').textContent = `Semifinais: ${nome(ord[0])} × ${nome(ord[3])} e ${nome(ord[1])} × ${nome(ord[2])}. Final: ${nome(L.finalistas[0])} × ${nome(L.finalistas[1])}.`;
+  if (!VALID) {
+    const N = 150;
+    let spear = 0, lider = 0, camp = 0, campLider = 0, zebra = 0, dec = 0, emp = 0, jogos = 0, saldo = 0, gini = 0;
+    for (let s = 1; s <= N; s++) {
+      const X = simularLiga(s), o = classificacao(X.ats), n = o.length;
+      spear += 1 - 6 * o.reduce((a, k, pos) => a + (pos - (n - 1 - k)) ** 2, 0) / (n * (n * n - 1));
+      if (o[0] === n - 1) lider++;
+      if (X.campeao === n - 1) camp++;
+      if (X.campeao === o[0]) campLider++;
+      for (const p of X.partidas) if (p.fase === 'regular') {
+        jogos++;
+        if (p.res === 'e') emp++;
+        else if (p.fa !== p.fb) { dec++; if ((p.res === 'v') !== (p.fa > p.fb)) zebra++; }
+      }
+      const sd = X.ats.flatMap(a => a.membros.map(m => m.atleta.creditos)).sort((a, b) => a - b), tot = sd.reduce((a, b) => a + b, 0);
+      saldo += tot / sd.length;
+      gini += sd.reduce((a, x, i) => a + (2 * (i + 1) - sd.length - 1) * x, 0) / (sd.length * tot);
+    }
+    VALID = { N, rows: [
+      ['Correlação atividade × posição (Spearman)', fmt(spear / N, 2), 'alta: quem joga mais termina na frente'],
+      ['Mais ativa termina em 1º na fase regular', fmt(100 * lider / N) + '%', 'aleatório seria 17%'],
+      ['Mais ativa é campeã', fmt(100 * camp / N) + '%', 'favorita, sem ser certeza'],
+      ['Líder da fase regular é campeão', fmt(100 * campLider / N) + '%', 'vantagem de campanha'],
+      ['Empates', fmt(100 * emp / jogos) + '%', 'igual ao futebol simulado (~17%)'],
+      ['Zebras (mais fraca vence o jogo)', fmt(100 * zebra / dec) + '%', 'cada jogo é aberto; a temporada não'],
+      ['Saldo médio no fim da temporada', fmt(saldo / N), 'créditos não acumulam'],
+      ['Desigualdade dos saldos (Gini)', fmt(gini / N, 2), '0 = todos iguais'],
+    ] };
+  }
+  $('l-n').textContent = VALID.N;
+  tabela('t-valid', ['Medida', 'Valor#', 'Leitura'], VALID.rows);
+}
+$('b-outra').onclick = () => { ligaSeed++; desenharLiga(); };
+
+// ---------- tabelas (geradas das próprias regras)
+const tabela = (id, cab, linhas) => $(id).innerHTML = `<tr>${cab.map(c => `<th${c.endsWith('#') ? ' class="num"' : ''}>${c.replace('#', '')}</th>`).join('')}</tr>` +
+  linhas.map(l => `<tr>${l.map((c, i) => `<td${cab[i].endsWith('#') ? ' class="num"' : ''}>${c}</td>`).join('')}</tr>`).join('');
+const req = r => Object.entries(r || {}).map(([a, v]) => `${NOME_ATRIBUTO[a]} ${v}`).join(', ') || '—';
+tabela('t-func', ['Função', 'Exige', 'Salário#'], FUNCOES.map(f => [f.nome, [f.turnos ? `${f.turnos} turnos` : '', f.requisito ? req(f.requisito) : ''].filter(Boolean).join(', ') || '—', f.salario]));
+tabela('t-prem', ['Evento', 'Vitória#', 'Empate#', 'Derrota#'], [
+  ['Rodada oficial (convocados, sem custo de ação)', PREMIOS.oficial.v, PREMIOS.oficial.e, PREMIOS.oficial.d],
+  ['Amistoso (1 ação)', PREMIOS.amistoso.v, PREMIOS.amistoso.e, PREMIOS.amistoso.d],
+  ['Expedição em grupo, 3 atletas (por atleta)', PREMIOS.expedicaoBase, '—', '—'],
+  ['Expedição em grupo, 4 atletas (por atleta)', PREMIOS.expedicaoBase + PREMIOS.expedicaoPorMembroExtra, '—', '—'],
+]);
+tabela('t-niv', ['Nível', 'Bônus#', 'Preço#', 'Usos#'], NIVEIS.map(n => [n.nome, '+' + n.bonus, fmt(n.preco), n.usos]));
+tabela('t-tit', ['Especialidade', 'Exige', 'Futebol', 'Queimada'], ESPECIALIDADES.map(t => [t.nome, req(t.requisito), HABILIDADES[t.habilidades.futebol]?.nome ?? '—', HABILIDADES[t.habilidades.queimada]?.nome ?? '—']));
+tabela('t-hab', ['Habilidade', 'Esporte', 'O que faz', 'Todos têm#'], Object.values(HABILIDADES).map(h => [h.nome, MODALIDADES[h.modalidade].nome, h.descricao, h.base ? `nível ${h.base}` : '—']));
+tabela('t-mel', ['Melhoria', 'Custos por nível', 'Efeito'], Object.values(MELHORIAS).map(m => [m.nome, m.custos.map(c => fmt(c)).join(' / '), m.efeito]));
+</script>
+</body>
+</html>

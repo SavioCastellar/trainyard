@@ -1,4 +1,4 @@
-// Estádio, Cabeçudos, partículas e animação dos atletas (Three.js).
+// Estádio, atletas, partículas e animação dos atletas (Three.js).
 // Espera no escopo: THREE, OrbitControls, $, CFG, W, H, GH, GD, IR, TEAM, LOOKS, reduceMotion, TAU.
 /* =========================================================
    Cena
@@ -410,7 +410,7 @@ function injury(rig, head, pos, R) {
 }
 
 
-// jogadores (Cabeçudos)
+// jogadores
 const pViews = [];
 const PSCALE = .9;
 function nameTex(look, team) {

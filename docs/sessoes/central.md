@@ -20,4 +20,5 @@ transformar ideias do Savio em fichas e decisões que as outras sessões executa
 
 ## Estado
 - Feito: documentação inicial, divisão em sessões, fichas da Precisão e do Futebol.
-- Próximo: propor ideias para as 2–3 próximas atividades de treino; Fase B no ritmo do Savio.
+- Feito: proposta 1 da Fase B (`docs/regras.md`, `sim/src/jogo.ts`, `web/regras/` → `web/dist/regras.html`); tom do jogo passou a sério.
+- Próximo: revisão da proposta 1 com o Savio; propor ideias para as 2–3 próximas atividades de treino; Fase B no ritmo do Savio.

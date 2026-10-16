@@ -31,7 +31,7 @@ o cenário é ajustado, e plugar o cenário quando ele for aprovado.
 - Central: fichas de 2–3 atividades novas com o Savio.
 - Pronto quando: futebol bom de assistir; 3 atividades de treino com fita aprovada; boneco final em todas.
 
-**Fase B — regras do jogo** (Central + Savio): atributos, habilidades, títulos, quanto rende cada
+**Fase B — regras do jogo** (Central + Savio; proposta 1 em `docs/regras.md`, núcleo em `sim/src/jogo.ts`): atributos, habilidades, títulos, quanto rende cada
 treino, economia, temporada, convocação. Pronto quando `docs/produto.md` → "Em aberto" não tiver
 nada crítico. Pode andar junto com a Fase A.
 
@@ -39,6 +39,8 @@ nada crítico. Pode andar junto com a Fase A.
 ligadas às fitas, partidas oficiais no servidor com replay, rankings.
 
 **Fase D — app**: interface do jogador (mobile primeiro).
+
+**Fase E — teste com amigos** (com o jogo quase completo): `docs/teste-amigos.md`.
 
 ## Como o trabalho se junta
 - Cada sessão no seu ramo; pull request para `main` a cada marco. Sessões locais usam

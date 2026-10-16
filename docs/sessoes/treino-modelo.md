@@ -2,7 +2,7 @@
 
 Copie este arquivo para `docs/sessoes/treino-<atividade>.md` ao abrir a sessão de uma atividade.
 
-**Missão:** fazer o Cabeçudo aprender `<atividade>` de um jeito divertido de assistir, do zero ao
+**Missão:** fazer o atleta aprender `<atividade>` de um jeito divertido de assistir, do zero ao
 domínio, e entregar a fita + página. **Roda no computador do Savio** (ver `docs/treino-local.md`).
 
 ## É seu

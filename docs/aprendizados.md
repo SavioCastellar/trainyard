@@ -27,6 +27,15 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
    Chute pouco; Controle e Reflexo sem efeito claro. Atributo que não muda nada é atributo que
    o jogador não sente — revisar a física de cada um.
 
+## Regras e economia
+16. **Campeonato decidido pelos 2 melhores de cada atlética é sorteio.** Toda atlética tem 2 bons
+    jogadores; a diferença de força fica em ~2,5 e cada jogo vira moeda. Para a atividade de todos
+    os membros contar: mais duplas por rodada e pontos de preparo coletivo (`docs/regras.md`).
+17. **Dinheiro sem uso recorrente acumula.** Depois do kit completo, o saldo dobrava a cada
+    temporada. Sumidouro recorrente (preparador) + salário decrescente no dia resolveram.
+18. Antes de mexer em número de regra, rode `node sim/dist/scripts/liga.js` e `economia.js` e
+    compare com a tabela de validação de `docs/regras.md`.
+
 ## A fita
 8. **Atividade que satura cedo deixa a última sessão sem graça.** Na Precisão, a sessão 1 vai de
    "chuta para nada" a 17 acertos; a sessão 3 só vai de 25 a 29. → Dividir a fita pela mudança de

@@ -1,7 +1,12 @@
-# Cabeçudos (repositório trainyard)
+# trainyard (nome do jogo a definir)
 
-Jogo simulado de hábito diário para atléticas universitárias. Cada membro tem um atleta de IA (o
-"Cabeçudo") que treina atividades por aprendizado por reforço e compete pela atlética.
+Jogo simulado de hábito diário para atléticas universitárias. Cada membro tem um atleta de IA que
+treina atividades por aprendizado por reforço e compete pela atlética.
+
+**Nomes:** o jogo e os personagens ainda não têm nome. Não chame o jogo nem os personagens de
+"Cabeçudo(s)" — o Savio rejeitou esse nome. Use "o jogo" e "o atleta" / "o personagem". Os nomes
+`cabecudo-lib.js`, `buildCabecudo` etc. no código são provisórios e serão trocados quando o nome
+for decidido (numa mudança combinada, para não quebrar as sessões em andamento).
 
 Antes de trabalhar, leia:
 1. `docs/sessoes/<sua-sessao>.md` — o que é seu, o que não é, e o próximo objetivo.
@@ -18,9 +23,12 @@ Antes de trabalhar, leia:
 - **O treino tem que ser divertido de assistir** (estilo vídeos do AI Warehouse): o atleta começa
   completamente errado e melhora aos poucos. Recompensa simples (de preferência só o objetivo da
   atividade); recompensas auxiliares geram comportamentos degenerados (ver `docs/aprendizados.md`).
-- **Visual:** Three.js 0.160, low-poly colorido, personagem Cabeçudo de `web/src/cabecudo-lib.js`.
+- **Visual:** Three.js 0.160, low-poly colorido, **cenários urbanos** (nada de ilhas flutuantes),
+  personagem de cabeça grande (caricatura) de `web/src/cabecudo-lib.js`.
+- **Treinos:** só o atleta contra o ambiente, sem robôs nem adversários; treinos de atributo base
+  sem gesto de esporte (valem para todas as modalidades).
   Nada de modelos realistas. A cabeça grande é só visual, nunca mecânica de jogo.
-- **Interface e textos em português do Brasil.** Tom: humor, mas competitivo. Público adulto
+- **Interface e textos em português do Brasil.** Tom: **sério e competitivo** (ver `docs/regras.md` → "Tom e mundo"). Público adulto
   (18+): nada infantil, nada de alimentar ou fazer carinho no personagem.
 - **Validação é visual.** Diversão não tem métrica: toda mudança relevante termina numa página
   publicada que o Savio consegue abrir e assistir (inclusive no celular, meta ≥ 30 quadros/s).
@@ -53,7 +61,7 @@ python ../web/build_precision.py                           # gera web/dist/trein
 - `sim/` simulação (futebol 2x2, robô de referência, atividades em `src/drills/`, replay, ponte)
 - `training/` PPO em Python (futebol: `ppo.py`; atividades: `ppo_drill.py`)
 - `fitas/` fitas de treino gravadas (entram no Git; são o "conteúdo" do jogo)
-- `web/` biblioteca do Cabeçudo (`src/cabecudo-lib.js`), cenários (`cenarios/`), criador
+- `web/` biblioteca do personagem (`src/cabecudo-lib.js`), cenários (`cenarios/`), criador
   (`personagem/`), páginas das atividades (`atividades/`) e visualizadores atuais (`src/`)
 - `prototipos/` páginas exploratórias já aprovadas como referência visual (não editar)
 - `docs/` produto, arquitetura, aprendizados, contratos, plano, fichas de atividade (`atividades/`),
