@@ -37,14 +37,14 @@ e 40 (sorteados por semente), teto 99.
 | Precisão | erro de mira em qualquer lançamento | Treino de Precisão (já gravado) | sim |
 | Reflexo | tempo entre ver e agir | Painel de reação | sim |
 | Inteligência | qualidade da decisão: o cérebro sorteia as ações com temperatura 1,3 (Inteligência 0) a 0,9 (100) | Circuito de decisão | sim |
-| Controle | aceleração, frenagem e giro do corpo | Plataformas de equilíbrio | depois |
+| Controle | aceleração, frenagem e giro do corpo | Plataformas de equilíbrio | sim |
 | Fôlego | **barra de arrancada**: quanto tempo corre no máximo e quão rápido recupera | Circuito de arrancadas | depois |
 
 - **Ganho por treino** = 4 × (1 − valor/100)^1,5 × (0,6 + 0,4 × forma/100) × (1 + 10% por nível do CT).
   Aos 35 sobe ~2,1 por treino; aos 70, ~0,66; aos 85, ~0,23.
 - **Treinos dos atributos base são genéricos:** só o atleta contra a estação, sem robô, sem
   adversário e sem gesto de esporte. (Exceção aceita pelo Savio: a Precisão segue chutando.)
-- Controle e Fôlego existem desde já, mas sem treino no lançamento ficam no valor inicial.
+- Fôlego existe desde já, mas sem treino no lançamento fica no valor inicial.
 
 ## Progressão da atividade e centro de treinamento
 - **Progressão da atividade (do atleta):** cada estação tem **3 níveis** que mudam o treino em si
@@ -98,16 +98,15 @@ Malandro chama "Finta" para não confundir com o atributo Drible.
 - **Cérebros:** o cérebro do futebol é treinado de novo para aprender cada habilidade nova (recebe as
   habilidades como entrada); esse retreino não é considerado custo alto.
 - **Treino de habilidade deixa de existir:** habilidades vêm só das especialidades.
-- **No lançamento** só dá para conquistar Velocista, Paredão, Artilheiro e Avalanche: Maestro,
-  Malandro e Maratonista dependem de Controle ou Fôlego, que ainda não têm treino.
+- **No lançamento** dá para conquistar todas menos Maratonista (Fôlego ainda não tem treino).
 - Tempo até a especialidade, treinando só os atributos dela (`node sim/dist/scripts/especialidades.js`):
 
   | | CT 0 | CT 1 | CT 2 | CT 3 |
   |---|---|---|---|---|
   | Velocista / Paredão, 2 treinos por dia | 34 dias | 31 | 28 | 26 |
-  | Artilheiro / Avalanche, 2 treinos por dia | 45 | 41 | 38 | 35 |
+  | Artilheiro / Avalanche / Maestro / Malandro, 2 treinos por dia | 45 | 41 | 38 | 35 |
   | Velocista / Paredão, 4 treinos por dia | 17 | 16 | 14 | 13 |
-  | Artilheiro / Avalanche, 4 treinos por dia | 23 | 21 | 19 | 18 |
+  | Artilheiro / Avalanche / Maestro / Malandro, 4 treinos por dia | 23 | 21 | 19 | 18 |
 
 ## Forma, ausência e lesão
 - **Forma** (0–100, começa em 80): +10 por dia com alguma ação, −15 por dia sem nenhuma.
@@ -215,7 +214,7 @@ Também verificado: mesma semente = mesma liga; só especialistas chegam a espec
 ## Pendências desta proposta
 - Trabalhador puro ainda acumula ~4.000 cr por temporada a partir da 2ª. Opções: contribuição
   voluntária ao caixa com reconhecimento no ranking interno, ou kits das próximas modalidades.
-- Dedicado que divide o treino entre os 5 atributos não chega a especialidade na 1ª temporada. Ok se
+- Dedicado que divide o treino entre os 6 atributos não chega a especialidade na 1ª temporada. Ok se
   especialidade for marca de quem foca; revisar se parecer frustrante.
 - 3 sessões por nível de atividade fazem quem foca chegar ao nível 3 em poucos dias. O número certo
   depende do tamanho de cada fita; ajustar quando as fitas existirem.

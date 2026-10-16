@@ -27,7 +27,7 @@ test('atividade sobe de nível a cada 3 sessões; atividade fora do lançamento 
   const a = novoAtleta(1);
   for (let i = 0; i < 3; i++) treinar(a, 'forca');
   assert.equal(nivelAtividade(a, 'forca'), 2);
-  assert.throws(() => treinar(a, 'controle'), /não está disponível/);
+  assert.throws(() => treinar(a, 'folego'), /não está disponível/);
 });
 
 test('equipamento soma ao atributo do esporte depois de adaptar, só na sua modalidade', () => {

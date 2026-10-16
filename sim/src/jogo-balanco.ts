@@ -23,10 +23,10 @@ export interface Perfil {
 }
 
 // atributos com treino no lançamento
-const TODOS: Atributo[] = ['precisao', 'reflexo', 'inteligencia', 'velocidade', 'forca'];
+const TODOS: Atributo[] = ['precisao', 'reflexo', 'inteligencia', 'velocidade', 'forca', 'controle'];
 
 export const PERFIS: Record<string, Perfil> = {
-  dedicado: { nome: 'Dedicado', descricao: '5 ações todo dia: 2 treinos (os 5 atributos do lançamento), 2 trabalhos, 1 amistoso.',
+  dedicado: { nome: 'Dedicado', descricao: '5 ações todo dia: 2 treinos (os 6 atributos do lançamento), 2 trabalhos, 1 amistoso.',
     treinos: 2, trabalhos: 2, amistosos: 1, foco: TODOS, ausente: () => false },
   especialista: { nome: 'Especialista', descricao: '4 treinos e 1 trabalho, só Força e Precisão (busca a especialidade Artilheiro).',
     treinos: 4, trabalhos: 1, amistosos: 0, foco: ['forca', 'precisao'], ausente: () => false },

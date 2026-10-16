@@ -40,7 +40,7 @@
   conquistadas pelos atributos base; dão habilidades em cada esporte, que somam nível. Ilimitadas.
   As habilidades devem gerar estratégias novas e contraestratégias (ex.: um defensor passa a ficar
   recuado contra quem tem Chute de longe). O cérebro do esporte é retreinado para usar cada uma.
-- No lançamento: treinos de Precisão, Reflexo, Inteligência, Velocidade e Força.
+- No lançamento: treinos de Precisão, Reflexo, Inteligência, Velocidade, Força e Controle (Fôlego depois).
 
 ## O dia do jogador
 - **5 ações por dia.** Treinar, trabalhar e jogar uma partida custam 1 ação cada.

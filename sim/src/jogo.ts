@@ -90,7 +90,7 @@ export const ATIVIDADES: Record<Atributo, { nome: string; niveis: [string, strin
   inteligencia: { nome: 'Circuito de decisão', niveis: ['poucos pontos', 'caminhos bloqueados', 'regras que mudam no meio'], lancamento: true, fita: null },
   velocidade: { nome: 'Pista de tiros', niveis: ['tiros curtos', 'tiros longos', 'tiros com mudança de direção'], lancamento: true, fita: null },
   forca: { nome: 'Trenó de carga', niveis: ['carga leve', 'carga pesada', 'rampa'], lancamento: true, fita: null },
-  controle: { nome: 'Plataformas de equilíbrio', niveis: ['plataformas largas', 'estreitas', 'móveis'], lancamento: false, fita: null },
+  controle: { nome: 'Plataformas de equilíbrio', niveis: ['plataformas largas', 'estreitas', 'móveis'], lancamento: true, fita: null },
   folego: { nome: 'Circuito de arrancadas', niveis: ['pontos próximos', 'pontos distantes', 'terreno pesado'], lancamento: false, fita: null },
 };
 export const nivelAtividade = (a: Atleta, atr: Atributo) =>
