@@ -1,30 +1,34 @@
 /**
- * Monta a "fita" do Treino de Precisão a partir dos checkpoints do treino:
- * avalia cada foto do cérebro em tentativas com sementes fixas, escolhe ~60 fotos
- * bem distribuídas ao longo do aprendizado e detecta os marcos para a narração.
+ * Monta a "fita" de uma atividade a partir dos checkpoints do treino:
+ * avalia cada foto do cérebro em tentativas com sementes fixas (no nível em que a foto foi tirada),
+ * escolhe ~60 fotos bem distribuídas ao longo do aprendizado e detecta os marcos para a narração.
+ * A atividade vem do campo `drill` dos checkpoints (padrão: precisao).
  * Uso: node dist/scripts/make-tape.js checkpoints.json saida-tape.json
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
+import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS, type Nivel } from '../src/drills/reflexo.js';
 import { Rng } from '../src/rng.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
-interface Ckpt { update: number; steps: number; episodes: number; layers: Layer[] }
-const src = JSON.parse(readFileSync(process.argv[2], 'utf8')) as { checkpoints: Ckpt[] };
+interface Ckpt { update: number; steps: number; episodes: number; nivel?: number; layers: Layer[] }
+const src = JSON.parse(readFileSync(process.argv[2], 'utf8')) as { drill?: string; checkpoints: Ckpt[] };
+type Brain = (obs: Float32Array, rng: Rng, out: number[]) => void;
+type Metrics = { hits: number; best: number; [k: string]: number };
 
 const i16 = (hex: string) => { const b = Buffer.from(hex, 'hex'); return new Int16Array(b.buffer, b.byteOffset, b.byteLength / 2); };
-function makeBrain(layers: Layer[]) {
+function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
   const W = layers.map(l => Float32Array.from(i16(l.w), v => v * l.scale));
   const B = layers.map(l => Float32Array.from(i16(l.b), v => v * l.scale));
   const bufs = [new Float32Array(layers[0].in), ...layers.map(l => new Float32Array(l.out))];
-  return (obs: Float32Array, rng: Rng, out: number[]) => {
+  return (obs, rng, out) => {
     bufs[0].set(obs);
     layers.forEach((l, k) => {
       const x = bufs[k], y = bufs[k + 1];
       for (let j = 0; j < l.out; j++) { let s = B[k][j]; for (let i = 0; i < l.in; i++) s += W[k][j * l.in + i] * x[i]; y[j] = k < layers.length - 1 ? Math.tanh(s) : s; }
     });
     const lg = bufs[bufs.length - 1]; let o = 0;
-    PRECISION_ACTIONS.forEach((n, h) => {
+    actions.forEach((n, h) => {
       let m = -Infinity; for (let i = 0; i < n; i++) m = Math.max(m, lg[o + i]);
       let z = 0; for (let i = 0; i < n; i++) z += Math.exp(lg[o + i] - m);
       let u = rng.next() * z, pick = n - 1;
@@ -34,52 +38,103 @@ function makeBrain(layers: Layer[]) {
   };
 }
 
-function evaluate(c: Ckpt, n = 16) {
-  const brain = makeBrain(c.layers), obs = new Float32Array(PRECISION_OBS), a = [0, 0, 0];
-  let hits = 0, kicks = 0, best = 0;
-  for (let e = 0; e < n; e++) {
-    const env = new PrecisionDrill(9000 + e), rng = new Rng(7000 + e);
-    while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1], a[2]); }
-    hits += env.hits; kicks += env.kicks; best = Math.max(best, env.hits);
-  }
-  return { hits: hits / n, kicks: kicks / n, acc: kicks ? hits / kicks : 0, best };
+type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
+interface DrillTape {
+  title: string; obs: number; actions: readonly number[];
+  evaluate(brain: Brain, nivel: number): Metrics;
+  marks(picked: Ev[], add: (i: number, text: string, nivel?: number) => void): void;
 }
 
-const evals = src.checkpoints.map(c => ({ c, ...evaluate(c) }));
+const DRILLS: Record<string, DrillTape> = {
+  precisao: {
+    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS,
+    evaluate(brain, _nivel, n = 16) {
+      const obs = new Float32Array(PRECISION_OBS), a = [0, 0, 0];
+      let hits = 0, kicks = 0, best = 0;
+      for (let e = 0; e < n; e++) {
+        const env = new PrecisionDrill(9000 + e), rng = new Rng(7000 + e);
+        while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1], a[2]); }
+        hits += env.hits; kicks += env.kicks; best = Math.max(best, env.hits);
+      }
+      return { hits: hits / n, kicks: kicks / n, acc: kicks ? hits / kicks : 0, best };
+    },
+    marks(picked, add) {
+      const firstWhere = (f: (e: Ev) => boolean) => picked.findIndex(f), maxHits = Math.max(...picked.map(e => e.hits));
+      add(0, 'Primeira tentativa: ele ainda não sabe o que é um alvo. Chuta para qualquer lado.');
+      add(firstWhere(e => e.acc >= 0.15), 'Começou a virar na direção dos alvos antes de chutar.');
+      add(firstWhere(e => e.hits >= 5), 'Já acerta 5 alvos por tentativa.');
+      add(firstWhere(e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
+      add(firstWhere(e => e.hits >= 10), 'Dois dígitos: 10 acertos por tentativa.');
+      add(firstWhere(e => e.acc >= 0.6), 'Mais da metade dos chutes vai no alvo.');
+      add(firstWhere(e => e.hits >= 20), '20 acertos por tentativa. Virou máquina.');
+      add(firstWhere(e => e.hits >= maxHits * 0.95), 'Domínio: perto do máximo que este exercício permite.');
+    },
+  },
+  reflexo: {
+    title: 'Painel de reação', obs: REFLEXO_OBS, actions: REFLEXO_ACTIONS,
+    evaluate(brain, nivel, n = 24) {
+      const obs = new Float32Array(REFLEXO_OBS), a = [0, 0];
+      let hits = 0, lights = 0, reds = 0, best = 0, dist = 0, ons = 0;
+      for (let e = 0; e < n; e++) {
+        const env = new ReflexoDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
+        while (!env.done) {
+          const lit = env.state.some(s => s === 1);
+          env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1]);
+          // distância do centro quando a próxima luz acende: mede o "voltar ao centro"
+          if (!lit && env.state.some(s => s === 1)) { dist += Math.hypot(env.player.x, env.player.z); ons++; }
+        }
+        hits += env.hits; lights += env.lights; reds += env.reds; best = Math.max(best, env.hits);
+      }
+      return { hits: hits / n, lights: lights / n, acc: lights ? hits / lights : 0, reds: reds / n, centro: ons ? dist / ons : 0, best };
+    },
+    marks(picked, add) {
+      const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
+      add(0, 'Primeira tentativa: anda a esmo e as luzes apagam na frente dele.');
+      add(at(1, e => e.acc >= 0.2), 'Começou a correr para a luz verde.');
+      add(at(1, e => e.acc >= 0.5), 'Já pisa metade das luzes.');
+      add(at(1, e => e.acc >= 0.9), 'Domínio do nível 1: 9 em cada 10 luzes.');
+      const l2 = at(2, () => true);
+      add(l2, 'Nível 2 · Janela curta: agora as 12 placas acendem e cada luz dura só 2,5 s.', 2);
+      if (l2 >= 0) add(at(2, e => e.centro < picked[l2].centro - 1 && e.acc > picked[l2].acc + 0.15), 'Descobriu que precisa voltar ao centro entre uma luz e outra.');
+      add(at(2, e => e.acc >= 0.9), 'Domínio do nível 2.');
+      const l3 = at(3, () => true);
+      add(l3, 'Nível 3 · Luzes proibidas: junto com a verde acendem 2 vermelhas. Pisar nelas trava 1 s.', 3);
+      if (l3 >= 0) add(at(3, e => e.reds <= picked[l3].reds / 2 && e.reds < 0.5), 'Aprendeu a desviar das vermelhas.');
+      add(at(3, e => e.acc >= 0.88 && e.reds < 0.3), 'Domínio do nível 3: pisa as verdes e foge das vermelhas.');
+    },
+  },
+};
+
+const drill = src.drill ?? 'precisao', D = DRILLS[drill];
+const evals: Ev[] = src.checkpoints.map(c => { const nivel = c.nivel ?? 1; return { c, nivel, ...D.evaluate(makeBrain(c.layers, D.actions), nivel) }; });
 const maxHits = Math.max(...evals.map(e => e.hits));
-// escolha: sempre o começo e o fim; no meio, uma foto sempre que o desempenho muda o suficiente
+// escolha: sempre o começo, o fim e as duas pontas de cada subida de nível; no meio, uma foto sempre que o desempenho muda o suficiente
 const picked = [evals[0]];
-for (const e of evals.slice(1, -1)) {
-  const last = picked[picked.length - 1];
-  if (Math.abs(e.hits - last.hits) >= maxHits / 70 || e.c.episodes - last.c.episodes > 400) picked.push(e);
-}
+evals.slice(1, -1).forEach((e, k) => {
+  const last = picked[picked.length - 1], next = evals[k + 2];
+  if (e.nivel !== last.nivel || e.nivel !== next.nivel || Math.abs(e.hits - last.hits) >= maxHits / 70 || e.c.episodes - last.c.episodes > 400) picked.push(e);
+});
 picked.push(evals[evals.length - 1]);
 
-const marks: { ck: number; text: string }[] = [];
-const firstWhere = (f: (e: typeof picked[0]) => boolean) => picked.findIndex(f);
-const add = (i: number, text: string) => { if (i >= 0 && !marks.some(m => m.ck === i)) marks.push({ ck: i, text }); };
-add(0, 'Primeira tentativa: ele ainda não sabe o que é um alvo. Chuta para qualquer lado.');
-add(firstWhere(e => e.acc >= 0.15), 'Começou a virar na direção dos alvos antes de chutar.');
-add(firstWhere(e => e.hits >= 5), 'Já acerta 5 alvos por tentativa.');
-add(firstWhere(e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
-add(firstWhere(e => e.hits >= 10), 'Dois dígitos: 10 acertos por tentativa.');
-add(firstWhere(e => e.acc >= 0.6), 'Mais da metade dos chutes vai no alvo.');
-add(firstWhere(e => e.hits >= 20), '20 acertos por tentativa. Virou máquina.');
-add(firstWhere(e => e.hits >= maxHits * 0.95), 'Domínio: perto do máximo que este exercício permite.');
+const marks: { ck: number; text: string; nivel?: number }[] = [];
+D.marks(picked, (i, text, nivel) => { if (i >= 0 && !marks.some(m => m.ck === i)) marks.push(nivel ? { ck: i, text, nivel } : { ck: i, text }); });
 marks.sort((a, b) => a.ck - b.ck);
 
+const round = (v: number) => +v.toFixed(3);
 const tape = {
-  exercise: 'precisao', title: 'Treino de Precisão',
-  dims: { obs: PRECISION_OBS, actions: [...PRECISION_ACTIONS], layers: src.checkpoints[0].layers.map(l => [l.in, l.out]) },
+  exercise: drill, title: D.title,
+  dims: { obs: D.obs, actions: [...D.actions], layers: src.checkpoints[0].layers.map(l => [l.in, l.out]) },
   totalEpisodes: picked[picked.length - 1].c.episodes,
-  checkpoints: picked.map(e => ({
-    episodes: e.c.episodes, steps: e.c.steps, hits: +e.hits.toFixed(2), kicks: +e.kicks.toFixed(1), acc: +e.acc.toFixed(3), best: e.best,
-    scales: e.c.layers.map(l => l.scale),
-    w: Buffer.concat(e.c.layers.flatMap(l => [Buffer.from(l.w, 'hex'), Buffer.from(l.b, 'hex')])).toString('base64'),
+  checkpoints: picked.map(({ c, nivel, ...m }) => ({
+    episodes: c.episodes, steps: c.steps, ...Object.fromEntries(Object.entries(m).map(([k, v]) => [k, round(v)])),
+    ...(c.nivel ? { nivel } : {}),
+    scales: c.layers.map(l => l.scale),
+    w: Buffer.concat(c.layers.flatMap(l => [Buffer.from(l.w, 'hex'), Buffer.from(l.b, 'hex')])).toString('base64'),
   })),
   milestones: marks,
 };
 writeFileSync(process.argv[3], JSON.stringify(tape));
-console.log('fotos', picked.length, 'de', evals.length, '| acertos: início', picked[0].hits.toFixed(1), 'fim', picked[picked.length - 1].hits.toFixed(1), '| precisão: início', (picked[0].acc * 100).toFixed(0) + '%', 'fim', (picked[picked.length - 1].acc * 100).toFixed(0) + '%');
+const f = (e: Ev) => Object.entries(e).filter(([k]) => k !== 'c').map(([k, v]) => `${k} ${typeof v === 'number' ? v.toFixed(2) : v}`).join(' ');
+console.log('fotos', picked.length, 'de', evals.length, '\n  início:', f(picked[0]), '\n  fim:   ', f(picked[picked.length - 1]));
 console.log('marcos:', marks.map(m => `${m.ck}: ${m.text}`).join('\n  '));
 console.log('tamanho', (JSON.stringify(tape).length / 1024).toFixed(0), 'KB');
