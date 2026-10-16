@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from '../src/drills/painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from '../src/drills/reflexo.js';
+import { InteligenciaDrill, INTELIGENCIA_OBS, INTELIGENCIA_ACTIONS } from '../src/drills/inteligencia.js';
 import { Rng } from '../src/rng.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
@@ -41,6 +42,8 @@ function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
 
 /** domínio do Reflexo por nível (fração de bolas desviadas); igual ao DOMINIO do ppo_drill.py */
 const REFLEXO_DOMINIO: Record<number, number> = { 1: 0.9, 2: 0.95, 3: 0.97 };
+/** domínio da Inteligência por nível (pontos por tentativa); igual ao DOMINIO do ppo_drill.py */
+const INTELIGENCIA_DOMINIO: Record<number, number> = { 1: 17, 2: 30, 3: 20 };
 type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
 interface DrillTape {
   title: string; obs: number; actions: readonly number[];
@@ -136,6 +139,36 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(2, e => e.acc >= D[2]), `Domínio do nível 2: desvia ${Math.round(D[2] * 100)}% das bolas.`);
       add(at(3, () => true), 'Nível 3 · Pares: às vezes duas bolas saem juntas, e a segunda fecha a rota de fuga.', 3);
       add(at(3, e => e.acc >= D[3]), `Domínio do nível 3: desvia ${Math.round(D[3] * 100)}% das bolas.`);
+    },
+  },
+  inteligencia: {
+    title: 'Circuito de decisão', obs: INTELIGENCIA_OBS, actions: INTELIGENCIA_ACTIONS, dHits: 30, gap: total => total / 25,
+    evaluate(brain, nivel, n = 24) {
+      const obs = new Float32Array(INTELIGENCIA_OBS), a = [0, 0];
+      let hits = 0, taken = 0, wrong = 0, best = 0, valor = 0;
+      for (let e = 0; e < n; e++) {
+        const env = new InteligenciaDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
+        while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1]); }
+        hits += env.points; taken += env.taken; wrong += env.wrong; best = Math.max(best, env.points);
+      }
+      // valor: média dos pontos por posto pisado (sobe quando ele passa a escolher os de 3)
+      return { hits: hits / n, taken: taken / n, valor: taken ? hits / taken : 0, wrong: wrong / n, best };
+    },
+    marks(picked, add) {
+      const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
+      const D = INTELIGENCIA_DOMINIO;
+      add(0, 'Primeira tentativa: anda a esmo e os postos apagam sem ele chegar perto.');
+      add(at(1, e => e.hits >= 5), 'Começou a ir atrás dos postos acesos.');
+      add(at(1, e => e.hits >= 12), 'Já vai direto ao posto mais perto.');
+      add(at(1, e => e.hits >= D[1]), `Domínio do nível 1: ${D[1]} pontos por tentativa.`);
+      const l2 = at(2, () => true);
+      add(l2, 'Nível 2 · Escolhas: postos de 1, 2 e 3 pontos que apagam, divisórias no caminho. Pisar um apaga os outros.', 2);
+      if (l2 >= 0) add(at(2, e => e.valor >= picked[l2].valor + 0.3), 'Começou a deixar o posto fácil de 1 para buscar um que vale mais.');
+      add(at(2, e => e.hits >= D[2]), `Domínio do nível 2: ${D[2]} pontos por tentativa.`);
+      const l3 = at(3, () => true);
+      add(l3, 'Nível 3 · Regras que mudam: o painel diz qual cor vale e troca a cada 8 s. Posto da outra cor vale 0.', 3);
+      if (l3 >= 0) add(at(3, e => e.wrong <= picked[l3].wrong / 2), 'Aprendeu a ler o painel: quase não pisa mais a cor errada.');
+      add(at(3, e => e.hits >= D[3]), `Domínio do nível 3: ${D[3]} pontos por tentativa.`);
     },
   },
 };

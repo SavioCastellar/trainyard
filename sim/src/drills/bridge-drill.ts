@@ -8,6 +8,7 @@
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from './precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from './painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from './reflexo.js';
+import { InteligenciaDrill, INTELIGENCIA_OBS, INTELIGENCIA_ACTIONS } from './inteligencia.js';
 import { Rng } from '../rng.js';
 
 interface Env { done: boolean; reward: number; observe(o: Float32Array, off: number): void; step(...a: number[]): void }
@@ -21,6 +22,11 @@ const DRILLS: Record<string, { obs: number; acts: number; make(seed: number, niv
   reflexo: {
     obs: REFLEXO_OBS, acts: REFLEXO_ACTIONS.length, make: (s, n) => new ReflexoDrill(s, false, n as Nivel),
     info: (e: ReflexoDrill) => ({ hits: e.hits, lights: e.shots, reds: 0, struck: e.struck, nivel: e.nivel }),
+  },
+  // domínio em pontos por tentativa: lights = 1 faz o ppo_drill medir hits/lights = pontos médios
+  inteligencia: {
+    obs: INTELIGENCIA_OBS, acts: INTELIGENCIA_ACTIONS.length, make: (s, n) => new InteligenciaDrill(s, false, n as Nivel),
+    info: (e: InteligenciaDrill) => ({ hits: e.points, lights: 1, reds: 0, taken: e.taken, wrong: e.wrong, nivel: e.nivel }),
   },
 };
 
