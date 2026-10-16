@@ -28,7 +28,7 @@ DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3
 DOMINIO = {"velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
            "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)},
            # força: hits/lights = entregas por tentativa (a ponte manda lights = 5 marcas)
-           "forca": {1: (3.0, None), 2: (1.5, None), 3: (1.0, None)}}
+           "forca": {1: (3.0, None), 2: (1.5, None), 3: (1.2, None)}}
 OBS, ACTS = DRILLS["precisao"]
 BRIDGE = os.path.join(os.path.dirname(__file__), "..", "sim", "dist", "src", "drills", "bridge-drill.js")
 

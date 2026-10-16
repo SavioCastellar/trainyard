@@ -43,7 +43,7 @@ function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
 /** domínio do Reflexo por nível (fração de bolas desviadas); igual ao DOMINIO do ppo_drill.py */
 const REFLEXO_DOMINIO: Record<number, number> = { 1: 0.9, 2: 0.95, 3: 0.97 };
 /** domínio da Força por nível (entregas por tentativa); igual ao DOMINIO do ppo_drill.py */
-const FORCA_DOMINIO: Record<number, number> = { 1: 3, 2: 1.5, 3: 1 };
+const FORCA_DOMINIO: Record<number, number> = { 1: 3, 2: 1.5, 3: 1.2 };
 type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
 interface DrillTape {
   title: string; obs: number; actions: readonly number[];
