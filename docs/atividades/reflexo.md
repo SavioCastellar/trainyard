@@ -1,6 +1,6 @@
 # Ficha: Painel de reação
 
-Estação do centro de treinamento para **Reflexo**. Proposta do Claude (2026-10-16), aguardando aprovação do Savio.
+Estação do centro de treinamento para **Reflexo**. Proposta do Claude, **aprovada pelo Savio em 2026-10-16**.
 
 - **Tipo:** treino de atributo base, individual. **Atributo:** Reflexo.
 - **Ideia:** o piso da estação tem placas que acendem. O atleta precisa pisar na placa acesa antes que ela apague. É o treino de reação com luzes usado em centros de treinamento de verdade. Não tem gesto de esporte, robô nem adversário.
@@ -53,6 +53,6 @@ A física e a fita são as mesmas em qualquer nível do CT; muda a estrutura em 
 | 3 | piso todo iluminado, telão com o replay da tentativa, marca da atlética |
 
 ## Estado
-- Ficha: proposta, aguardando o Savio.
+- Ficha: aprovada.
 - Cenário: a fazer (sessão Cenários, dentro do CT).
 - Treino: a fazer (sessão de treino nova no computador do Savio).
