@@ -8,6 +8,7 @@
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from './precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from './painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from './reflexo.js';
+import { ControleDrill, CONTROLE_OBS, CONTROLE_ACTIONS } from './controle.js';
 import { Rng } from '../rng.js';
 
 interface Env { done: boolean; reward: number; observe(o: Float32Array, off: number): void; step(...a: number[]): void }
@@ -21,6 +22,11 @@ const DRILLS: Record<string, { obs: number; acts: number; make(seed: number, niv
   reflexo: {
     obs: REFLEXO_OBS, acts: REFLEXO_ACTIONS.length, make: (s, n) => new ReflexoDrill(s, false, n as Nivel),
     info: (e: ReflexoDrill) => ({ hits: e.hits, lights: e.shots, reds: 0, struck: e.struck, nivel: e.nivel }),
+  },
+  // domínio por contagem: lights = 100 fixo (rate = plataformas/100) e reds = quedas
+  controle: {
+    obs: CONTROLE_OBS, acts: CONTROLE_ACTIONS.length, make: (s, n) => new ControleDrill(s, false, n as Nivel),
+    info: (e: ControleDrill) => ({ hits: e.hits, lights: 100, reds: e.falls, nivel: e.nivel }),
   },
 };
 
