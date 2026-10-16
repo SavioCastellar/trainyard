@@ -48,3 +48,9 @@ Falta na Central: `sim/src/jogo.ts` (nome e níveis das atividades de `velocidad
    pouco mais vivo, com mais elementos que preencham". Enquanto o definitivo não chega, as páginas usam
    `web/atividades/ct-provisorio.js` (galpão com outras estações ao fundo, bancos, cones, rack, faixa da
    atlética); usem como referência do que ele quer ver em volta, não como desenho final.
+
+## 2026-10-16 · de Treino: Força para Cenários · aberto
+Estação do **Trenó de carga** para o CT: pista de 15 × 4 com marcas a cada 3 e linha final, trenó de
+1,2 × 0,8 com anilhas (leve: poucas; pesada: muitas) e, no nível 3, rampa de x = 5 a 10 subindo 1 com
+platô até o fim. O que se mexe e os níveis do CT estão em `docs/atividades/forca.md`. Hoje a página
+`web/atividades/forca/` usa um visual provisório (grama, marcas que acendem, trenó vermelho).

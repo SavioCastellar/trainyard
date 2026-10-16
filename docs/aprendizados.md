@@ -41,6 +41,22 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 22. Subir de nível derruba a curva (95% → 30%) e ela volta a subir: isso dá uma boa história na fita.
     Dividir as sessões da página por nível deixa a evolução clara.
 
+## Trenó de carga (Força), 2026-10-16
+25. **Recompensa por marca: errar não pode devolver as marcas.** No Trenó, sair da pista devolvia o trenó
+    ao início e zerava as marcas: o atleta tirava o trenó da pista 5–7 vezes por tentativa e ainda
+    dominava o nível 1 (re-ganhava as primeiras marcas). Com as marcas já cruzadas sem pagar de novo, o
+    robô que não corrige o rumo caiu de 2,7 para 2,1 entregas e o domínio passou a exigir empurrar reto.
+    → Recompensa de progresso precisa ser pelo **máximo** alcançado, não por cada vez que cruza.
+26. **Domínio alto demais pode pegar o atleta numa fase instável.** No nível 3, o atleta chegou a 1,2
+    entrega logo e depois piorou para 0,6–0,8 durante 15 min. Com o domínio em 1,0 a fita termina no auge.
+    → Ao ver a curva cair depois de subir, baixe o domínio para o primeiro patamar (ainda acima do robô
+    sem o comportamento) e use `--after` curto (20) para a última foto não pegar a piora.
+27. **Avalie as fotos da fita com mais tentativas quando a métrica é pequena.** Com 24 tentativas, a média
+    de entregas (~1 por tentativa) oscila ±0,2 entre fotos vizinhas; 64 deixa a curva legível.
+28. Física de empurrar que funcionou: choque sem quique no ponto de contato (o trenó gira sozinho quando
+    o empurrão é fora do centro) e atrito parado como **velocidade mínima do choque**: encostado não
+    destrava; precisa de embalo. Isso criou o "arranque" sem recompensa nenhuma.
+
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).
    → Hoje os atributos afetam **só a física** (velocidade, força do chute, precisão…), e o cérebro

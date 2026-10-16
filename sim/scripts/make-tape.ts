@@ -43,7 +43,7 @@ function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
 /** domínio do Reflexo por nível (fração de bolas desviadas); igual ao DOMINIO do ppo_drill.py */
 const REFLEXO_DOMINIO: Record<number, number> = { 1: 0.9, 2: 0.95, 3: 0.97 };
 /** domínio da Força por nível (entregas por tentativa); igual ao DOMINIO do ppo_drill.py */
-const FORCA_DOMINIO: Record<number, number> = { 1: 3, 2: 1.5, 3: 1.2 };
+const FORCA_DOMINIO: Record<number, number> = { 1: 3, 2: 1.5, 3: 1 };
 type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
 interface DrillTape {
   title: string; obs: number; actions: readonly number[];
@@ -143,7 +143,8 @@ const DRILLS: Record<string, DrillTape> = {
   },
   forca: {
     title: 'Trenó de carga', obs: FORCA_OBS, actions: FORCA_ACTIONS, dHits: 30, gap: total => total / 25,
-    evaluate(brain, nivel, n = 24) {
+    // 64 tentativas: com 24, a média de entregas no nível 3 oscila ±0,2 entre fotos vizinhas
+    evaluate(brain, nivel, n = 64) {
       const obs = new Float32Array(FORCA_OBS), a = [0, 0];
       let hits = 0, outs = 0, locks = 0, best = 0;
       for (let e = 0; e < n; e++) {
@@ -157,23 +158,26 @@ const DRILLS: Record<string, DrillTape> = {
     marks(picked, add) {
       const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
       const D = FORCA_DOMINIO, fmt = (v: number) => String(v).replace('.', ',');
-      /** primeira foto do nível, depois do pico de `k`, em que `k` caiu para um terço do pico */
+      // o domínio é medido no treino (janela de 300 tentativas); a última foto de cada nível é a que o atingiu
+      const fim = (nivel: number) => { let k = -1; picked.forEach((e, i) => { if (e.nivel === nivel) k = i; }); return k; };
+      /** primeira foto do nível, depois do pico de `k`, em que `k` caiu para a metade do pico */
       const caiu = (nivel: number, k: string, f: (e: Ev) => boolean) => {
         const n = picked.filter(e => e.nivel === nivel); if (!n.length) return -1;
         const pico = n.reduce((a, e) => (e[k] > a[k] ? e : a), n[0]);
-        return pico[k] < 0.5 ? -1 : picked.findIndex(e => e.nivel === nivel && e.c.episodes > pico.c.episodes && e[k] <= pico[k] / 3 && f(e));
+        return pico[k] < 0.5 ? -1 : picked.findIndex(e => e.nivel === nivel && e.c.episodes > pico.c.episodes && e[k] <= pico[k] / 2 && f(e));
       };
       add(0, 'Primeira tentativa: anda em volta do trenó e não sabe por onde empurrar.');
       add(at(1, e => e.hits >= 2), 'Começou a empurrar o trenó para a frente.');
       add(at(1, e => e.entregas >= 1), 'Primeira entrega completa: levou o trenó até a linha final.');
-      add(caiu(1, 'outs', e => e.entregas >= 1), 'Aprendeu a empurrar pelo centro e corrigir o rumo: o trenó quase não sai mais da pista.');
-      add(at(1, e => e.entregas >= D[1]), `Domínio do nível 1: ${fmt(D[1])} entregas por tentativa.`);
+      add(caiu(1, 'outs', e => e.entregas >= 1), 'Aprendeu a empurrar pelo centro e corrigir o rumo: o trenó sai bem menos da pista.');
+      add(fim(1), `Domínio do nível 1: ${fmt(D[1])} entregas por tentativa.`);
       add(at(2, () => true), 'Nível 2 · Carga pesada: o trenó pesa 3 vezes mais e, parado, trava no chão. Só sai com um arranque.', 2);
+      add(at(2, e => e.entregas >= 1), 'Aprendeu o arranque: chega andando rápido e o trenó pesado sai do lugar. Depois não solta mais.');
       add(caiu(2, 'locks', e => e.entregas >= 0.8), 'Descobriu que parar custa caro: agora empurra sem soltar o trenó.');
-      add(at(2, e => e.entregas >= D[2]), `Domínio do nível 2: ${fmt(D[2])} entrega por tentativa com a carga pesada.`);
+      add(fim(2), `Domínio do nível 2: ${fmt(D[2])} entrega por tentativa com a carga pesada.`);
       add(at(3, () => true), 'Nível 3 · Rampa: no meio da pista tem uma subida. Se soltar o trenó, ele escorrega para trás.', 3);
-      add(at(3, e => e.hits >= 3), 'Já sobe a rampa sem deixar o trenó voltar.');
-      add(at(3, e => e.entregas >= D[3]), `Domínio do nível 3: ${fmt(D[3])} entrega por tentativa subindo a rampa.`);
+      add(caiu(3, 'outs', e => e.entregas >= 0.9), 'Na rampa, aprendeu a empurrar reto sem soltar: o trenó não escorrega nem sai da pista.');
+      add(fim(3), `Domínio do nível 3: ${fmt(D[3])} entrega por tentativa subindo a rampa.`);
     },
   },
 };

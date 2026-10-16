@@ -58,4 +58,5 @@ python ppo_drill.py --minutes 2 --out runs/teste   # teste rápido da Precisão
 | Treino | Processos | Passos/s | Observação |
 |---|---|---|---|
 | Reflexo (`ppo_drill.py --drill reflexo`) | 1 (64 ambientes) | ~27 mil | 2026-10-16; 1 núcleo de Python + 1 de Node; dá para rodar 2 treinos em paralelo sem perder velocidade |
+| Força (`ppo_drill.py --drill forca`) | 1 (64 ambientes) | ~24 mil | 2026-10-16; com outros 3 treinos rodando ao mesmo tempo; 3 níveis em 3,8 min |
 | Precisão (`ppo_drill.py`) | 1 (64 ambientes) | ~30 mil | 2026-10-16; 13,7 acertos/tentativa em 0,3 min (na nuvem levava ~2 min) |
