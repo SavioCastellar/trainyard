@@ -26,7 +26,7 @@ aprovação final só vendo rodando.
 |---|---|---|---|---|---|
 | 1 · Um lançador | só o lançador da frente | 9/s | 1,0 s | 2,0 s | ≥ 90% das bolas desviadas |
 | 2 · Quatro lançadores | 4 lançadores em volta (a cada 90°) | 12/s | 0,5 s | 1,6 s | ≥ 95% |
-| 3 · Pares | como o 2; em 40% dos disparos saem duas bolas juntas de lançadores diferentes, e a segunda mira 1,4 para um dos lados da primeira (fecha a rota de fuga) | 12/s | 0,5 s | 1,6 s | a medir |
+| 3 · Pares | como o 2; em 40% dos disparos saem duas bolas juntas de lançadores diferentes, e a segunda mira 1,4 para um dos lados da primeira (fecha a rota de fuga) | 12/s | 0,5 s | 1,6 s | ≥ 97% |
 
 Medido com robôs simples (200 tentativas por linha, % de bolas desviadas):
 | Nível | Parado | Aleatório (tremendo) | Correndo em círculo | Reage ao disparo (robô simples) |
@@ -35,7 +35,13 @@ Medido com robôs simples (200 tentativas por linha, % de bolas desviadas):
 | 2 | 0% | 5% | 4% | 48% |
 | 3 | 29% | 30% | 28% | 68% |
 
-O atleta treinado passa bem do robô simples (95% no nível 2).
+Treino medido (2026-10-16, domínio = média das últimas 300 tentativas do nível):
+| Nível | Início do nível | Domínio | Tentativas até o domínio |
+|---|---|---|---|
+| 1 | 12% (leva ~12 boladas em 30 s) | 93% | 576 |
+| 2 | ~50% | 95% | 6.208 |
+| 3 | ~72% | 97% (0,7 bolada por tentativa) | 28.160 |
+O atleta treinado passa bem do robô simples. Treino até o domínio do nível 3: ~20 min.
 
 ## Medidas (unidades da simulação ≈ metros; atleta igual ao dos outros treinos)
 | Coisa | Medida |
@@ -64,5 +70,6 @@ O atleta treinado passa bem do robô simples (95% no nível 2).
 
 ## Estado
 - Ficha: desenho do Claude a partir da ideia do Savio (2026-10-16). Aprovação final vendo rodando.
-- Treino: em andamento (sessão Treino: Reflexo).
+- Treino: feito (2026-10-16), fita `fitas/reflexo.json` (75 fotos), página `web/atividades/reflexo/`
+  (`web/dist/treino-reflexo.html`). Aguarda o Savio assistir.
 - Cenário: provisório na página; definitivo com a sessão Cenários.

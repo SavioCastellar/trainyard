@@ -33,6 +33,11 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
     atleta não aprendeu a desviar (~0,9 pisada por tentativa, estável). Pondo uma vermelha no caminho em
     metade das luzes, o custo (1 s parado) passou a tirar luzes e ele aprendeu a desviar (1,6 → 0,4).
     Sem recompensa negativa.
+24. **Atividade de desviar: a mira tem que vencer qualquer ação constante.** Mirar onde o atleta está
+    deixa "correr sem parar" ganhar; prever em linha reta deixa "correr em círculo" ganhar (93%); repetir a
+    última ação deixa "tremer no lugar" ganhar (48%). O que funcionou nos Lançadores: se ele repete a mesma
+    ação há ≥ 0,3 s, a mira simula a mesma física com ela; senão, supõe a velocidade atual. Teste com
+    robôs parado/aleatório/círculo (todos < 15%) antes de treinar (`sim/test/reflexo.test.ts`).
 22. Subir de nível derruba a curva (95% → 30%) e ela volta a subir: isso dá uma boa história na fita.
     Dividir as sessões da página por nível deixa a evolução clara.
 

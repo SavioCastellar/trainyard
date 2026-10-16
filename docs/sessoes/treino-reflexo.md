@@ -52,19 +52,20 @@ com visual provisório, e melhore a partir daí.
    dificuldade crescente, que é nova.
 
 ## Estado (2026-10-16)
-- **Feito — marco 1:** `sim/src/drills/reflexo.ts` com os 3 níveis; testes em `sim/test/reflexo.test.ts`
-  (determinismo nos 3 níveis, robô simples, regras de cada nível).
-- **Feito — marco 2:** ponte por nome (`drill`, `nivel`, op 3), `ppo_drill.py --drill reflexo` com nível
-  crescente (tabela `DOMINIO`), `make-tape.ts` com nível por foto e marcos por nível (contrato §3).
-  Treino de 20 min / 39.872 tentativas, do zero ao domínio dos 3 níveis. Domínios medidos e ficha
-  corrigida (nível 2 em 95% e nível 3 em 93% com < 0,3 vermelha; vermelha no caminho em metade das luzes).
-- **Feito — marco 3 (1ª rodada):** `fitas/reflexo.json` (63 fotos) e `web/atividades/reflexo/`
-  (`python web/atividades/reflexo/build.py` → `web/dist/treino-reflexo.html`), uma sessão por nível,
-  testada no navegador em desktop e celular (390×844, 60 quadros/s).
-- **Feito — marco 5 (parcial):** aprendizados 19–23.
-- **Próximo:** o Savio assistir e avaliar. Decisão em aberto na ficha: pausa maior entre as luzes para o
-  "voltar ao centro" ficar óbvio (hoje o recuo é sutil, ~0,6 m). Depois, marco 4 (cenário do CT).
-- Comandos:
-  `python ppo_drill.py --drill reflexo --minutes 240 --max-steps 4e8 --out runs/reflexo` (para sozinho
-  ~60 atualizações depois do domínio do nível 3), depois
-  `node ../sim/dist/scripts/make-tape.js runs/reflexo/checkpoints.json ../fitas/reflexo.json`.
+- **Rodada 1 (Painel de reação):** treinado do zero ao domínio dos 3 níveis. O Savio assistiu, gostou e
+  decidiu que ele treina **Velocidade** (no lugar da Pista de tiros). Virou "Painel de luzes":
+  `sim/src/drills/painel.ts`, `fitas/velocidade.json`, `web/atividades/velocidade/`, ficha
+  `docs/atividades/velocidade.md`. A ponte, o nível crescente no `ppo_drill.py` e o nível por foto no
+  `make-tape.ts` (contrato §3) ficaram prontos para todas as atividades.
+- **Rodada 2 (Lançadores, ideia do Savio: desviar de bolas):** ficha `docs/atividades/reflexo.md`,
+  `sim/src/drills/reflexo.ts` e testes (determinismo; parado/aleatório/círculo levam bolada, reagir
+  desvia). Treino de ~20 min até o domínio do nível 3 (12% → 97% das bolas desviadas), fita
+  `fitas/reflexo.json`, página `web/atividades/reflexo/` → `web/dist/treino-reflexo.html`, testada no
+  navegador (desktop e celular 390×844).
+- **Cenário provisório mais vivo** (pedido do Savio): `web/atividades/ct-provisorio.js`, comum às duas
+  páginas. O definitivo segue com a sessão Cenários (pedido em `docs/pedidos.md`).
+- **Próximo:** o Savio assistir aos Lançadores e avaliar a graça da evolução. Depois, marco 4 (cenário do
+  CT). Pendente na Central: nomes das atividades em `jogo.ts`/`regras.md` (pedido em `docs/pedidos.md`).
+- Comandos: `python ppo_drill.py --drill reflexo --minutes 40 --max-steps 4e8 --out runs/reflexo`,
+  `node ../sim/dist/scripts/make-tape.js runs/reflexo/checkpoints.json ../fitas/reflexo.json`,
+  `python ../web/atividades/reflexo/build.py`. Para o Painel, troque `reflexo` por `velocidade`.

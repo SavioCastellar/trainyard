@@ -8,6 +8,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from '../src/drills/painel.js';
+import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from '../src/drills/reflexo.js';
 import { Rng } from '../src/rng.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
@@ -38,6 +39,8 @@ function makeBrain(layers: Layer[], actions: readonly number[]): Brain {
   };
 }
 
+/** domínio do Reflexo por nível (fração de bolas desviadas); igual ao DOMINIO do ppo_drill.py */
+const REFLEXO_DOMINIO: Record<number, number> = { 1: 0.9, 2: 0.95, 3: 0.97 };
 type Ev = { c: Ckpt; nivel: number; hits: number; [k: string]: any };
 interface DrillTape {
   title: string; obs: number; actions: readonly number[];
@@ -108,6 +111,31 @@ const DRILLS: Record<string, DrillTape> = {
       add(l3, 'Nível 3 · Luzes proibidas: junto com a verde acendem 2 vermelhas. Pisar nelas trava 1 s.', 3);
       if (l3 >= 0) add(at(3, e => e.reds <= picked[l3].reds / 2 && e.reds < 0.5), 'Aprendeu a desviar das vermelhas.');
       add(at(3, e => e.acc >= 0.93 && e.reds < 0.3), 'Domínio do nível 3: pisa as verdes e foge das vermelhas.');
+    },
+  },
+  reflexo: {
+    title: 'Lançadores', obs: REFLEXO_OBS, actions: REFLEXO_ACTIONS, dHits: 30, gap: total => total / 25,
+    evaluate(brain, nivel, n = 24) {
+      const obs = new Float32Array(REFLEXO_OBS), a = [0, 0, 0];
+      let hits = 0, shots = 0, struck = 0, best = 0;
+      for (let e = 0; e < n; e++) {
+        const env = new ReflexoDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
+        while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1], a[2]); }
+        hits += env.hits; shots += env.shots; struck += env.struck; best = Math.max(best, env.hits);
+      }
+      return { hits: hits / n, shots: shots / n, acc: shots ? hits / shots : 0, struck: struck / n, best };
+    },
+    marks(picked, add) {
+      const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
+      const D = REFLEXO_DOMINIO;
+      add(0, 'Primeira tentativa: não entende de onde vem a bola e leva bolada atrás de bolada.');
+      add(at(1, e => e.acc >= 0.3), 'Começou a sair da frente quando o lançador dispara.');
+      add(at(1, e => e.acc >= 0.6), 'Já desvia mais da metade das bolas.');
+      add(at(1, e => e.acc >= D[1]), `Domínio do nível 1: desvia ${Math.round(D[1] * 100)}% das bolas.`);
+      add(at(2, () => true), 'Nível 2 · Quatro lançadores: a bola vem de qualquer lado, mais rápida, com meio segundo de aviso.', 2);
+      add(at(2, e => e.acc >= D[2]), `Domínio do nível 2: desvia ${Math.round(D[2] * 100)}% das bolas.`);
+      add(at(3, () => true), 'Nível 3 · Pares: às vezes duas bolas saem juntas, e a segunda fecha a rota de fuga.', 3);
+      add(at(3, e => e.acc >= D[3]), `Domínio do nível 3: desvia ${Math.round(D[3] * 100)}% das bolas.`);
     },
   },
 };
