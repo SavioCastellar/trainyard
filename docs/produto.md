@@ -56,9 +56,17 @@
   mesmo treino; só a aparência do atleta muda. O navegador re-simula cada tentativa com sementes
   próprias, então as jogadas exatas variam de jogador para jogador.
 - **Ambiente urbano** (2026-10-16), sem ilhas. Detalhe do que é "urbano" para mapa e partidas: em aberto.
-- **Treinos acontecem no centro de treinamento (CT) da atlética.** Quanto maior o nível do CT, maior e
-  mais equipada é a estrutura onde o atleta treina. Como o nível afeta o treino: em aberto (ver
-  `docs/regras.md`). Nada de temas forçados de vida universitária.
+- **Treinos acontecem no centro de treinamento (CT) da atlética.** Nada de temas forçados de vida
+  universitária. Duas progressões separadas (decidido em 2026-10-16):
+  - **Progressão da atividade** (de cada atleta): cada treino tem níveis que mudam a atividade em si
+    (ex.: alvos fixos → alvos que acendem → alvos móveis). O atleta sobe de nível ao dominar o atual,
+    então todo jogador vê a progressão, qualquer que seja o CT.
+  - **Nível do CT** (da atlética): muda só o visual do cenário e quanto o atributo sobe por treino.
+
+## Primeiro teste (com amigos)
+- Cada amigo é **diretor de uma atlética** e tem o **próprio atleta** nela; os outros membros são
+  simulados. ~16 atléticas com 40 atletas cada (atléticas sem amigo têm diretor simulado).
+- Formato de liga, papel do diretor e comportamento dos membros simulados: em discussão.
 - **Treinos sem robôs nem adversários:** o atleta treina sozinho contra o ambiente (portões, luzes,
   cargas, vigas, objetos em movimento), nunca contra outro personagem ou máquina que o persiga.
 - **Treinos dos atributos base são genéricos:** nada de gesto de um esporte (chutar, driblar, defender
