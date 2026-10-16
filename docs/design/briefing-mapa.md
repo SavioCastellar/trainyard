@@ -1,5 +1,9 @@
 # Briefing de design — Mapa geral do jogo
 
+> **Atualização (2026-10-16):** ilhas flutuantes foram descartadas. O mundo é **urbano** (bairro ou
+> região da cidade com quadras, galpões, ladeiras, canteiros de obra) e o tom é **sério e
+> competitivo**. Onde este briefing fala em ilhas, leia "lugares da cidade".
+
 ## O jogo em poucas linhas
 O jogo (nome ainda a definir) é um jogo de hábito diário para **atléticas universitárias brasileiras**. Cada membro
 da atlética tem o seu próprio **atleta**: uma caricatura de cabeça grande do estudante,

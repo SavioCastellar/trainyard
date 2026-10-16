@@ -23,7 +23,10 @@ Antes de trabalhar, leia:
 - **O treino tem que ser divertido de assistir** (estilo vídeos do AI Warehouse): o atleta começa
   completamente errado e melhora aos poucos. Recompensa simples (de preferência só o objetivo da
   atividade); recompensas auxiliares geram comportamentos degenerados (ver `docs/aprendizados.md`).
-- **Visual:** Three.js 0.160, low-poly colorido, personagem de cabeça grande (caricatura) de `web/src/cabecudo-lib.js`.
+- **Visual:** Three.js 0.160, low-poly colorido, **cenários urbanos** (nada de ilhas flutuantes),
+  personagem de cabeça grande (caricatura) de `web/src/cabecudo-lib.js`.
+- **Treinos:** só o atleta contra o ambiente, sem robôs nem adversários; treinos de atributo base
+  sem gesto de esporte (valem para todas as modalidades).
   Nada de modelos realistas. A cabeça grande é só visual, nunca mecânica de jogo.
 - **Interface e textos em português do Brasil.** Tom: **sério e competitivo** (ver `docs/regras.md` → "Tom e mundo"). Público adulto
   (18+): nada infantil, nada de alimentar ou fazer carinho no personagem.

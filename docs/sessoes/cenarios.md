@@ -4,6 +4,11 @@
 iluminação, céu, clima, efeitos (partículas, impacto, comemoração). Não mexe em simulação nem em
 treino: entrega cenários prontos para as sessões de treino plugarem a simulação.
 
+> **Mudança de direção (2026-10-16):** o Savio trocou as ilhas flutuantes por **cenários urbanos**
+> (quadras de rua, galpões, canteiros de obra, ladeiras, paredões). As referências de ilha abaixo
+> ficam só como referência de estilo low-poly, luz e desempenho. Nos treinos não há robôs nem
+> adversários: só o atleta e o ambiente. Ver `docs/produto.md`.
+
 ## É seu
 - `web/cenarios/` — um módulo por atividade (`web/cenarios/<atividade>.js`) e peças comuns
   (`web/cenarios/comum.js`: ilha flutuante, céu, luz, grama, árvores, partículas…).

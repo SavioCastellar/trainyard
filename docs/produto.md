@@ -55,12 +55,19 @@
   do cérebro ao longo do treino são gravadas e divididas em sessões de 2h. Todos os jogadores veem o
   mesmo treino; só a aparência do atleta muda. O navegador re-simula cada tentativa com sementes
   próprias, então as jogadas exatas variam de jogador para jogador.
-- Atividades com tema genérico (arenas, ilhas, campos), não temas forçados de vida universitária.
+- **Cenários urbanos** (decidido em 2026-10-16): quadras de rua, galpões, canteiros de obra, ladeiras,
+  paredões, estacionamentos. Nada de temas forçados de vida universitária.
+- **Treinos sem robôs nem adversários:** o atleta treina sozinho contra o ambiente (portões, luzes,
+  cargas, vigas, objetos em movimento), nunca contra outro personagem ou máquina que o persiga.
+- **Treinos dos atributos base são genéricos:** nada de gesto de um esporte (chutar, driblar, defender
+  gol). Os atributos base valem para todas as modalidades futuras.
   Boa fonte de ideias: os ambientes de exemplo do Unity ML-Agents e os vídeos do AI Warehouse.
 - Protótipo aprovado: **Treino de Precisão** (chutar bolas em alvos que aparecem pela arena).
 
 ## Rejeitado (não propor de novo)
 - "Cabeçudo(s)" como nome do jogo ou dos personagens.
+- Ilhas flutuantes e céu em degradê como ambiente do jogo (trocados por cenários urbanos).
+- Robôs, pegadores ou adversários controlados nos treinos.
 - Treinos que são exercícios de luta (chatos de assistir).
 - Sumô. Cabeça como mecânica.
 - Treinos com temática de faculdade forçada; cenas realistas (caras e sem graça).

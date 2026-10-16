@@ -13,10 +13,10 @@ Páginas (`python web/regras/build.py`):
   departamento esportivo (convocação, departamento médico, rodada, súmula), sem piadas na
   interface, sem gírias forçadas. A graça vem da competição e de assistir o atleta aprender, não
   de texto engraçado.
-- **Mundo:** a Liga Universitária mantém um complexo de treinamento num arquipélago (as ilhas
-  flutuantes do visual). Cada estudante inscrito recebe um **atleta**: um duplo digital, com a sua
-  aparência, que aprende por tentativa e erro. As atléticas do campus disputam a temporada com os
-  seus atletas; o que acontece nas ilhas é registrado e conta para o ranking oficial. Sem magia,
+- **Mundo:** a Liga Universitária ocupa a cidade: treinos e jogos acontecem em quadras de rua,
+  galpões, ladeiras e canteiros de obra. Cada estudante inscrito recebe um **atleta**: um duplo
+  digital, com a sua aparência, que aprende por tentativa e erro. As atléticas do campus disputam a
+  temporada com os seus atletas; tudo é registrado e conta para o ranking oficial. Sem magia,
   sem vilões: o conflito é a tabela de classificação.
 - O personagem caricato (cabeça grande) continua como decidido; o tom sério vale para textos,
   interface, nomes e situações.
