@@ -157,14 +157,19 @@ const DRILLS: Record<string, DrillTape> = {
     marks(picked, add) {
       const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
       const D = FORCA_DOMINIO, fmt = (v: number) => String(v).replace('.', ',');
+      /** primeira foto do nível, depois do pico de `k`, em que `k` caiu para um terço do pico */
+      const caiu = (nivel: number, k: string, f: (e: Ev) => boolean) => {
+        const n = picked.filter(e => e.nivel === nivel); if (!n.length) return -1;
+        const pico = n.reduce((a, e) => (e[k] > a[k] ? e : a), n[0]);
+        return pico[k] < 0.5 ? -1 : picked.findIndex(e => e.nivel === nivel && e.c.episodes > pico.c.episodes && e[k] <= pico[k] / 3 && f(e));
+      };
       add(0, 'Primeira tentativa: anda em volta do trenó e não sabe por onde empurrar.');
       add(at(1, e => e.hits >= 2), 'Começou a empurrar o trenó para a frente.');
       add(at(1, e => e.entregas >= 1), 'Primeira entrega completa: levou o trenó até a linha final.');
-      add(at(1, e => e.entregas >= 2 && e.outs < 0.5), 'Aprendeu a ficar atrás e empurrar pelo centro: o trenó não sai mais da pista.');
+      add(caiu(1, 'outs', e => e.entregas >= 1), 'Aprendeu a empurrar pelo centro e corrigir o rumo: o trenó quase não sai mais da pista.');
       add(at(1, e => e.entregas >= D[1]), `Domínio do nível 1: ${fmt(D[1])} entregas por tentativa.`);
       add(at(2, () => true), 'Nível 2 · Carga pesada: o trenó pesa 3 vezes mais e, parado, trava no chão. Só sai com um arranque.', 2);
-      const l2 = at(2, () => true);
-      if (l2 >= 0) add(at(2, e => e.locks <= picked[l2].locks / 2 && e.entregas >= 0.8), 'Descobriu que parar custa caro: agora empurra sem soltar.');
+      add(caiu(2, 'locks', e => e.entregas >= 0.8), 'Descobriu que parar custa caro: agora empurra sem soltar o trenó.');
       add(at(2, e => e.entregas >= D[2]), `Domínio do nível 2: ${fmt(D[2])} entrega por tentativa com a carga pesada.`);
       add(at(3, () => true), 'Nível 3 · Rampa: no meio da pista tem uma subida. Se soltar o trenó, ele escorrega para trás.', 3);
       add(at(3, e => e.hits >= 3), 'Já sobe a rampa sem deixar o trenó voltar.');

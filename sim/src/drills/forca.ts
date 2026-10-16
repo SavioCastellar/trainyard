@@ -3,7 +3,7 @@
  * +1 por marca que o trenó cruza; na linha final o trenó volta ao início. Nenhuma outra recompensa.
  * O trenó só anda enquanto o atleta empurra (encostado e andando para a frente): a força vai pelo
  * ponto de contato, então empurrar fora do centro faz o trenó girar. Sair da largura da pista
- * devolve o trenó ao início.
+ * devolve o trenó ao início, e as marcas já cruzadas nesta volta não contam de novo.
  * Nível 2: trenó pesado; parado, ele trava (atrito parado) e só sai do lugar com um arranque
  * (o atleta precisa chegar andando rápido). Nível 3: pesado e com rampa no meio; solto na subida,
  * escorrega para trás.
@@ -99,7 +99,7 @@ export class ForcaDrill {
     Object.assign(S, { x: FORCA.sledStart, z: 0, a: 0, vx: 0, vz: 0, w: 0, locked: this.N.vBreak > 0 });
     const th = r.next() * Math.PI * 2, d = 2 + r.next();
     P.x = Math.max(-2.5, S.x + Math.cos(th) * d); P.z = Math.sin(th) * d; P.h = r.next() * Math.PI * 2 - Math.PI; P.v = 0;
-    this.next = 1; this.contact = null;
+    this.contact = null;
   }
 
   observe(out: Float32Array, off = 0) {
@@ -187,7 +187,8 @@ export class ForcaDrill {
       this.events?.push({ type: 'mark', t: this.t, mark: this.next });
       this.next++;
     }
-    if (this.next > 5) { this.delivered++; this.events?.push({ type: 'deliver', t: this.t }); this.reset(); }
+    // a saída devolve o trenó ao início sem zerar as marcas: as já cruzadas não pagam de novo
+    if (this.next > 5) { this.delivered++; this.events?.push({ type: 'deliver', t: this.t }); this.reset(); this.next = 1; }
     else if (Math.abs(S.z) > FORCA.halfWidth || S.x < -1) { this.outs++; this.events?.push({ type: 'out', t: this.t }); this.reset(); }
     this.t += dt;
     if (this.t >= FORCA.maxTime) this.done = true;
