@@ -52,7 +52,7 @@ interface DrillTape {
 
 const DRILLS: Record<string, DrillTape> = {
   precisao: {
-    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS, dHits: 40, gap: total => total / 25,
+    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS, dHits: 25, gap: total => total / 20,
     evaluate(brain, nivel, n = 24) {
       const obs = new Float32Array(PRECISION_OBS), a = [0, 0, 0];
       let hits = 0, kicks = 0, best = 0;
@@ -65,19 +65,20 @@ const DRILLS: Record<string, DrillTape> = {
     },
     marks(picked, add) {
       const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
-      const D = PRECISION_DOMINIO;
+      // o domínio é medido no treino (média de 300 tentativas); aqui marca a última foto do nível
+      const fim = (nivel: number) => picked.map(e => e.nivel).lastIndexOf(nivel), D = PRECISION_DOMINIO;
       add(0, 'Primeira tentativa: ele ainda não sabe o que é um alvo. Chuta para qualquer lado.');
       add(at(1, e => e.acc >= 0.15), 'Começou a virar na direção dos alvos antes de chutar.');
       add(at(1, e => e.hits >= 5), 'Já acerta 5 alvos por tentativa.');
       add(at(1, e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
       add(at(1, e => e.hits >= 15), '15 acertos por tentativa.');
-      add(at(1, e => e.hits >= D[1]), `Domínio do nível 1: ${D[1]} acertos por tentativa.`);
+      add(fim(1), `Domínio do nível 1: ${D[1]} acertos por tentativa.`);
       add(at(2, () => true), 'Nível 2 · Alvos que apagam: cada alvo fica aceso só 2 s. Bola em alvo apagado não conta.', 2);
       add(at(2, e => e.hits >= D[2] - 4), 'Começou a escolher o alvo que ainda vai estar aceso quando a bola chegar.');
-      add(at(2, e => e.hits >= D[2]), `Domínio do nível 2: ${D[2]} acertos por tentativa.`);
+      add(fim(2), `Domínio do nível 2: ${D[2]} acertos por tentativa.`);
       add(at(3, () => true), 'Nível 3 · Alvos móveis: os alvos deslizam em trilhos ao redor do centro.', 3);
       add(at(3, e => e.hits >= D[3] - 6), 'Começou a chutar à frente do alvo, onde ele vai estar.');
-      add(at(3, e => e.hits >= D[3]), `Domínio do nível 3: ${D[3]} acertos por tentativa com os alvos em movimento.`);
+      add(fim(3), `Domínio do nível 3: ${D[3]} acertos por tentativa com os alvos em movimento.`);
     },
   },
   velocidade: {

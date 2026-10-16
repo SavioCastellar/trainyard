@@ -630,7 +630,7 @@ const camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3();
 function cameraFrame() {
   const narrow = innerWidth < innerHeight;
   if (compare) { lookGoal.set(ARENA_GAP / 2, 0, 0); camGoal.set(ARENA_GAP / 2, narrow ? 70 : 40, narrow ? 56 : 44); }
-  else { lookGoal.set(0, 0, narrow ? 4 : 1); camGoal.set(0, narrow ? 40 : 22, narrow ? 30 : 26); }
+  else { lookGoal.set(0, 0, narrow ? 5 : 1.5); camGoal.set(0, narrow ? 52 : 27, narrow ? 34 : 31); }
 }
 let userMoved = false;
 controls.addEventListener('start', () => { userMoved = true; });
