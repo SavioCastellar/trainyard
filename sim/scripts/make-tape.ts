@@ -162,7 +162,7 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(1, e => e.hits >= 12), 'Já vai direto ao posto mais perto.');
       add(at(1, e => e.hits >= D[1]), `Domínio do nível 1: ${D[1]} pontos por tentativa.`);
       const l2 = at(2, () => true);
-      add(l2, 'Nível 2 · Escolhas: postos de 1, 2 e 3 pontos que apagam, divisórias no caminho. Pisar um apaga os outros.', 2);
+      add(l2, 'Nível 2 · Caminhos bloqueados: postos de 1, 2 e 3 pontos que apagam, divisórias no caminho. Pisar um apaga os outros.', 2);
       if (l2 >= 0) add(at(2, e => e.valor >= picked[l2].valor + 0.3), 'Começou a deixar o posto fácil de 1 para buscar um que vale mais.');
       add(at(2, e => e.hits >= D[2]), `Domínio do nível 2: ${D[2]} pontos por tentativa.`);
       const l3 = at(3, () => true);
