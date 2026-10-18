@@ -369,6 +369,7 @@ class Station {
     this.evIdx = 0; this.acc = 0;
     // só os lançadores do nível aparecem (o nível 1 tem só o da frente)
     this.st.launchers.forEach((l, i) => { l.L.visible = i < this.env.launchers.length; l.kick = 0; });
+    this.prevX = this.prevZ = this.prevH = undefined;
   }
   update(dt, speed, time) {
     const e = this.env, W = (x, y, z) => this.g.localToWorld(new THREE.Vector3(x, y, z));
@@ -393,6 +394,7 @@ class Station {
     e.launchers.forEach((L, i) => {
       const l = this.st.launchers[i], on = L.warn > 0 && Math.sin(time * 30) > -.3;
       l.lampMat.emissive.setHex(on ? 0xffb020 : 0x000000); l.lampMat.color.setHex(on ? 0xffd166 : 0x664d10);
+      l.L.position.set(L.x, 0, L.z); // no nível 3 eles giram em volta do tapete
       l.kick = Math.max(0, l.kick - dt * 4);
       l.head.rotation.y = Math.atan2(P.x - L.x, P.z - L.z);
       l.head.position.x = -Math.sin(l.head.rotation.y) * l.kick * .25; l.head.position.z = -Math.cos(l.head.rotation.y) * l.kick * .25;
@@ -410,7 +412,17 @@ class Station {
     b.position.set(0, 0, 0); b.rotation.set(0, 0, 0);
     for (const l of L) l.rotation.set(0, 0, 0);
     for (const a of A) a.rotation.set(0, 0, 0);
-    const sp = Math.min(1, Math.hypot(pl.v, pl.u) / R.speed), dir = pl.v >= -.1 ? 1 : -1, ph = pl.phase * 1.3;
+    // passada pelo deslocamento real deste quadro (inclui a velocidade 2×/4×): um passo a cada ~0,8 m,
+    // perna para frente/trás ao andar, para o lado no passo lateral, passinhos ao girar no lugar
+    const dx = pl.x - (this.prevX ?? pl.x), dz = pl.z - (this.prevZ ?? pl.z);
+    let dh = pl.h - (this.prevH ?? pl.h); dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    this.prevX = pl.x; this.prevZ = pl.z; this.prevH = pl.h;
+    const ch = Math.cos(pl.h), sh = Math.sin(pl.h), fwd = dx * ch + dz * sh, lat = -dx * sh + dz * ch;
+    const moved = Math.hypot(dx, dz), turn = Math.abs(dh) * .35, fd = Math.max(dt, 1e-3);
+    this.gait = (this.gait || 0) + (moved + turn) / .8 * Math.PI;
+    const k = Math.min(1, moved / fd / R.speed), amp = Math.max(Math.min(1, k * 1.4), Math.min(.45, turn / fd)), g = this.gait;
+    const ff = moved > 1e-4 ? fwd / moved : 0, lf = moved > 1e-4 ? lat / moved : 0;
+    this.amp = (this.amp || 0) + (amp - (this.amp || 0)) * Math.min(1, dt * 12);
     let drive = 0, sway = 0;
     if (pl.stun > 0) {
       // atordoado pela bolada: tremendo, braços caídos
@@ -418,12 +430,14 @@ class Station {
       A[0].rotation.z = -.05; A[1].rotation.z = .05; sway = Math.sin(time * 40) * .8;
       setExpr(rig.face, 'triste');
     } else {
-      const amp = .2 + .8 * sp;
-      L[0].rotation.x = Math.sin(ph) * amp * dir; L[1].rotation.x = Math.sin(ph + Math.PI) * amp * dir;
-      A[0].rotation.x = Math.sin(ph + Math.PI) * amp * .9; A[1].rotation.x = Math.sin(ph) * amp * .9;
-      A[0].rotation.z = -.12; A[1].rotation.z = .12;
-      b.position.y = Math.abs(Math.sin(ph)) * .07 * sp; b.rotation.x = .18 * Math.min(1, Math.abs(pl.v) / R.speed) * dir;
-      b.rotation.z = -pl.u / R.side * .25; sway = Math.cos(ph) * .6 * sp + pl.u * .15;
+      const m = this.amp, sg = Math.sin(g), side = Math.abs(lf) > .3 ? lf : 0, fw = Math.abs(lf) > .3 ? ff : (moved > 1e-4 ? Math.sign(ff) : 1);
+      L[0].rotation.x = sg * m * .95 * fw; L[1].rotation.x = -sg * m * .95 * fw;
+      // passo lateral: as pernas abrem e fecham alternadas
+      L[0].rotation.z = Math.max(0, sg) * m * .45 * side; L[1].rotation.z = -Math.max(0, -sg) * m * .45 * side;
+      A[0].rotation.x = -sg * m * .8 * fw; A[1].rotation.x = sg * m * .8 * fw;
+      A[0].rotation.z = -.12 - Math.abs(side) * m * .25; A[1].rotation.z = .12 + Math.abs(side) * m * .25;
+      b.position.y = Math.abs(sg) * .07 * m; b.rotation.x = .16 * k * ff; b.rotation.z = -.18 * k * lf;
+      sway = Math.cos(g) * .5 * m + lf * k * .4;
       if (this.celebrate > 0) {
         this.celebrate -= dt; const up = Math.sin((.45 - this.celebrate) / .45 * Math.PI);
         A[0].rotation.z = -1.2 * up; A[1].rotation.z = 1.2 * up; drive = up * .4; setExpr(rig.face, 'confiante');

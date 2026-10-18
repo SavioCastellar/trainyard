@@ -134,7 +134,7 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(1, e => e.acc >= D[1]), `Domínio do nível 1: desvia ${Math.round(D[1] * 100)}% das bolas.`);
       add(at(2, () => true), 'Nível 2 · Quatro lançadores: a bola vem de qualquer lado, mais rápida, com meio segundo de aviso.', 2);
       add(at(2, e => e.acc >= D[2]), `Domínio do nível 2: desvia ${Math.round(D[2] * 100)}% das bolas.`);
-      add(at(3, () => true), 'Nível 3 · Pares: às vezes duas bolas saem juntas, e a segunda fecha a rota de fuga.', 3);
+      add(at(3, () => true), 'Nível 3 · Lançadores em movimento: eles giram em volta do tapete e às vezes disparam em par, com a segunda bola fechando a rota de fuga.', 3);
       add(at(3, e => e.acc >= D[3]), `Domínio do nível 3: desvia ${Math.round(D[3] * 100)}% das bolas.`);
     },
   },

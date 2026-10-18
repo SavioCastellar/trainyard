@@ -47,8 +47,10 @@ test('reflexo: parado, tremendo ou correndo em círculo leva bolada; reagir ao d
   }
 });
 
-test('reflexo: nível 1 só tem o lançador da frente; nível 3 dispara pares', () => {
+test('reflexo: nível 1 só tem o lançador da frente; nível 3 dispara pares e gira os lançadores', () => {
   for (const ev of joga(3, 1, reativo).events!) if (ev.type === 'fire') assert.equal(ev.launcher, 0);
   const fires = joga(3, 3, reativo).events!.filter(ev => ev.type === 'fire');
   assert.ok(fires.some((ev, i) => i > 0 && ev.t === fires[i - 1].t), 'nenhum par');
+  const e = joga(3, 3, reativo);
+  assert.ok(Math.abs(e.launchers[0].a) > 0.5, 'lançadores do nível 3 não giraram');
 });

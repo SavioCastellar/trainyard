@@ -8,7 +8,7 @@
  *
  * Observação: atleta (posição, direção, velocidades, atordoado); para cada lançador: aviso aceso,
  * tempo até o disparo, direção (cos, sen) e distância vistos pelo atleta; para as 4 bolas mais
- * perto: direção e distância vistas pelo atleta e velocidade no referencial dele.
+ * perto: direção e distância vistas pelo atleta e velocidade no referencial dele; giro dos lançadores.
  * Ações: girar (esq/nada/dir), andar (ré/parado/frente), passo lateral (esq/nada/dir).
  */
 import { Rng } from '../rng.js';
@@ -22,12 +22,13 @@ export const REFLEXO = {
   side: 3.5,
   turn: 3.2,
   stun: 1,
-  /** por nível (índice = nível): lançadores ativos (ângulos), velocidade da bola, intervalo entre disparos, aviso, chance de par */
+  /** por nível (índice = nível): lançadores ativos (ângulos), velocidade da bola, intervalo entre disparos, aviso,
+   *  chance de par, giro dos lançadores em volta do tapete (rad/s; o sentido troca a cada 2–5 s) */
   niveis: [
     null,
-    { launchers: [0], ballSpeed: 9, every: 2.0, warn: 1.0, pair: 0 },
-    { launchers: [0, Math.PI / 2, Math.PI, -Math.PI / 2], ballSpeed: 12, every: 1.6, warn: 0.5, pair: 0 },
-    { launchers: [0, Math.PI / 2, Math.PI, -Math.PI / 2], ballSpeed: 12, every: 1.6, warn: 0.5, pair: 0.4 },
+    { launchers: [0], ballSpeed: 9, every: 2.0, warn: 1.0, pair: 0, orbit: 0 },
+    { launchers: [0, Math.PI / 2, Math.PI, -Math.PI / 2], ballSpeed: 12, every: 1.6, warn: 0.5, pair: 0, orbit: 0 },
+    { launchers: [0, Math.PI / 2, Math.PI, -Math.PI / 2], ballSpeed: 12, every: 1.6, warn: 0.5, pair: 0.4, orbit: 0.4 },
   ],
   /** no par, a segunda bola mira essa distância para um dos lados da primeira (fecha a rota de fuga) */
   pairOffset: 1.4,
@@ -38,7 +39,7 @@ export const REFLEXO = {
   dt: 1 / 30,
 } as const;
 
-export const REFLEXO_OBS = 7 + 4 * 5 + REFLEXO.maxBalls * 6;
+export const REFLEXO_OBS = 7 + 4 * 5 + REFLEXO.maxBalls * 6 + 1;
 export const REFLEXO_ACTIONS = [3, 3, 3] as const;
 export type Nivel = 1 | 2 | 3;
 
@@ -83,6 +84,9 @@ export class ReflexoDrill {
   private next: number;
   private last = [1, 1, 1];
   private same = 0;
+  /** sentido do giro dos lançadores (nível 3) e tempo até trocar */
+  spin = 1;
+  private flip = 3;
   private ids = 0;
 
   constructor(seed: number, record = false, readonly nivel: Nivel = 1) {
@@ -146,6 +150,7 @@ export class ReflexoDrill {
       out[o] = 1; look(o + 1, b.x - P.x, b.z - P.z);
       out[o + 4] = (b.vx * c + b.vz * s) / 12; out[o + 5] = (-b.vx * s + b.vz * c) / 12;
     }
+    out[off + 27 + REFLEXO.maxBalls * 6] = this.spin * this.N.orbit / 0.4;
   }
 
   /** ações = [girar 0..2, andar 0..2, passo lateral 0..2 (0 = esquerda)] */
@@ -157,7 +162,15 @@ export class ReflexoDrill {
     this.last = [turn, move, side];
     moveBody(P, this.last);
     P.phase += (Math.abs(P.v) + Math.abs(P.u)) * dt * 2.4;
-    // lançadores: aviso, depois disparo
+    // lançadores: giram em volta do tapete (nível 3), avisam e disparam
+    if (this.N.orbit) {
+      this.flip -= dt;
+      if (this.flip <= 0) { this.spin = -this.spin; this.flip = 2 + this.rng.next() * 3; }
+      for (const L of this.launchers) {
+        L.a += this.spin * this.N.orbit * dt;
+        L.x = Math.cos(L.a) * REFLEXO.launcherR; L.z = Math.sin(L.a) * REFLEXO.launcherR;
+      }
+    }
     this.next -= dt;
     if (this.next <= 0) { this.arm(); this.next = this.N.every; }
     this.launchers.forEach((L, i) => {
