@@ -37,14 +37,14 @@
     position: fixed; inset: 0; pointer-events: none;
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-    display: grid; grid-template-columns: minmax(0, 330px) 1fr minmax(0, 300px); grid-template-rows: 1fr auto; gap: 12px;
+    display: grid; grid-template-columns: minmax(0, 330px) 1fr minmax(0, 340px); grid-template-rows: 1fr auto; gap: 12px;
   }
   .panel {
     pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 14px 16px; min-width: 0;
   }
   .left { grid-column: 1; grid-row: 1; align-self: start; }
-  .right { grid-column: 3; grid-row: 1; align-self: start; }
+  .right { grid-column: 3; grid-row: 1; align-self: start; max-height: 100%; overflow: auto; }
   .eyebrow { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   h1 { font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1; margin: 4px 0 8px; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
   p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); max-width: 60ch; }
@@ -73,6 +73,19 @@
   .slider .num { min-width: 34px; font-size: 12px; }
   .more { display: contents; }
   .mais { display: none; }
+  .tune { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .tune summary { cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+  .tune summary .num { white-space: nowrap; text-transform: none; letter-spacing: 0; font-size: 11px; }
+  .tune-body { display: grid; gap: 6px; margin-top: 8px; }
+  .trow { display: grid; grid-template-columns: 150px 1fr 42px; align-items: center; gap: 6px; font-size: 12px; }
+  .trow .tog, .trow .lab { justify-self: start; white-space: nowrap; }
+  .trow .lab { padding-left: 10px; color: var(--muted); }
+  .trow input { width: 100%; min-width: 0; accent-color: var(--accent); }
+  .trow .num { font-size: 11.5px; text-align: right; }
+  .tog[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+  .tbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tbtns button { background: var(--chip); }
+  .hint { font-size: 11.5px; }
   .labels { position: fixed; inset: 0; pointer-events: none; }
   .labels span { position: absolute; transform: translate(-50%, -50%); font: 700 13px var(--display); letter-spacing: .08em; text-transform: uppercase;
     padding: 4px 10px; border-radius: 6px; color: #fff; white-space: nowrap; }
@@ -81,7 +94,7 @@
     #ui { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; gap: 8px; }
     .left { grid-row: 1; } .left p:not(:first-of-type), .left .note { display: none; }
     h1 { font-size: 22px; }
-    .right { grid-column: 1; grid-row: 3; }
+    .right { grid-column: 1; grid-row: 3; max-height: 42vh; }
     .controls { grid-column: 1; grid-row: 4; gap: 6px 10px; }
     .slider input { width: 72px; }
     .mais { display: inline-block; }
@@ -114,6 +127,19 @@
       </tbody>
     </table>
     <p class="note" id="tempo">Tentativa 1 · 0 s de 45 s</p>
+    <details class="tune" id="tune">
+      <summary>Inclinação do corpo <span class="num" id="incAgora"></span></summary>
+      <div class="tune-body">
+        <div class="trow"><button class="tog" id="iCurva" aria-pressed="true">Curva</button><input id="kCurva" type="range" min="0" max="200" value="100" aria-label="Intensidade na curva"><span class="num" id="kCurvaV">100%</span></div>
+        <div class="trow"><button class="tog" id="iFrente" aria-pressed="true">Acelerar e frear</button><input id="kFrente" type="range" min="0" max="200" value="100" aria-label="Intensidade ao acelerar e frear"><span class="num" id="kFrenteV">100%</span></div>
+        <div class="trow"><button class="tog" id="iPostura" aria-pressed="true">Postura de corrida</button><input id="kPostura" type="range" min="0" max="200" value="100" aria-label="Intensidade da postura de corrida"><span class="num" id="kPosturaV">100%</span></div>
+        <div class="trow"><span class="lab">Ângulo máximo</span><input id="kLimite" type="range" min="3" max="35" value="22" aria-label="Ângulo máximo"><span class="num" id="kLimiteV">22°</span></div>
+        <div class="trow"><span class="lab">Resposta</span><input id="kResp" type="range" min="2" max="25" value="10" aria-label="Velocidade de resposta"><span class="num" id="kRespV">10</span></div>
+        <div class="trow"><button class="tog" id="iMola" aria-pressed="true">Cabeça com mola</button></div>
+        <div class="tbtns"><button id="incOff">Sem inclinação</button><button id="incPadrao">Voltar ao padrão</button></div>
+        <p class="hint">Vale só para o movimento novo. "Resposta" alta = inclina e volta rápido; baixa = mais suave e atrasado.</p>
+      </div>
+    </details>
   </section>
 
   <nav class="panel controls" aria-label="Controles">
@@ -357,10 +383,11 @@ class Arena {
     b.position.y = Math.abs(Math.sin(ph)) * .07 * Math.max(k, amp > .3 && sp < .8 ? .4 : 0);
     if (novo) {
       // inclina para dentro da curva e para frente/trás ao acelerar/frear (suavizado)
-      const leanT = THREE.MathUtils.clamp(c.aLado * .035, -.38, .38);
-      const pitchT = THREE.MathUtils.clamp(.18 * k + c.aFrente * .02, -.22, .32);
-      this.lean += (leanT - this.lean) * Math.min(1, rdt * 10);
-      this.pitch += (pitchT - this.pitch) * Math.min(1, rdt * 8);
+      const I = P.inc, lim = I.limite * Math.PI / 180;
+      const leanT = I.curva ? THREE.MathUtils.clamp(c.aLado * .035 * I.kCurva, -lim, lim) : 0;
+      const pitchT = THREE.MathUtils.clamp((I.postura ? .18 * k * I.kPostura : 0) + (I.frente ? c.aFrente * .02 * I.kFrente : 0), -lim, lim);
+      this.lean += (leanT - this.lean) * Math.min(1, rdt * I.resp);
+      this.pitch += (pitchT - this.pitch) * Math.min(1, rdt * I.resp * .8);
       b.rotation.z = this.lean; b.rotation.x = this.pitch;
       // cabeça antecipa: olha para o ponto (ou para o lado do giro, se procurando)
       const m = lab.ve() ? lab.alvo : lab.memoria;
@@ -377,15 +404,17 @@ class Arena {
     const vy = (b.position.y - this.prevY) / Math.max(rdt, 1e-3), ay = (vy - this.prevVy) / Math.max(rdt, 1e-3);
     this.prevY = b.position.y; this.prevVy = vy;
     const s = this.spring;
-    s.v += (-70 * s.a - 6 * s.v + THREE.MathUtils.clamp(ay, -60, 60) * .01 - (novo ? c.aFrente * .02 : 0)) * rdt;
-    s.w += (-70 * s.b - 6 * s.w + (novo ? c.aLado * .03 : c.w * .05)) * rdt;
+    const mola = !novo || P.inc.mola;
+    s.v += (-70 * s.a - 6 * s.v + (mola ? THREE.MathUtils.clamp(ay, -60, 60) * .01 - (novo ? c.aFrente * .02 : 0) : 0)) * rdt;
+    s.w += (-70 * s.b - 6 * s.w + (mola ? (novo ? c.aLado * .03 : c.w * .05) : 0)) * rdt;
     s.a = THREE.MathUtils.clamp(s.a + s.v * rdt, -.4, .4); s.b = THREE.MathUtils.clamp(s.b + s.w * rdt, -.35, .35);
     rig.headPivot.rotation.x = s.a; rig.headPivot.rotation.z = s.b;
   }
 }
 
 /* ---------------- estado e controles ---------------- */
-const P = { modo: innerWidth < 700 ? 'novo' : 'lado', hab: .85, dec: 4, vis: 75, vel: 50, ctl: 50, rate: 1, rastro: true, cone: true };
+const INC_PADRAO = { curva: true, frente: true, postura: true, mola: true, kCurva: 1, kFrente: 1, kPostura: 1, limite: 22, resp: 10 };
+const P = { modo: innerWidth < 700 ? 'novo' : 'lado', hab: .85, dec: 4, vis: 75, vel: 50, ctl: 50, rate: 1, rastro: true, cone: true, inc: { ...INC_PADRAO } };
 const arenas = { novo: new Arena('novo'), antigo: new Arena('antigo') };
 let seed = 11, tentativa = 1;
 function layout() {
@@ -413,6 +442,22 @@ for (const [id, key, fmt] of [['hab', 'hab', v => v + '%'], ['vel', 'vel', Strin
   $(id).addEventListener('change', () => { tentativa = 1; restart(true); });
 }
 for (const [id, key] of [['tRastro', 'rastro'], ['tCone', 'cone']]) $(id).addEventListener('click', e => { P[key] = !P[key]; e.currentTarget.setAttribute('aria-pressed', String(P[key])); });
+/* inclinação: liga/desliga e intensidades */
+const INC_TOG = { iCurva: 'curva', iFrente: 'frente', iPostura: 'postura', iMola: 'mola' };
+const INC_SLD = { kCurva: ['kCurva', v => v / 100, v => v + '%'], kFrente: ['kFrente', v => v / 100, v => v + '%'], kPostura: ['kPostura', v => v / 100, v => v + '%'], kLimite: ['limite', v => v, v => v + '°'], kResp: ['resp', v => v, String] };
+function syncInc() {
+  for (const [id, key] of Object.entries(INC_TOG)) $(id).setAttribute('aria-pressed', String(P.inc[key]));
+  for (const [id, [key, , fmt]] of Object.entries(INC_SLD)) {
+    const raw = key.startsWith('k') ? Math.round(P.inc[key] * 100) : P.inc[key];
+    $(id).value = raw; $(id + 'V').textContent = fmt(raw);
+  }
+}
+for (const [id, key] of Object.entries(INC_TOG)) $(id).addEventListener('click', () => { P.inc[key] = !P.inc[key]; syncInc(); });
+for (const [id, [key, conv, fmt]] of Object.entries(INC_SLD)) $(id).addEventListener('input', e => { const v = +e.target.value; P.inc[key] = conv(v); $(id + 'V').textContent = fmt(v); });
+$('incOff').addEventListener('click', () => { Object.assign(P.inc, { curva: false, frente: false, postura: false }); syncInc(); });
+$('incPadrao').addEventListener('click', () => { P.inc = { ...INC_PADRAO }; syncInc(); });
+if (innerWidth >= 700) $('tune').open = true;
+syncInc();
 $('bMais').addEventListener('click', e => { const o = $('more').classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', String(o)); e.currentTarget.setAttribute('aria-pressed', String(o)); });
 $('bNova').addEventListener('click', () => { tentativa++; restart(false); });
 
@@ -423,6 +468,7 @@ function stats() {
     $('gir' + sfx).textContent = s.tempo > 1 ? Math.round(s.girando / s.tempo * 100) + '%' : '–';
   }
   const a = P.modo === 'antigo' ? arenas.antigo : arenas.novo;
+  const an = arenas.novo; $('incAgora').textContent = P.modo === 'antigo' ? '' : `curva ${Math.round(Math.abs(an.lean) * 180 / Math.PI)}° · frente ${Math.round(an.pitch * 180 / Math.PI)}°`;
   $('tempo').textContent = `Tentativa ${tentativa} · ${Math.floor(a.lab.t)} s de ${L.maxTime} s`;
 }
 
