@@ -63,6 +63,17 @@ export class NomeDrill {
   generalizar por nome ao criar a segunda atividade).
 - O futebol (`sim/src/soccer.ts`, `Match`) segue o mesmo espírito com 4 atletas; ver o arquivo.
 
+### Movimento padrão (`sim/src/movimento.ts`) — vale para toda atividade nova ou retreinada
+- **Ações de movimento:** `[direção 0..15 (no mundo), ritmo 0..2 (parado, trote, corrida)]`
+  (`ACOES_MOVIMENTO`); a atividade acrescenta as suas (ex.: chutar). Nada de "girar esq/dir".
+- **Física:** `fisica({ velocidade, controle })` → velocidade máxima, aceleração, frenagem, curva e
+  giro do corpo; `moverCorpo()` a cada passo. O corpo vira sozinho para onde vai.
+- **Visão:** posição relativa do que importa dentro de um cone (`enxerga()`), mais uma memória
+  curta do último lugar visto. Raios finos só para obstáculos, se a atividade tiver.
+- **Decisão a cada `DECISAO_QUADROS` (4) quadros**, mantendo a ação no intervalo (treino, fita e
+  partida oficial usam o mesmo número).
+- Referência: `sim/src/drills/laboratorio-movimento.ts`; página `web/movimento/` → `web/dist/laboratorio-movimento.html`.
+
 ## 3. Fita (compartilhado entre as sessões de treino; mudanças aditivas)
 `fitas/<atividade>.json`, gerada por `sim/scripts/make-tape.ts`:
 ```js

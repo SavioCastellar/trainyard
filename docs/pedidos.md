@@ -31,3 +31,15 @@ Atributos novos (ver `docs/regras.md` → "Atributos base", "Atributos do esport
   Lançamento, Finta. Cérebro retreinado recebendo as habilidades como entrada.
 Pronto quando cada atributo e habilidade tiver efeito visível medido (como o teste "atributos altos
 vencem") e o `calibrar.js` for rodado de novo.
+
+## 2026-10-18 · de Laboratório de movimento para Central e Personagem · aberto
+Movimento padrão novo em `sim/src/movimento.ts` (ver `docs/contratos.md` §2 e `docs/aprendizados.md` 19).
+- **Central:** trocar a linha "Decisões" das fichas (Pista de tiros, Plataformas de equilíbrio e as
+  que vierem) para `[direção 16, ritmo 3]` + decisões próprias; "gira 3,2 rad/s" sai, os números de
+  aceleração/frenagem/curva vêm de `fisica()` (Velocidade e Controle). Precisão: retreinar com o
+  movimento novo quando for refazer a fita.
+- **Personagem:** a animação do laboratório (`web/movimento/movimento.template.html`, `Arena.animate`)
+  inclina o corpo na curva e ao frear/acelerar, vira a cabeça para o alvo antes do corpo e dá
+  passinhos ao girar parado. Levar isso para o `animateCabecudo` compartilhado (o estado de entrada
+  é o `Corpo`: `vx, vz, h, w, aFrente, aLado, passada`).
+Pronto quando as fichas estiverem atualizadas e o `animateCabecudo` cobrir esses movimentos.

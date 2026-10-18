@@ -18,6 +18,15 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
    assistir.** Precisão: de 0,6 para 29 acertos por tentativa em 5 min / 5.500 tentativas.
    → É o modelo a seguir para treinos.
 
+## Movimento
+19. **Controles de tanque + visão por raios finos = atleta girando no lugar.** Com 16 raios, um alvo
+    pequeno a mais de ~4 m some entre dois raios; o jeito de achar é girar. Somado a "só anda para
+    onde olha" e decisão a cada quadro, o movimento fica robótico. Com um piloto escrito à mão
+    (mesmo para os dois), o antigo passa 85% do tempo girando parado e faz 3,5 pontos/min; o novo
+    (`sim/src/movimento.ts`: direção + ritmo, embalo, cone de visão, decisão a cada 4 quadros)
+    fica em ~2% e 21,5 pontos/min (`node sim/dist/scripts/movimento.js`). → Toda atividade usa o
+    movimento padrão (`docs/contratos.md` §2). Ainda não testado com cérebro treinado.
+
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).
    → Hoje os atributos afetam **só a física** (velocidade, força do chute, precisão…), e o cérebro
