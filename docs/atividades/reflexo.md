@@ -26,7 +26,7 @@ aprovação final só vendo rodando.
 |---|---|---|---|---|---|
 | 1 · Um lançador | só o lançador da frente | 9/s | 1,0 s | 2,0 s | ≥ 90% das bolas desviadas |
 | 2 · Quatro lançadores | 4 lançadores em volta (a cada 90°) | 12/s | 0,5 s | 1,6 s | ≥ 95% |
-| 3 · Lançadores em movimento | como o 2, mas os lançadores giram em volta do tapete a 0,4 rad/s (~3,6 m/s), trocando de sentido a cada 2–5 s (sorteado); em 40% dos disparos saem duas bolas juntas de lançadores diferentes, e a segunda mira 1,4 para um dos lados da primeira (fecha a rota de fuga) | 12/s | 0,5 s | 1,6 s | a medir |
+| 3 · Lançadores em movimento | como o 2, mas os lançadores giram em volta do tapete a 0,4 rad/s (~3,6 m/s), trocando de sentido a cada 2–5 s (sorteado); em 40% dos disparos saem duas bolas juntas de lançadores diferentes, e a segunda mira 1,4 para um dos lados da primeira (fecha a rota de fuga) | 12/s | 0,5 s | 1,6 s | ≥ 94% |
 
 Medido com robôs simples (200 tentativas por linha, % de bolas desviadas):
 | Nível | Parado | Aleatório (tremendo) | Correndo em círculo | Reage ao disparo (robô simples) |
@@ -40,8 +40,8 @@ Treino medido (2026-10-16, domínio = média das últimas 300 tentativas do nív
 |---|---|---|---|
 | 1 | 12% (leva ~12 boladas em 30 s) | 93% | 576 |
 | 2 | ~50% | 95% | 6.208 |
-| 3 | ~72% | 97% (0,7 bolada por tentativa) | 28.160 |
-O atleta treinado passa bem do robô simples. Treino até o domínio do nível 3: ~20 min.
+| 3 | ~70% | 94% com os lançadores girando (teto ~95% em 45 min; sem giro chegava a 97%) | 33.216 |
+O atleta treinado passa bem do robô simples. Treino até o domínio do nível 3: ~25 min (retreinado em 2026-10-17 com o giro).
 
 ## Medidas (unidades da simulação ≈ metros; atleta igual ao dos outros treinos)
 | Coisa | Medida |

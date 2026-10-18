@@ -175,7 +175,7 @@ const TAPE = /*TAPE*/;
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
 const R = DRILL.REFLEXO;
-const NIVEIS = { 1: 'Um lançador', 2: 'Quatro lançadores', 3: 'Pares' };
+const NIVEIS = { 1: 'Um lançador', 2: 'Quatro lançadores', 3: 'Em movimento' };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmtN = n => n.toLocaleString('pt-BR');
 const fmtMin = m => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
@@ -565,7 +565,7 @@ let prevAvail = -1;
 document.querySelectorAll('[data-session]').forEach(b => b.addEventListener('click', () => {
   session = +b.dataset.session; syncControls(); setMode(mode); resetDiary(); liveExtra = 0; startAttempt(); drawChart(); prevAvail = availIdx();
   const n = LEVELS[session];
-  showBanner(`Nível ${n} · ${NIVEIS[n]}`, n === 1 ? 'Um lançador à frente, bola lenta, 1 s de aviso.' : n === 2 ? 'Quatro lançadores em volta, bola mais rápida, meio segundo de aviso.' : 'Às vezes duas bolas saem juntas, e a segunda fecha a rota de fuga.', 2600);
+  showBanner(`Nível ${n} · ${NIVEIS[n]}`, n === 1 ? 'Um lançador à frente, bola lenta, 1 s de aviso.' : n === 2 ? 'Quatro lançadores em volta, bola mais rápida, meio segundo de aviso.' : 'Os lançadores giram em volta do tapete e às vezes disparam duas bolas juntas.', 2600);
 }));
 $('clock').addEventListener('input', e => {
   minutes = +e.target.value; $('clockV').textContent = fmtMin(minutes);

@@ -26,7 +26,7 @@ from torch.distributions import Categorical
 DRILLS = {"precisao": (16 * 2 + 3, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6 + 1, (3, 3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha
 DOMINIO = {"velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
-           "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.97, None)}}
+           "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.94, None)}}
 OBS, ACTS = DRILLS["precisao"]
 BRIDGE = os.path.join(os.path.dirname(__file__), "..", "sim", "dist", "src", "drills", "bridge-drill.js")
 
