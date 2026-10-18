@@ -357,10 +357,11 @@ class Station {
     this.env = new DRILL.PainelDrill(seed, true, nivel);
     this.rng = new DRILL.Rng(seed ^ 0x9e3779b9);
     this.evIdx = 0; this.acc = 0;
-    this.prevX = this.prevZ = this.prevH = undefined;
+    this.hs = undefined;
     for (const p of this.st.pads) p.fx = 0;
   }
   update(dt, speed, time) {
+    this.play = speed;
     const e = this.env, ox = this.g.position.x;
     if (!e.done) {
       this.acc += dt * speed;
@@ -398,41 +399,42 @@ class Station {
     this.animateAthlete(dt, time);
   }
   animateAthlete(dt, time) {
+    // O cérebro sorteia uma ação a cada 1/30 s: a direção da simulação treme. O desenho usa uma direção
+    // suavizada (~0,15 s) e tira passada e inclinação das velocidades da simulação, que já são suaves.
     const pl = this.env.player, rig = this.rig, b = rig.body, L = rig.legs, A = rig.arms;
-    rig.root.position.set(pl.x, .08, pl.z); rig.root.rotation.y = Math.PI / 2 - pl.h;
+    const st = dt * (this.play || 1), ease = tau => 1 - Math.exp(-st / tau);
+    if (this.hs === undefined) { this.hs = pl.h; this.ws = 0; this.amp = 0; this.gait = 0; }
+    let dh = pl.h - this.hs; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    const step = dh * ease(.3);
+    this.hs += step; this.ws += (step / Math.max(st, 1e-4) - this.ws) * ease(.2);
+    rig.root.position.set(pl.x, .08, pl.z); rig.root.rotation.y = Math.PI / 2 - this.hs;
     this.tag.position.set(pl.x, 2.5, pl.z);
     b.position.set(0, 0, 0); b.rotation.set(0, 0, 0);
     for (const l of L) l.rotation.set(0, 0, 0);
     for (const a of A) a.rotation.set(0, 0, 0);
-    // passada pelo deslocamento real deste quadro (inclui a velocidade 2×/4×): um passo a cada ~0,8 m,
-    // perna para frente/trás ao andar, para o lado no passo lateral, passinhos ao girar no lugar
-    const dx = pl.x - (this.prevX ?? pl.x), dz = pl.z - (this.prevZ ?? pl.z);
-    let dh = pl.h - (this.prevH ?? pl.h); dh = Math.atan2(Math.sin(dh), Math.cos(dh));
-    this.prevX = pl.x; this.prevZ = pl.z; this.prevH = pl.h;
-    const ch = Math.cos(pl.h), sh = Math.sin(pl.h), fwd = dx * ch + dz * sh, lat = -dx * sh + dz * ch;
-    const moved = Math.hypot(dx, dz), turn = Math.abs(dh) * .35, fd = Math.max(dt, 1e-3);
-    this.gait = (this.gait || 0) + (moved + turn) / .8 * Math.PI;
-    const k = Math.min(1, moved / fd / R.speed), amp = Math.max(Math.min(1, k * 1.4), Math.min(.45, turn / fd)), g = this.gait;
-    const ff = moved > 1e-4 ? fwd / moved : 0, lf = moved > 1e-4 ? lat / moved : 0;
-    this.amp = (this.amp || 0) + (amp - (this.amp || 0)) * Math.min(1, dt * 12);
+    const v = pl.v || 0, u = pl.u || 0, speed = Math.hypot(v, u);
+    const k = Math.min(1, speed / R.speed), turn = Math.min(.4, Math.abs(this.ws) * .12);
+    this.amp += (Math.max(Math.min(1, k * 1.3), turn) - this.amp) * ease(.12);
+    // um passo a cada ~0,8 m; girando no lugar, passinhos
+    this.gait += (speed + Math.abs(this.ws) * .3) * st / .8 * Math.PI;
+    const m = this.amp, sg = Math.sin(this.gait), ff = speed > .05 ? v / speed : 1, lf = speed > .05 ? u / speed : 0;
     let drive = 0, sway = 0;
-    if (pl.frozen > 0) {
-      // travado na vermelha: tremendo, braços caídos
-      b.rotation.z = Math.sin(time * 40) * .06; b.rotation.x = -.12;
-      A[0].rotation.z = -.05; A[1].rotation.z = .05; sway = Math.sin(time * 40) * .8;
+    if ((pl.stun || pl.frozen || 0) > 0) {
+      // atordoado: balanço lento de tontura, braços caídos
+      b.rotation.z = Math.sin(time * 5) * .1; b.rotation.x = -.1;
+      A[0].rotation.z = -.05; A[1].rotation.z = .05; sway = Math.sin(time * 5) * .5;
       setExpr(rig.face, 'triste');
     } else {
-      const m = this.amp, sg = Math.sin(g), side = Math.abs(lf) > .3 ? lf : 0, fw = Math.abs(lf) > .3 ? ff : (moved > 1e-4 ? Math.sign(ff) : 1);
-      L[0].rotation.x = sg * m * .95 * fw; L[1].rotation.x = -sg * m * .95 * fw;
+      L[0].rotation.x = sg * m * .9 * ff; L[1].rotation.x = -sg * m * .9 * ff;
       // passo lateral: as pernas abrem e fecham alternadas
-      L[0].rotation.z = Math.max(0, sg) * m * .45 * side; L[1].rotation.z = -Math.max(0, -sg) * m * .45 * side;
-      A[0].rotation.x = -sg * m * .8 * fw; A[1].rotation.x = sg * m * .8 * fw;
-      A[0].rotation.z = -.12 - Math.abs(side) * m * .25; A[1].rotation.z = .12 + Math.abs(side) * m * .25;
-      b.position.y = Math.abs(sg) * .07 * m; b.rotation.x = .16 * k * ff; b.rotation.z = -.18 * k * lf;
-      sway = Math.cos(g) * .5 * m + lf * k * .4;
+      L[0].rotation.z = Math.max(0, sg) * m * .4 * lf; L[1].rotation.z = Math.min(0, sg) * m * .4 * lf;
+      A[0].rotation.x = -sg * m * .7 * ff; A[1].rotation.x = sg * m * .7 * ff;
+      A[0].rotation.z = -.12 - Math.abs(lf) * m * .2; A[1].rotation.z = .12 + Math.abs(lf) * m * .2;
+      b.position.y = Math.abs(sg) * .06 * m; b.rotation.x = .14 * k * ff; b.rotation.z = -.14 * k * lf;
+      sway = Math.cos(this.gait) * .4 * m;
       if (this.celebrate > 0) {
-        this.celebrate -= dt; const up = Math.sin((.45 - this.celebrate) / .45 * Math.PI);
-        A[0].rotation.x = -2.6 * up; drive = up * .6; setExpr(rig.face, 'feliz');
+        this.celebrate -= dt; const up = Math.sin(Math.max(0, .45 - this.celebrate) / .45 * Math.PI);
+        A[0].rotation.z = -.12 - 1.1 * up; A[1].rotation.z = .12 + 1.1 * up; drive = up * .3; setExpr(rig.face, 'feliz');
       } else setExpr(rig.face, this.look.expr);
     }
     this.blink -= dt; let ey = 1; if (this.blink < 0) { ey = .1; if (this.blink < -.12) this.blink = 2 + Math.random() * 3; }
