@@ -130,14 +130,14 @@
     <details class="tune" id="tune">
       <summary>Inclinação do corpo <span class="num" id="incAgora"></span></summary>
       <div class="tune-body">
-        <div class="trow"><button class="tog" id="iCurva" aria-pressed="true">Curva</button><input id="kCurva" type="range" min="0" max="200" value="100" aria-label="Intensidade na curva"><span class="num" id="kCurvaV">100%</span></div>
+        <div class="trow"><button class="tog" id="iCurva" aria-pressed="true">Curva</button><input id="kCurva" type="range" min="0" max="200" value="30" aria-label="Intensidade na curva"><span class="num" id="kCurvaV">30%</span></div>
         <div class="trow"><button class="tog" id="iFrente" aria-pressed="true">Acelerar e frear</button><input id="kFrente" type="range" min="0" max="200" value="100" aria-label="Intensidade ao acelerar e frear"><span class="num" id="kFrenteV">100%</span></div>
         <div class="trow"><button class="tog" id="iPostura" aria-pressed="true">Postura de corrida</button><input id="kPostura" type="range" min="0" max="200" value="100" aria-label="Intensidade da postura de corrida"><span class="num" id="kPosturaV">100%</span></div>
-        <div class="trow"><span class="lab">Ângulo máximo</span><input id="kLimite" type="range" min="3" max="35" value="22" aria-label="Ângulo máximo"><span class="num" id="kLimiteV">22°</span></div>
+        <div class="trow"><span class="lab">Ângulo máximo</span><input id="kLimite" type="range" min="3" max="35" value="35" aria-label="Ângulo máximo"><span class="num" id="kLimiteV">35°</span></div>
         <div class="trow"><span class="lab">Resposta</span><input id="kResp" type="range" min="2" max="25" value="10" aria-label="Velocidade de resposta"><span class="num" id="kRespV">10</span></div>
         <div class="trow"><button class="tog" id="iMola" aria-pressed="true">Cabeça com mola</button></div>
         <div class="tbtns"><button id="incOff">Sem inclinação</button><button id="incPadrao">Voltar ao padrão</button></div>
-        <p class="hint">Vale só para o movimento novo. "Resposta" alta = inclina e volta rápido; baixa = mais suave e atrasado.</p>
+        <p class="hint">Vale só para o movimento novo. "Resposta": quão rápido o corpo chega à inclinação pedida. Baixa = inclina atrasado e demora a voltar; alta = inclina e volta na hora.</p>
       </div>
     </details>
   </section>
@@ -150,13 +150,13 @@
     <label class="slider" for="hab">Decisões certas <input id="hab" type="range" min="0" max="100" value="85"><span class="num" id="habV">85%</span></label>
     <div class="more" id="more">
     <div class="grp"><span class="cap">Decide a cada</span><div class="seg" role="group" aria-label="Decide a cada">
-      <button data-dec="1" aria-pressed="false">1</button><button data-dec="4" aria-pressed="true">4</button><button data-dec="8" aria-pressed="false">8</button>
+      <button data-dec="1" aria-pressed="false">1</button><button data-dec="4" aria-pressed="false">4</button><button data-dec="8" aria-pressed="true">8</button>
     </div><span class="cap">quadros</span></div>
     <div class="grp"><span class="cap">Visão</span><div class="seg" role="group" aria-label="Visão">
       <button data-vis="75" aria-pressed="true">Cone 150°</button><button data-vis="180" aria-pressed="false">360°</button>
     </div></div>
-    <label class="slider" for="vel">Velocidade <input id="vel" type="range" min="10" max="95" value="50"><span class="num" id="velV">50</span></label>
-    <label class="slider" for="ctl">Controle <input id="ctl" type="range" min="10" max="95" value="50"><span class="num" id="ctlV">50</span></label>
+    <label class="slider" for="vel">Velocidade <input id="vel" type="range" min="10" max="95" value="30"><span class="num" id="velV">30</span></label>
+    <label class="slider" for="ctl">Controle <input id="ctl" type="range" min="10" max="95" value="30"><span class="num" id="ctlV">30</span></label>
     <div class="seg" role="group" aria-label="Velocidade de reprodução">
       <button data-rate="1" aria-pressed="true">1×</button><button data-rate="0.5" aria-pressed="false">½×</button><button data-rate="0.25" aria-pressed="false">¼×</button>
     </div>
@@ -413,8 +413,9 @@ class Arena {
 }
 
 /* ---------------- estado e controles ---------------- */
-const INC_PADRAO = { curva: true, frente: true, postura: true, mola: true, kCurva: 1, kFrente: 1, kPostura: 1, limite: 22, resp: 10 };
-const P = { modo: innerWidth < 700 ? 'novo' : 'lado', hab: .85, dec: 4, vis: 75, vel: 50, ctl: 50, rate: 1, rastro: true, cone: true, inc: { ...INC_PADRAO } };
+// padrão escolhido pelo Savio no laboratório (2026-10-18)
+const INC_PADRAO = { curva: true, frente: true, postura: true, mola: true, kCurva: .3, kFrente: 1, kPostura: 1, limite: 35, resp: 10 };
+const P = { modo: innerWidth < 700 ? 'novo' : 'lado', hab: .85, dec: 8, vis: 75, vel: 30, ctl: 30, rate: 1, rastro: true, cone: true, inc: { ...INC_PADRAO } };
 const arenas = { novo: new Arena('novo'), antigo: new Arena('antigo') };
 let seed = 11, tentativa = 1;
 function layout() {

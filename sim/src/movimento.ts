@@ -16,8 +16,8 @@
  */
 
 export const DT = 1 / 30;
-/** O cérebro decide a cada N quadros (padrão do ML-Agents: 5). A ação fica valendo entre decisões. */
-export const DECISAO_QUADROS = 4;
+/** O cérebro decide a cada N quadros (8 = ~0,27 s, escolhido no laboratório por parecer mais natural). A ação fica valendo entre decisões. */
+export const DECISAO_QUADROS = 8;
 /** Número de direções possíveis (no mundo). */
 export const DIRECOES = 16;
 /** Ritmos: 0 = parado (só vira o corpo para a direção), 1 = trote, 2 = corrida. */

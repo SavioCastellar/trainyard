@@ -26,6 +26,8 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
     (`sim/src/movimento.ts`: direção + ritmo, embalo, cone de visão, decisão a cada 4 quadros)
     fica em ~2% e 21,5 pontos/min (`node sim/dist/scripts/movimento.js`). → Toda atividade usa o
     movimento padrão (`docs/contratos.md` §2). Ainda não testado com cérebro treinado.
+    Ajuste visual do Savio no laboratório: decisão a cada 8 quadros, inclinação na curva bem menor
+    (30%) e atributos baixos (Velocidade e Controle 30) pareceram mais naturais.
 
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).

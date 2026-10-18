@@ -70,8 +70,11 @@ export class NomeDrill {
   giro do corpo; `moverCorpo()` a cada passo. O corpo vira sozinho para onde vai.
 - **Visão:** posição relativa do que importa dentro de um cone (`enxerga()`), mais uma memória
   curta do último lugar visto. Raios finos só para obstáculos, se a atividade tiver.
-- **Decisão a cada `DECISAO_QUADROS` (4) quadros**, mantendo a ação no intervalo (treino, fita e
-  partida oficial usam o mesmo número).
+- **Decisão a cada `DECISAO_QUADROS` (8) quadros, ~0,27 s**, mantendo a ação no intervalo (treino, fita e
+  partida oficial usam o mesmo número; atividades de reação podem precisar de menos — medir).
+- **Animação (padrão escolhido pelo Savio):** inclinação na curva 30%, ao acelerar/frear 100%,
+  postura de corrida 100%, ângulo máximo 35°, resposta 10, cabeça com mola. Valores em
+  `INC_PADRAO` de `web/movimento/movimento.template.html`.
 - Referência: `sim/src/drills/laboratorio-movimento.ts`; página `web/movimento/` → `web/dist/laboratorio-movimento.html`.
 
 ## 3. Fita (compartilhado entre as sessões de treino; mudanças aditivas)
