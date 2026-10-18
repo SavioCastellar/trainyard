@@ -76,6 +76,13 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 13. Painéis cobrem a cena no celular: no layout estreito, mostre só o essencial (contador, curva
     pequena, última linha do diário) e deixe a câmera mais alta e afastada.
 
+25. **Movimento do atleta fluido** (Savio achou "deslizando", depois "tremendo"): o cérebro sorteia uma
+    ação a cada 1/30 s, e a direção da simulação vai e volta. Na página: (a) desenhe entre dois passos
+    (interpolação; a tela é 60/s e a simulação 30/s); (b) suavize só a direção mostrada (~0,3 s);
+    (c) tire passada e inclinação das velocidades da simulação, nunca da diferença entre quadros; (d) passada
+    pela distância andada (um passo a cada ~0,8 m), com passo lateral e passinhos ao girar; (e) cabeça olhando
+    o alvo/perigo. Molde em `web/atividades/reflexo/reflexo.template.html` (`snap`, `animateAthlete`).
+
 ## Operação
 14. A máquina da sessão na nuvem pode reiniciar e matar treinos longos: salve fotos periodicamente e
     permita retomar de uma foto.

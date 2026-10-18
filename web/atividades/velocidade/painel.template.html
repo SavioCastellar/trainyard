@@ -357,15 +357,20 @@ class Station {
     this.env = new DRILL.PainelDrill(seed, true, nivel);
     this.rng = new DRILL.Rng(seed ^ 0x9e3779b9);
     this.evIdx = 0; this.acc = 0;
-    this.hs = undefined;
+    this.hs = undefined; this.prev = null;
     for (const p of this.st.pads) p.fx = 0;
+  }
+  // guarda o estado antes de cada passo: a tela (60 quadros/s) desenha entre dois passos (30/s)
+  snap() {
+    const e = this.env, P = e.player;
+    this.prev = { x: P.x, z: P.z, v: P.v, u: P.u || 0, balls: new Map((e.balls || []).map(b => [b.id, [b.x, b.z]])), L: (e.launchers || []).map(L => [L.x, L.z]) };
   }
   update(dt, speed, time) {
     this.play = speed;
     const e = this.env, ox = this.g.position.x;
     if (!e.done) {
       this.acc += dt * speed;
-      while (this.acc >= R.dt && !e.done) { e.observe(this.obs); this.brain(this.obs, this.rng, this.act); e.step(this.act[0], this.act[1]); this.acc -= R.dt; }
+      while (this.acc >= R.dt && !e.done) { this.snap(); e.observe(this.obs); this.brain(this.obs, this.rng, this.act); e.step(this.act[0], this.act[1]); this.acc -= R.dt; }
     }
     while (this.evIdx < e.events.length) {
       const ev = e.events[this.evIdx++], p = R.pads[ev.pad], pad = this.st.pads[ev.pad];
@@ -380,6 +385,9 @@ class Station {
         burst(p.x + ox, .5, p.z, 0xe23b3b, 22, 2.6, 3.5);
       }
     }
+    this.alpha = e.done ? 1 : Math.min(1, this.acc / R.dt);
+    // a cabeça olha a luz verde acesa
+    this.lookAt = e.green >= 0 && e.state[e.green] === 1 ? R.pads[e.green] : null;
     // placas
     const lit = e.green >= 0 && e.state[e.green] === 1, frac = lit ? Math.max(0, e.timer / R.window[e.nivel]) : 0;
     e.state.forEach((s, i) => {
@@ -403,12 +411,13 @@ class Station {
     // suavizada (~0,15 s) e tira passada e inclinação das velocidades da simulação, que já são suaves.
     const pl = this.env.player, rig = this.rig, b = rig.body, L = rig.legs, A = rig.arms;
     const st = dt * (this.play || 1), ease = tau => 1 - Math.exp(-st / tau);
-    if (this.hs === undefined) { this.hs = pl.h; this.ws = 0; this.amp = 0; this.gait = 0; }
+    if (this.hs === undefined) { this.hs = pl.h; this.ws = 0; this.amp = 0; this.gait = 0; this.headYaw = 0; this.lean = 0; this.leanS = 0; this.vPrev = pl.v; this.uPrev = pl.u || 0; }
     let dh = pl.h - this.hs; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
     const step = dh * ease(.3);
     this.hs += step; this.ws += (step / Math.max(st, 1e-4) - this.ws) * ease(.2);
-    rig.root.position.set(pl.x, .08, pl.z); rig.root.rotation.y = Math.PI / 2 - this.hs;
-    this.tag.position.set(pl.x, 2.5, pl.z);
+    const al = this.alpha ?? 1, pv = this.prev, ix = pv ? pv.x + (pl.x - pv.x) * al : pl.x, iz = pv ? pv.z + (pl.z - pv.z) * al : pl.z;
+    rig.root.position.set(ix, .08, iz); rig.root.rotation.y = Math.PI / 2 - this.hs;
+    this.tag.position.set(ix, 2.5, iz);
     b.position.set(0, 0, 0); b.rotation.set(0, 0, 0);
     for (const l of L) l.rotation.set(0, 0, 0);
     for (const a of A) a.rotation.set(0, 0, 0);
@@ -432,11 +441,22 @@ class Station {
       A[0].rotation.z = -.12 - Math.abs(lf) * m * .2; A[1].rotation.z = .12 + Math.abs(lf) * m * .2;
       b.position.y = Math.abs(sg) * .06 * m; b.rotation.x = .14 * k * ff; b.rotation.z = -.14 * k * lf;
       sway = Math.cos(this.gait) * .4 * m;
+      // inclina o corpo ao acelerar/frear (para frente/trás) e ao começar o passo lateral
+      const af = ((pl.v || 0) - this.vPrev) / Math.max(st, 1e-4), au = ((pl.u || 0) - this.uPrev) / Math.max(st, 1e-4);
+      this.lean += (THREE.MathUtils.clamp(af * .02, -.18, .18) - this.lean) * ease(.1);
+      this.leanS += (THREE.MathUtils.clamp(-au * .02, -.15, .15) - this.leanS) * ease(.1);
+      b.rotation.x += this.lean; b.rotation.z += this.leanS;
       if (this.celebrate > 0) {
         this.celebrate -= dt; const up = Math.sin(Math.max(0, .45 - this.celebrate) / .45 * Math.PI);
         A[0].rotation.z = -.12 - 1.1 * up; A[1].rotation.z = .12 + 1.1 * up; drive = up * .3; setExpr(rig.face, 'feliz');
       } else setExpr(rig.face, this.look.expr);
     }
+    this.vPrev = pl.v || 0; this.uPrev = pl.u || 0;
+    // cabeça vira para o que importa (bola/lançador ou luz verde); fica para frente se não há nada
+    let want = 0;
+    if (this.lookAt) { let a = Math.atan2(this.lookAt.z - iz, this.lookAt.x - ix) - this.hs; a = Math.atan2(Math.sin(a), Math.cos(a)); want = THREE.MathUtils.clamp(a, -1.1, 1.1); }
+    this.headYaw += (want - this.headYaw) * ease(.12);
+    rig.headPivot.rotation.y = -this.headYaw;
     this.blink -= dt; let ey = 1; if (this.blink < 0) { ey = .1; if (this.blink < -.12) this.blink = 2 + Math.random() * 3; }
     for (const e of rig.face.eyes) e.scale.y = ey;
     const vy = (b.position.y - this.prevY) / Math.max(dt, 1e-3), ay = (vy - this.prevVy) / Math.max(dt, 1e-3);
