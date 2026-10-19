@@ -6,7 +6,7 @@
  * Uso: node dist/scripts/make-tape.js checkpoints.json saida-tape.json
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
+import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS, PRECISION_DOMINIO } from '../src/drills/precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from '../src/drills/painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from '../src/drills/reflexo.js';
 import { ControleDrill, CONTROLE, CONTROLE_OBS, CONTROLE_ACTIONS } from '../src/drills/controle.js';
@@ -56,27 +56,33 @@ interface DrillTape {
 
 const DRILLS: Record<string, DrillTape> = {
   precisao: {
-    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS, dHits: 70, gap: () => 400,
-    evaluate(brain, _nivel, n = 16) {
+    title: 'Treino de Precisão', obs: PRECISION_OBS, actions: PRECISION_ACTIONS, dHits: 25, gap: total => total / 20,
+    evaluate(brain, nivel, n = 24) {
       const obs = new Float32Array(PRECISION_OBS), a = [0, 0, 0];
       let hits = 0, kicks = 0, best = 0;
       for (let e = 0; e < n; e++) {
-        const env = new PrecisionDrill(9000 + e), rng = new Rng(7000 + e);
+        const env = new PrecisionDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
         while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1], a[2]); }
         hits += env.hits; kicks += env.kicks; best = Math.max(best, env.hits);
       }
       return { hits: hits / n, kicks: kicks / n, acc: kicks ? hits / kicks : 0, best };
     },
     marks(picked, add) {
-      const firstWhere = (f: (e: Ev) => boolean) => picked.findIndex(f), maxHits = Math.max(...picked.map(e => e.hits));
+      const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
+      // o domínio é medido no treino (média de 300 tentativas); aqui marca a última foto do nível
+      const fim = (nivel: number) => picked.map(e => e.nivel).lastIndexOf(nivel), D = PRECISION_DOMINIO;
       add(0, 'Primeira tentativa: ele ainda não sabe o que é um alvo. Chuta para qualquer lado.');
-      add(firstWhere(e => e.acc >= 0.15), 'Começou a virar na direção dos alvos antes de chutar.');
-      add(firstWhere(e => e.hits >= 5), 'Já acerta 5 alvos por tentativa.');
-      add(firstWhere(e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
-      add(firstWhere(e => e.hits >= 10), 'Dois dígitos: 10 acertos por tentativa.');
-      add(firstWhere(e => e.acc >= 0.6), 'Mais da metade dos chutes vai no alvo.');
-      add(firstWhere(e => e.hits >= 20), '20 acertos por tentativa. Virou máquina.');
-      add(firstWhere(e => e.hits >= maxHits * 0.95), 'Domínio: perto do máximo que este exercício permite.');
+      add(at(1, e => e.acc >= 0.15), 'Começou a virar na direção dos alvos antes de chutar.');
+      add(at(1, e => e.hits >= 5), 'Já acerta 5 alvos por tentativa.');
+      add(at(1, e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
+      add(at(1, e => e.hits >= 15), '15 acertos por tentativa.');
+      add(fim(1), `Domínio do nível 1: ${D[1]} acertos por tentativa.`);
+      add(at(2, () => true), 'Nível 2 · Alvos que apagam: cada alvo fica aceso só 2 s. Bola em alvo apagado não conta.', 2);
+      add(at(2, e => e.hits >= D[2] - 4), 'Começou a escolher o alvo que ainda vai estar aceso quando a bola chegar.');
+      add(fim(2), `Domínio do nível 2: ${D[2]} acertos por tentativa.`);
+      add(at(3, () => true), 'Nível 3 · Alvos móveis: os alvos deslizam em trilhos ao redor do centro.', 3);
+      add(at(3, e => e.hits >= D[3] - 6), 'Começou a chutar à frente do alvo, onde ele vai estar.');
+      add(fim(3), `Domínio do nível 3: ${D[3]} acertos por tentativa com os alvos em movimento.`);
     },
   },
   velocidade: {

@@ -74,6 +74,19 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 28. Física de empurrar que funcionou: choque sem quique no ponto de contato (o trenó gira sozinho quando
     o empurrão é fora do centro) e atrito parado como **velocidade mínima do choque**: encostado não
     destrava; precisa de embalo. Isso criou o "arranque" sem recompensa nenhuma.
+## Precisão com 3 níveis — 2026-10-16
+25. **Meça o nível proposto com robôs antes de treinar: a ficha pode não ensinar nada.** Com os alvos
+    acesos 3,0 s (proposta), ignorar o tempo custava só 2 acertos (28,1 × 30,1); com 2,0 s custa 4
+    (25,1 × 29,2). Trilhos a 1,5/s: mirar no alvo e não à frente perdia só 6; a 2,0/s perde 14. Ajustar a
+    medida até os robôs se separarem é mais barato que treinar e descobrir que o nível não muda nada.
+26. **Raios valem como sensor de "acertaria agora?".** Trocar os raios da Precisão por alvos em direção +
+    distância (aprendizado 19) travou o atleta em 22,6 acertos: chutava na cadência máxima com 69% no alvo,
+    porque decidir "a mira está boa" exige juntar ângulo e distância. Com os raios de volta (alvo na linha
+    do chute de graça) e os alvos descritos ao lado, chegou a 25 em 3M passos, como a versão de 1 nível.
+    → Mantenha o sensor que já dá a resposta do gesto; acrescente o que o nível novo pede.
+27. **O domínio tem que caber no teto do PPO, não no do robô.** O PPO fica em ~90% do robô perfeito
+    (nível 1: 27,6 × 30,4). Domínio acima disso trava a subida de nível (26,5 no nível 2 ficou em 25,9
+    por 15 min). Ponha o domínio entre o robô sem o comportamento e ~90% do robô com ele.
 
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).
