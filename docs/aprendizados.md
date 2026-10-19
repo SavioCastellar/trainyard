@@ -87,6 +87,16 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 27. **O domínio tem que caber no teto do PPO, não no do robô.** O PPO fica em ~90% do robô perfeito
     (nível 1: 27,6 × 30,4). Domínio acima disso trava a subida de nível (26,5 no nível 2 ficou em 25,9
     por 15 min). Ponha o domínio entre o robô sem o comportamento e ~90% do robô com ele.
+## Movimento
+19. **Controles de tanque + visão por raios finos = atleta girando no lugar.** Com 16 raios, um alvo
+    pequeno a mais de ~4 m some entre dois raios; o jeito de achar é girar. Somado a "só anda para
+    onde olha" e decisão a cada quadro, o movimento fica robótico. Com um piloto escrito à mão
+    (mesmo para os dois), o antigo passa 85% do tempo girando parado e faz 3,5 pontos/min; o novo
+    (`sim/src/movimento.ts`: direção + ritmo, embalo, cone de visão, decisão a cada 4 quadros)
+    fica em ~2% e 21,5 pontos/min (`node sim/dist/scripts/movimento.js`). → Toda atividade usa o
+    movimento padrão (`docs/contratos.md` §2). Ainda não testado com cérebro treinado.
+    Ajuste visual do Savio no laboratório: decisão a cada 8 quadros, inclinação na curva bem menor
+    (30%) e atributos baixos (Velocidade e Controle 30) pareceram mais naturais.
 
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).

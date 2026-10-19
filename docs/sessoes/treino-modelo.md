@@ -23,7 +23,7 @@ domínio, e entregar a fita + página. **Roda no computador do Savio** (ver `doc
 - `docs/aprendizados.md` inteiro.
 
 ## Marcos
-1. Simulação da atividade seguindo a ficha e o contrato §2, com teste de determinismo.
+1. Simulação da atividade seguindo a ficha e o contrato §2 — **com o movimento padrão** (`sim/src/movimento.ts`), não controles de tanque —, com teste de determinismo.
 2. Treino do zero ao domínio. Recompensa só do objetivo; se precisar de ajuda, registrar o porquê.
 3. Fita + página (cenário da sessão Cenários + simulação + casca da fita). O Savio assiste e
    avalia; repetir 2–3 até ele aprovar a "graça" da evolução, não só a curva.
