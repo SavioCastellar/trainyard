@@ -93,6 +93,9 @@ export class NomeDrill {
 - Precisão com níveis (2026-10-16): mesmas métricas (`hits`, `kicks`, `acc`, `best`) e `nivel`; o domínio
   dela é em acertos por tentativa (valor > 1 na tabela `DOMINIO` do `ppo_drill.py`). A observação mudou
   (35 → 58 entradas): a fita de 1 nível não roda mais com a simulação nova.
+- Métricas da Inteligência: `hits` (pontos por tentativa), `taken` (postos pisados), `valor` (= hits/taken),
+  `wrong` (postos da cor errada, nível 3), `best`. Na ponte, `lights` = 1 por tentativa, para o `ppo_drill`
+  medir o domínio em pontos (hits/lights).
 - Campos de métrica (`hits`, `kicks`, `acc`, `best`) são da Precisão; outras atividades podem ter
   outros, mas **`hits` deve existir como "desempenho principal"** (a curva usa ele) — ou renomear
   para `score` em todas de uma vez, combinando aqui.

@@ -61,4 +61,5 @@ python ppo_drill.py --minutes 2 --out runs/teste   # teste rápido da Precisão
 | Controle (`ppo_drill.py --drill controle`) | 1 (64 ambientes) | ~18 mil | 2026-10-16, com outros 3 treinos rodando; do zero ao domínio dos 3 níveis em 5 min |
 | Força (`ppo_drill.py --drill forca`) | 1 (64 ambientes) | ~24 mil | 2026-10-16; com outros 3 treinos rodando ao mesmo tempo; 3 níveis em 3,8 min |
 | Precisão 3 níveis (`--drill precisao`) | 1 (64 ambientes) | ~13 mil | 2026-10-16; observação maior (58); 20M passos em ~25 min até o domínio do nível 3 |
+| Inteligência (`ppo_drill.py --drill inteligencia`) | 1 (64 ambientes) | ~19 mil | 2026-10-16; com outros 3 treinos rodando; 3 níveis em 32 min |
 | Precisão (`ppo_drill.py`) | 1 (64 ambientes) | ~30 mil | 2026-10-16; 13,7 acertos/tentativa em 0,3 min (na nuvem levava ~2 min) |

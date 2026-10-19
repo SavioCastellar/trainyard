@@ -24,7 +24,7 @@ from torch.distributions import Categorical
 
 # tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
 DRILLS = {"precisao": (5 + 3 * 7 + 16 * 2, (3, 3, 2)), "velocidade": (22 + 12 * 5, (3, 3)), "reflexo": (7 + 4 * 5 + 4 * 6 + 1, (3, 3, 3)),
-          "controle": (2 + 5 * 9, (3, 3)), "forca": (27, (3, 3))}
+          "controle": (2 + 5 * 9, (3, 3)), "forca": (27, (3, 3)), "inteligencia": (8 + 2 * 5 * 6 + 8, (3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha.
 # Valor acima de 1 é acertos/entregas por tentativa (Precisão: igual a PRECISION_DOMINIO em precision.ts).
 DOMINIO = {"precisao": {1: (26, None), 2: (26, None), 3: (25, None)},
@@ -33,7 +33,9 @@ DOMINIO = {"precisao": {1: (26, None), 2: (26, None), 3: (25, None)},
            # controle: plataformas/100 (a ponte manda lights = 100) e quedas por tentativa no lugar das vermelhas
            "controle": {1: (0.80, 2), 2: (0.75, 2), 3: (0.35, 5)},
            # força: hits/lights = entregas por tentativa (a ponte manda lights = 5 marcas)
-           "forca": {1: (3.0, None), 2: (1.5, None), 3: (1.0, None)}}
+           "forca": {1: (3.0, None), 2: (1.5, None), 3: (1.0, None)},
+           # inteligencia: pontos por tentativa (a ponte manda lights = 1)
+           "inteligencia": {1: (17, None), 2: (30, None), 3: (20, None)}}
 OBS, ACTS = DRILLS["precisao"]
 BRIDGE = os.path.join(os.path.dirname(__file__), "..", "sim", "dist", "src", "drills", "bridge-drill.js")
 
