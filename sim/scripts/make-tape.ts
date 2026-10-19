@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from '../src/drills/precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from '../src/drills/painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from '../src/drills/reflexo.js';
+import { ControleDrill, CONTROLE, CONTROLE_OBS, CONTROLE_ACTIONS } from '../src/drills/controle.js';
 import { Rng } from '../src/rng.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
@@ -137,6 +138,41 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(2, e => e.acc >= D[2]), `Domínio do nível 2: desvia ${Math.round(REFLEXO_DOMINIO[2] * 100)}% das bolas.`);
       add(at(3, () => true), 'Nível 3 · Lançadores em movimento: eles giram em volta do tapete e às vezes disparam em par, com a segunda bola fechando a rota de fuga.', 3);
       add(at(3, e => e.acc >= D[3]), `Domínio do nível 3: desvia ${Math.round(REFLEXO_DOMINIO[3] * 100)}% das bolas, com os lançadores em movimento.`);
+    },
+  },
+  controle: {
+    title: 'Plataformas de equilíbrio', obs: CONTROLE_OBS, actions: CONTROLE_ACTIONS, dHits: 30, gap: total => total / 25,
+    evaluate(brain, nivel, n = 24) {
+      const obs = new Float32Array(CONTROLE_OBS), a = [0, 0];
+      let hits = 0, falls = 0, best = 0, brakes = 0, steps = 0;
+      for (let e = 0; e < n; e++) {
+        const env = new ControleDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
+        while (!env.done) {
+          env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1]);
+          // freadas: ré com embalo para a frente (mede o "frear antes da curva")
+          if (a[1] === 0 && env.player.v > 1) brakes++;
+          steps++;
+        }
+        hits += env.hits; falls += env.falls; best = Math.max(best, env.hits);
+      }
+      return { hits: hits / n, falls: falls / n, brakes: brakes / steps, best };
+    },
+    marks(picked, add) {
+      const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
+      const D = CONTROLE.dominio, ok = (n: number) => (e: Ev) => e.hits >= D[n]!.plats && e.falls < D[n]!.falls;
+      add(0, 'Primeira tentativa: anda a esmo e cai da primeira plataforma.');
+      add(at(1, e => e.hits >= 10), 'Começou a seguir a trilha: já passa 10 plataformas por tentativa.');
+      add(at(1, e => e.hits >= 40), 'Corre pela trilha e corrige a direção a cada plataforma.');
+      add(at(1, ok(1)), `Domínio do nível 1: ${D[1]!.plats} plataformas por tentativa.`);
+      const l2 = at(2, () => true);
+      add(l2, 'Nível 2 · Estreitas: plataformas menores e curvas fechadas. Correndo demais, ele passa direto.', 2);
+      if (l2 >= 0) add(at(2, e => e.falls <= picked[l2].falls / 2), 'Aprendeu a frear antes da curva: cai metade das vezes.');
+      // o domínio é medido no treino; nas sementes da fita a última foto do nível pode ficar um pouco abaixo
+      const l3 = at(3, () => true), d2 = at(2, ok(2));
+      add(d2 >= 0 ? d2 : l3 - 1, `Domínio do nível 2: mais de ${D[2]!.plats} plataformas e quase sem quedas.`);
+      add(l3, 'Nível 3 · Móveis: algumas plataformas deslizam de um lado para o outro.', 3);
+      if (l3 >= 0) add(at(3, e => e.falls <= picked[l3].falls / 2), 'Começou a acertar o tempo da plataforma móvel: chega quando ela encosta na vizinha.');
+      add(at(3, ok(3)), `Domínio do nível 3: ${D[3]!.plats} plataformas e menos de ${D[3]!.falls} quedas.`);
     },
   },
 };

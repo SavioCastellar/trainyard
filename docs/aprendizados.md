@@ -41,6 +41,25 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
 22. Subir de nível derruba a curva (95% → 30%) e ela volta a subir: isso dá uma boa história na fita.
     Dividir as sessões da página por nível deixa a evolução clara.
 
+## Plataformas de equilíbrio (Controle), 2026-10-16
+25. **Tempo de sobra esconde o comportamento.** Com uma trilha de 24 plataformas e 30 s, quem não freava caía 5
+    vezes e ainda terminava em 13 s. Trilha sem fim (o placar é quantas passa em 30 s) fez o tempo apertar e cada
+    queda custar plataformas. → Em atividade de percurso, o tempo tem que acabar antes do percurso.
+26. **Medir o domínio também pelo erro, não só pelo placar.** No nível 2, "plataformas" sozinho deixava passar
+    quem corre sem frear (56); exigir menos de 2 quedas obriga a frear. A ponte manda as quedas no campo `reds`
+    e `lights` = 100 fixo, e o `DOMINIO` do `ppo_drill.py` usa os dois sem mudar nada no treino.
+27. **O atleta treinado passa longe dos robôs de referência** (140 plataformas no nível 2 contra 92 do robô que
+    freia): os robôs servem para pôr o domínio entre "sem" e "com" o comportamento, não como teto.
+28. **Obstáculo que se mexe tem que tirar, não dar.** A plataforma móvel deslizando ao longo da trilha empurrava o
+    atleta para a frente e ajudava; de lado, com amplitude que solta das vizinhas, virou obstáculo. Mesmo assim,
+    queda barata (1 s) faz o atleta "acertar o tempo" sem parar em vez de esperar parado; queda de 2 s não mudou isso.
+29. **Dê ao atleta a medida do que ele precisa julgar.** No nível 3 ele estacionou em 8,3 quedas (o mesmo do robô
+    que não espera) com posição e velocidade da móvel na observação. Acrescentando a folga entre cada plataforma e a
+    anterior e quanto ela muda por segundo, dominou em 2,4 min. Como no item 19: a rede aprende rápido com a
+    grandeza certa (distância até a beira, folga), e devagar ou nunca quando precisa calculá-la.
+    Geração sorteada: confira a trilha com um teste (vizinhas sobrepostas, não vizinhas separadas) — o modo de
+    emergência que ignora a folga criou plataformas encostadas em antigas e deu "progresso" ao robô parado.
+
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).
    → Hoje os atributos afetam **só a física** (velocidade, força do chute, precisão…), e o cérebro
