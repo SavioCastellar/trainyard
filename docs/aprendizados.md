@@ -98,6 +98,12 @@ Leia antes de desenhar uma atividade nova ou mexer em treino.
     Ajuste visual do Savio no laboratório: decisão a cada 8 quadros, inclinação na curva bem menor
     (30%) e atributos baixos (Velocidade e Controle 30) pareceram mais naturais.
 
+20. **Com 16 direções no mundo, mostre a direção "no idioma das ações".** A Velocidade travou em 34% no
+    nível 2 por 170 mil tentativas recebendo só x e z do alvo: a rede precisa transformar (x, z) num de 16
+    ângulos, e não conseguiu. Com 16 entradas = cosseno entre cada direção e o alvo (`direcaoComoAcao` em
+    `movimento.ts`), chegou a 77% em 2 min e ~87% em 4 min. → Para cada coisa que o atleta precisa
+    alcançar ou evitar, dê essas 16 entradas.
+
 ## Atributos e cérebro
 6. **Neuroevolução não aprendeu a usar atributos como entrada** (com atributos altos jogava pior).
    → Hoje os atributos afetam **só a física** (velocidade, força do chute, precisão…), e o cérebro

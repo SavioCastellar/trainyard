@@ -11,7 +11,7 @@
  * Ações: [direção 0..15, ritmo 0..2].
  */
 import { Rng } from '../rng.js';
-import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarCirculo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento } from '../movimento.js';
+import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarCirculo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento, DIRECOES, direcaoComoAcao } from '../movimento.js';
 
 const ang = (k: number) => (k * Math.PI) / 4;
 export const PAINEL = {
@@ -24,7 +24,7 @@ export const PAINEL = {
     ...[0, 1, 2, 3, 4, 5, 6, 7].map(k => ({ x: Math.cos(ang(k)) * 5.5, z: Math.sin(ang(k)) * 5.5 })),
   ],
   /** janela da luz por nível (índice = nível) */
-  window: [0, 4.0, 2.5, 2.5],
+  window: [0, 4.0, 2.8, 2.8],
   gap: 0.4,
   reds: 2,
   /** chance de uma das vermelhas cair no caminho até a verde */
@@ -34,7 +34,8 @@ export const PAINEL = {
   dt: 1 / 30,
 } as const;
 
-export const PAINEL_OBS = 19 + PAINEL.pads.length * 5;
+/** 19 do atleta/centro/verde/vermelhas + 5 por placa + 3 × 16 direções (verde, centro, vermelha mais perto) */
+export const PAINEL_OBS = 19 + PAINEL.pads.length * 5 + 3 * DIRECOES;
 export const PAINEL_ACTIONS = ACOES_MOVIMENTO;
 export type Nivel = 1 | 2 | 3;
 
@@ -130,6 +131,11 @@ export class PainelDrill {
       out[o] = st === 1 ? 1 : 0; out[o + 1] = st === 2 ? 1 : 0; out[o + 2] = st ? tl : 0;
       out[o + 3] = (p.x - C.x) / R; out[o + 4] = (p.z - C.z) / R;
     });
+    // as mesmas direções "no idioma das ações" (16 valores cada): verde, centro e vermelha mais perto
+    const d = off + 19 + PAINEL.pads.length * 5;
+    direcaoComoAcao(out, d, lit ? g.x - C.x : 0, lit ? g.z - C.z : 0, lit);
+    direcaoComoAcao(out, d + DIRECOES, -C.x, -C.z);
+    direcaoComoAcao(out, d + 2 * DIRECOES, reds[0] ? reds[0].x - C.x : 0, reds[0] ? reds[0].z - C.z : 0, !!reds[0]);
   }
 
   /** ações = [direção 0..15, ritmo 0..2] */

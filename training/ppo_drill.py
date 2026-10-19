@@ -23,12 +23,12 @@ import torch.nn as nn
 from torch.distributions import Categorical
 
 # tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
-DRILLS = {"precisao": (5 + 3 * 7 + 16 * 2, (3, 3, 2)), "velocidade": (19 + 12 * 5, (16, 3)), "reflexo": (7 + 4 * 5 + 4 * 6 + 1, (3, 3, 3)),
+DRILLS = {"precisao": (5 + 3 * 7 + 16 * 2, (3, 3, 2)), "velocidade": (19 + 12 * 5 + 3 * 16, (16, 3)), "reflexo": (7 + 4 * 5 + 4 * 6 + 1, (3, 3, 3)),
           "controle": (2 + 5 * 9, (3, 3)), "forca": (27, (3, 3)), "inteligencia": (8 + 2 * 5 * 6 + 8, (3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha.
 # Valor acima de 1 é acertos/entregas por tentativa (Precisão: igual a PRECISION_DOMINIO em precision.ts).
 DOMINIO = {"precisao": {1: (26, None), 2: (26, None), 3: (25, None)},
-           "velocidade": {1: (0.90, None), 2: (0.95, None), 3: (0.93, 0.3)},
+           "velocidade": {1: (0.90, None), 2: (0.86, None), 3: (0.82, 0.4)},
            "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.94, None)},
            # controle: plataformas/100 (a ponte manda lights = 100) e quedas por tentativa no lugar das vermelhas
            "controle": {1: (0.80, 2), 2: (0.75, 2), 3: (0.35, 5)},
@@ -122,15 +122,17 @@ def main():
     ap.add_argument("--seed", type=int, default=3)
     ap.add_argument("--out", default="runs/precisao")
     ap.add_argument("--drill", default="precisao", choices=list(DRILLS))
+    ap.add_argument("--nivel", type=int, default=1, help="nível inicial (para testes; a fita oficial começa no 1)")
     ap.add_argument("--after", type=int, default=60, help="atualizações extras depois de dominar o último nível")
     args = ap.parse_args()
     global OBS, ACTS
     OBS, ACTS = DRILLS[args.drill]
     dominio = DOMINIO.get(args.drill)
-    nivel, level_start, mastered_at = 1, 0, None
+    nivel, level_start, mastered_at = args.nivel, 0, None
     torch.set_num_threads(1); torch.manual_seed(args.seed); np.random.seed(args.seed)
     os.makedirs(args.out, exist_ok=True)
     env = Drill(args.n_envs, args.seed, args.drill)
+    if nivel > 1: env.set_level(nivel)
     net = Net(); opt = torch.optim.Adam(net.parameters(), lr=3e-4, eps=1e-5)
     n, T = args.n_envs, args.steps
     ckpts = [{"update": 0, "steps": 0, "episodes": 0, "nivel": 1, "layers": snapshot(net)}]

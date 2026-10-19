@@ -554,7 +554,7 @@ let prevAvail = -1;
 document.querySelectorAll('[data-session]').forEach(b => b.addEventListener('click', () => {
   session = +b.dataset.session; syncControls(); setMode(mode); resetDiary(); liveExtra = 0; startAttempt(); drawChart(); prevAvail = availIdx();
   const n = LEVELS[session];
-  showBanner(`Nível ${n} · ${NIVEIS[n]}`, n === 1 ? 'Só as 4 placas do meio; cada luz dura 4 s.' : n === 2 ? 'As 12 placas acendem e cada luz dura só 2,5 s.' : 'Junto com a verde acendem 2 vermelhas. Pisar nelas trava o atleta 1 s.', 2600);
+  showBanner(`Nível ${n} · ${NIVEIS[n]}`, n === 1 ? 'Só as 4 placas do meio; cada luz dura 4 s.' : n === 2 ? 'As 12 placas acendem e cada luz dura só 2,8 s.' : 'Junto com a verde acendem 2 vermelhas. Pisar nelas trava o atleta 1 s.', 2600);
 }));
 $('clock').addEventListener('input', e => {
   minutes = +e.target.value; $('clockV').textContent = PREVIA ? Math.round(minutes / 1.2) + '%' : fmtMin(minutes);

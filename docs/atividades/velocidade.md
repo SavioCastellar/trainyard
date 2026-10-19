@@ -17,8 +17,13 @@ Estação do centro de treinamento para **Velocidade**. Nasceu como "Painel de r
 | Nível | O que muda | Janela da luz | Domínio do nível |
 |---|---|---|---|
 | 1 · Luzes lentas | só as 4 placas do anel interno; uma verde por vez | 4,0 s | ≥ 90% das luzes pisadas |
-| 2 · Janela curta | as 12 placas; uma verde por vez | 2,5 s | ≥ 95% das luzes |
-| 3 · Luzes proibidas | as 12 placas; além da verde, acendem 2 vermelhas ao mesmo tempo; em metade das luzes uma delas cai no caminho até a verde | 2,5 s | ≥ 93% das luzes e menos de 0,3 vermelha pisada por tentativa |
+| 2 · Janela curta | as 12 placas; uma verde por vez | **2,8 s** | ≥ **86%** das luzes |
+| 3 · Luzes proibidas | as 12 placas; além da verde, acendem 2 vermelhas ao mesmo tempo; em metade das luzes uma delas cai no caminho até a verde | **2,8 s** | ≥ **82%** das luzes e menos de **0,4** vermelha pisada por tentativa |
+
+**Movimento novo (2026-10-19):** com o atleta da fita (Velocidade 35, até 4,2 m/s) a janela de 2,5 s ficou
+apertada demais: o piloto escrito à mão pisava 86% voltando ao centro e 84% parado. Com 2,8 s: 92% voltando,
+87% parado (o voltar ao centro ainda vale). Treinando direto no nível 2, o atleta chega a ~87% em 4 min na
+nuvem; domínios 86% (nível 2) e 82% com menos de 0,4 vermelha (nível 3). A tabela abaixo é do movimento antigo.
 
 Domínios **medidos** no treino (2026-10-16; a média das últimas 300 tentativas do nível). Robô simples
 (corre reto para a verde) para comparação:

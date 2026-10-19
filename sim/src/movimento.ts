@@ -129,3 +129,16 @@ export function limitarCirculo(c: Corpo, r: number) {
     const vn = c.vx * nx + c.vz * nz; if (vn > 0) { c.vx -= vn * nx; c.vz -= vn * nz; }
   }
 }
+
+/**
+ * Direção para algo, escrita "no idioma das ações": para cada uma das 16 direções, o quanto ela aponta
+ * para o alvo (cosseno do ângulo entre elas, 1 = em cheio, -1 = ao contrário). Com isso a rede só
+ * precisa escolher a direção de maior valor, em vez de calcular um ângulo a partir de x e z — sem isso o
+ * atleta da Velocidade travou em ~35% no nível 2 (aprendizados).
+ * `existe` = false zera as 16 entradas. Escreve DIRECOES valores a partir de `off`.
+ */
+export function direcaoComoAcao(out: Float32Array, off: number, dx: number, dz: number, existe = true) {
+  if (!existe || (dx === 0 && dz === 0)) { out.fill(0, off, off + DIRECOES); return; }
+  const a = Math.atan2(dz, dx);
+  for (let k = 0; k < DIRECOES; k++) out[off + k] = Math.cos(a - anguloDirecao(k));
+}
