@@ -22,8 +22,8 @@ zero no computador do Savio, **uma de cada vez**, depois de ele aprovar a prévi
 ## Ordem e estado
 | # | Atividade | Simulação migrada | Prévia aprovada | Retreinada | Fita aprovada |
 |---|---|---|---|---|---|
-| 1 | Velocidade (Painel de luzes) | sim | aguardando | — | — |
-| 2 | Controle (Plataformas) | — | — | — | — |
+| 1 | Velocidade (Painel de luzes) | sim | sim | sim (2026-10-19, 219 checkpoints) | sim |
+| 2 | Controle (Plataformas) | — (mudanças a combinar com o Savio antes) | — | — | — |
 | 3 | Precisão | — | — | — | — |
 | 4 | Reflexo (Lançadores) | — | — | — | — |
 | 5 | Força (Trenó) | — | — | — | — |
@@ -31,6 +31,9 @@ zero no computador do Savio, **uma de cada vez**, depois de ele aprovar a prévi
 
 As fitas antigas continuam no repositório até a nova de cada atividade ficar pronta; a página de
 treino de uma atividade migrada só funciona com a fita nova.
+
+**Velocidade concluída:** fita nova em `fitas/velocidade.json` (`decisao` = 8); domínio do nível 3
+no checkpoint 198. O Savio aprovou o resultado em 2026-10-19.
 
 ## Retreinar uma atividade (no computador do Savio)
 ```powershell
