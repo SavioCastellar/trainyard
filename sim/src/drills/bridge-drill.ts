@@ -9,6 +9,7 @@ import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from './precision.js
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from './painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from './reflexo.js';
 import { ControleDrill, CONTROLE_OBS, CONTROLE_ACTIONS } from './controle.js';
+import { ForcaDrill, FORCA_OBS, FORCA_ACTIONS } from './forca.js';
 import { Rng } from '../rng.js';
 
 interface Env { done: boolean; reward: number; observe(o: Float32Array, off: number): void; step(...a: number[]): void }
@@ -27,6 +28,11 @@ const DRILLS: Record<string, { obs: number; acts: number; make(seed: number, niv
   controle: {
     obs: CONTROLE_OBS, acts: CONTROLE_ACTIONS.length, make: (s, n) => new ControleDrill(s, false, n as Nivel),
     info: (e: ControleDrill) => ({ hits: e.hits, lights: 100, reds: e.falls, nivel: e.nivel }),
+  },
+  // hits = marcas cruzadas; lights = 5 marcas por entrega, então hits/lights = entregas por tentativa (domínio da ficha)
+  forca: {
+    obs: FORCA_OBS, acts: FORCA_ACTIONS.length, make: (s, n) => new ForcaDrill(s, false, n as 1 | 2 | 3),
+    info: (e: ForcaDrill) => ({ hits: e.hits, lights: 5, reds: 0, delivered: e.delivered, outs: e.outs, nivel: e.nivel }),
   },
 };
 
