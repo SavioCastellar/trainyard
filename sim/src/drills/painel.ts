@@ -4,18 +4,19 @@
  * No nível 3 acendem também 2 vermelhas; pisar numa deixa o atleta 1 s parado (custo natural).
  * Medidas em docs/atividades/velocidade.md.
  *
- * Observação: atleta (posição, direção, velocidade, parado); centro, verde e vermelhas vistas pelo atleta
- * (direção e distância); para cada placa, cor, tempo restante e posição relativa (frente/lado).
- * Ações: girar (esq/nada/dir), andar (ré/parado/frente).
+ * Movimento padrão (`movimento.ts`): direção + ritmo, com embalo; atributos do atleta da fita.
+ * Observação (no referencial do mundo, como as ações): atleta (posição, velocidade, direção, parado);
+ * centro, verde e vermelhas (posição relativa); para cada placa, cor, tempo restante e posição relativa.
+ * Todas as placas são visíveis: é uma sala pequena e a luz no piso se vê de qualquer lugar.
+ * Ações: [direção 0..15, ritmo 0..2].
  */
 import { Rng } from '../rng.js';
+import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarCirculo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento } from '../movimento.js';
 
 const ang = (k: number) => (k * Math.PI) / 4;
 export const PAINEL = {
   arenaR: 7,
   playerR: 0.55,
-  speed: 4.5,
-  turn: 3.2,
   padR: 0.6,
   /** 0..3 anel interno (raio 2,5, a 45°, 135°…), 4..11 anel externo (raio 5,5, a cada 45° desde 0°) */
   pads: [
@@ -33,8 +34,8 @@ export const PAINEL = {
   dt: 1 / 30,
 } as const;
 
-export const PAINEL_OBS = 22 + PAINEL.pads.length * 5;
-export const PAINEL_ACTIONS = [3, 3] as const;
+export const PAINEL_OBS = 19 + PAINEL.pads.length * 5;
+export const PAINEL_ACTIONS = ACOES_MOVIMENTO;
 export type Nivel = 1 | 2 | 3;
 
 /** 0 apagada, 1 verde, 2 vermelha */
@@ -54,7 +55,10 @@ export class PainelDrill {
   /** luzes verdes encerradas (pisadas ou apagadas) */
   lights = 0;
   reds = 0;
-  player = { x: 0, z: 0, h: 0, v: 0, phase: 0, frozen: 0 };
+  /** corpo do atleta (movimento padrão) e o mesmo estado no formato antigo, para as páginas */
+  corpo: Corpo = novoCorpo();
+  readonly fis: Fisica;
+  player = { x: 0, z: 0, h: 0, v: 0, u: 0, phase: 0, frozen: 0 };
   state: PadState[] = PAINEL.pads.map(() => 0);
   green = -1;
   /** vermelhas acesas (nível 3) */
@@ -64,9 +68,10 @@ export class PainelDrill {
   events: PainelEvent[] | null;
   private inPad = -1;
 
-  constructor(seed: number, record = false, readonly nivel: Nivel = 1) {
+  constructor(seed: number, record = false, readonly nivel: Nivel = 1, atributos: AtributosMovimento = ATLETA_FITA) {
     this.rng = new Rng(seed);
     this.events = record ? [] : null;
+    this.fis = fisica(atributos);
   }
 
   private padAt(x: number, z: number) {
@@ -107,56 +112,44 @@ export class PainelDrill {
   }
 
   observe(out: Float32Array, off = 0) {
-    const P = this.player, R = PAINEL.arenaR, c = Math.cos(P.h), s = Math.sin(P.h);
-    out[off] = P.x / R; out[off + 1] = P.z / R; out[off + 2] = c; out[off + 3] = s;
-    out[off + 4] = P.v / PAINEL.speed; out[off + 5] = P.frozen > 0 ? 1 : 0;
+    const P = this.player, C = this.corpo, R = PAINEL.arenaR, vm = this.fis.velMax;
+    out[off] = C.x / R; out[off + 1] = C.z / R; out[off + 2] = C.vx / vm; out[off + 3] = C.vz / vm;
+    out[off + 4] = Math.cos(C.h); out[off + 5] = Math.sin(C.h); out[off + 6] = P.frozen > 0 ? 1 : 0;
     const lit = this.green >= 0 && this.state[this.green] === 1, tl = lit ? this.timer / PAINEL.window[this.nivel] : 0;
-    // centro e verde acesa vistos pelo atleta: direção (cos, sen do ângulo) e distância. A direção vale
-    // para qualquer placa, então o "correr para a luz" aprendido no anel interno serve para o externo.
-    const look = (o: number, dx: number, dz: number) => {
-      const f = dx * c + dz * s, l = -dx * s + dz * c, d = Math.hypot(f, l);
-      out[o] = d > 1e-6 ? f / d : 1; out[o + 1] = d > 1e-6 ? l / d : 0; out[o + 2] = d / R;
-    };
-    look(off + 6, -P.x, -P.z);
+    out[off + 7] = -C.x / R; out[off + 8] = -C.z / R;
     const g = PAINEL.pads[this.green];
-    out[off + 9] = lit ? 1 : 0; out[off + 13] = tl;
-    if (lit) look(off + 10, g.x - P.x, g.z - P.z); else out[off + 10] = out[off + 11] = out[off + 12] = 0;
+    out[off + 9] = lit ? 1 : 0; out[off + 10] = lit ? (g.x - C.x) / R : 0; out[off + 11] = lit ? (g.z - C.z) / R : 0; out[off + 12] = tl;
     // as 2 vermelhas, da mais perto para a mais longe
-    const reds = this.redPads.map(i => PAINEL.pads[i]).sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z));
+    const reds = this.redPads.map(i => PAINEL.pads[i]).sort((a, b) => Math.hypot(a.x - C.x, a.z - C.z) - Math.hypot(b.x - C.x, b.z - C.z));
     for (let k = 0; k < PAINEL.reds; k++) {
-      const q = reds[k], o = off + 14 + k * 4;
-      out[o] = q ? 1 : 0;
-      if (q) look(o + 1, q.x - P.x, q.z - P.z); else out[o + 1] = out[o + 2] = out[o + 3] = 0;
+      const q = reds[k], o = off + 13 + k * 3;
+      out[o] = q ? 1 : 0; out[o + 1] = q ? (q.x - C.x) / R : 0; out[o + 2] = q ? (q.z - C.z) / R : 0;
     }
     PAINEL.pads.forEach((p, i) => {
-      const o = off + 22 + i * 5, dx = p.x - P.x, dz = p.z - P.z, st = this.state[i];
+      const o = off + 19 + i * 5, st = this.state[i];
       out[o] = st === 1 ? 1 : 0; out[o + 1] = st === 2 ? 1 : 0; out[o + 2] = st ? tl : 0;
-      out[o + 3] = (dx * c + dz * s) / R; out[o + 4] = (-dx * s + dz * c) / R;
+      out[o + 3] = (p.x - C.x) / R; out[o + 4] = (p.z - C.z) / R;
     });
   }
 
-  /** ações = [girar 0..2, andar 0..2] */
-  step(turn: number, move: number) {
+  /** ações = [direção 0..15, ritmo 0..2] */
+  step(direcao: number, ritmo: number) {
     this.reward = 0;
     if (this.done) return;
-    const dt = PAINEL.dt, P = this.player;
-    if (P.frozen > 0) { P.frozen -= dt; P.v = 0; }
+    const dt = PAINEL.dt, P = this.player, C = this.corpo;
+    if (P.frozen > 0) { P.frozen -= dt; C.vx = C.vz = 0; C.w = C.aFrente = C.aLado = 0; }
     else {
-      P.h += (turn - 1) * PAINEL.turn * dt;
-      const target = move === 2 ? PAINEL.speed : move === 0 ? -PAINEL.speed * 0.5 : 0;
-      P.v += (target - P.v) * Math.min(1, dt * 6);
-      P.x += Math.cos(P.h) * P.v * dt; P.z += Math.sin(P.h) * P.v * dt;
-      const lim = PAINEL.arenaR - PAINEL.playerR, d = Math.hypot(P.x, P.z);
-      if (d > lim) { P.x *= lim / d; P.z *= lim / d; }
-      P.phase += Math.abs(P.v) * dt * 2.4;
+      moverCorpo(C, this.fis, direcao, ritmo, dt);
+      limitarCirculo(C, PAINEL.arenaR - PAINEL.playerR);
     }
+    espelhar(C, P);
     const pad = this.padAt(P.x, P.z), entered = pad >= 0 && pad !== this.inPad;
     this.inPad = pad;
     const lit = this.green >= 0 && this.state[this.green] === 1;
     if (lit && pad === this.green) {
       this.reward = 1; this.hits++; this.lightsOut('hit');
     } else if (entered && this.state[pad] === 2) {
-      this.reds++; P.frozen = PAINEL.freeze; P.v = 0;
+      this.reds++; P.frozen = PAINEL.freeze; C.vx = C.vz = 0; espelhar(C, P);
       this.events?.push({ type: 'red', t: this.t, pad });
     }
     this.timer -= dt;

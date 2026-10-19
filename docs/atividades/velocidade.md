@@ -51,7 +51,7 @@ Domínios **medidos** no treino (2026-10-16; a média das últimas 300 tentativa
 | Pisar | o centro do atleta entra no círculo da placa |
 | Sequência | depois que uma verde é pisada ou apaga, a próxima acende 0,4 s depois, numa placa diferente (sorteada pela semente) |
 | Vermelhas (nível 3) | acendem junto com a verde e apagam com ela; nunca na mesma placa da verde. Em metade das luzes, uma cai na placa mais perto da linha reta entre o atleta e a verde (se alguma placa estiver a menos de 1,15 dessa linha); a outra é sorteada |
-| Decisões | girar (esquerda, nada, direita) e andar (frente, nada, ré), como na Precisão |
+| Decisões | movimento padrão (`sim/src/movimento.ts`): direção (16) e ritmo (parado, trote, corrida), a cada 8 quadros |
 | Observação | posição, direção, velocidade do atleta e se está parado; centro, verde e as 2 vermelhas vistos pelo atleta (direção como cos/sen do ângulo, e distância); para cada placa: cor (apagada, verde, vermelha), tempo restante e posição relativa. Sem a direção da verde vista pelo atleta, ele decorava as 4 placas do nível 1 e não pisava nenhuma do anel de fora no nível 2 |
 
 ## O que se mexe (para o cenário)

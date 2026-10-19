@@ -106,3 +106,26 @@ export function enxerga(c: Corpo, x: number, z: number, meiaAbertura: number, al
   if (meiaAbertura >= Math.PI) return true;
   return Math.abs(difAngulo(c.h, Math.atan2(dz, dx))) <= meiaAbertura;
 }
+
+/**
+ * Atributos do atleta das fitas. Cada fita é gravada uma vez só, com um atleta "de começo de carreira"
+ * (os atributos iniciais vão de 25 a 40 em `jogo.ts`), que é onde o jogador está quando assiste.
+ */
+export const ATLETA_FITA: AtributosMovimento = { velocidade: 35, controle: 35 };
+
+/** Estado no formato antigo das páginas ({x, z, h, v = velocidade para a frente, u = lateral}). */
+export function espelhar(c: Corpo, p: { x: number; z: number; h: number; v: number; u?: number; phase?: number }) {
+  p.x = c.x; p.z = c.z; p.h = c.h;
+  p.v = c.vx * Math.cos(c.h) + c.vz * Math.sin(c.h);
+  p.u = -c.vx * Math.sin(c.h) + c.vz * Math.cos(c.h);
+  p.phase = c.passada * 2.4;
+}
+
+/** Limita o corpo a um círculo de raio r (perde a velocidade que aponta para fora). */
+export function limitarCirculo(c: Corpo, r: number) {
+  const d = Math.hypot(c.x, c.z);
+  if (d > r) {
+    const nx = c.x / d, nz = c.z / d; c.x = nx * r; c.z = nz * r;
+    const vn = c.vx * nx + c.vz * nz; if (vn > 0) { c.vx -= vn * nx; c.vz -= vn * nz; }
+  }
+}

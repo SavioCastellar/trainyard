@@ -2,24 +2,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PainelDrill, PAINEL, type Nivel } from '../src/drills/painel.js';
 import { Rng } from '../src/rng.js';
+import { pilotoPainel } from '../src/drills/pilotos-movimento.js';
+import { DECISAO_QUADROS } from '../src/movimento.js';
 
-/** robô simples: corre para a verde; sem luz, volta ao centro */
-function robo(e: PainelDrill): [number, number] {
-  const P = e.player, lit = e.state[e.green] === 1;
-  const g = lit ? PAINEL.pads[e.green] : { x: 0, z: 0 };
-  const dx = g.x - P.x, dz = g.z - P.z;
-  if (!lit && Math.hypot(dx, dz) < 0.5) return [1, 1];
-  let da = Math.atan2(dz, dx) - P.h;
-  da = Math.atan2(Math.sin(da), Math.cos(da));
-  return [Math.abs(da) < 0.08 ? 1 : da > 0 ? 2 : 0, Math.abs(da) < 1.2 ? 2 : 1];
+/** robô simples (piloto escrito à mão, movimento padrão): corre para a verde; sem luz, volta ao centro */
+function robo(e: PainelDrill, r: Rng): [number, number] {
+  const out = [0, 0]; pilotoPainel(e, r, 1, out); return [out[0], out[1]];
 }
 
 function joga(seed: number, nivel: Nivel, acoes: (e: PainelDrill, r: Rng) => [number, number]) {
   const e = new PainelDrill(seed, true, nivel), r = new Rng(seed + 1);
-  while (!e.done) e.step(...acoes(e, r));
+  let a: [number, number] = [0, 0], q = 0;
+  while (!e.done) { if (q++ % DECISAO_QUADROS === 0) a = acoes(e, r); e.step(...a); }
   return e;
 }
-const aleatorio = (_: PainelDrill, r: Rng): [number, number] => [r.int(3), r.int(3)];
+const aleatorio = (_: PainelDrill, r: Rng): [number, number] => [r.int(16), r.int(3)];
 
 test('painel: mesma semente e mesmas ações geram a mesma tentativa, nos 3 níveis', () => {
   for (const nivel of [1, 2, 3] as Nivel[]) for (let s = 1; s <= 50; s++) {

@@ -12,15 +12,17 @@ import { ControleDrill, CONTROLE_OBS, CONTROLE_ACTIONS } from './controle.js';
 import { ForcaDrill, FORCA_OBS, FORCA_ACTIONS } from './forca.js';
 import { InteligenciaDrill, INTELIGENCIA_OBS, INTELIGENCIA_ACTIONS } from './inteligencia.js';
 import { Rng } from '../rng.js';
+import { DECISAO_QUADROS } from '../movimento.js';
 
 interface Env { done: boolean; reward: number; observe(o: Float32Array, off: number): void; step(...a: number[]): void }
-const DRILLS: Record<string, { obs: number; acts: number; make(seed: number, nivel: number): Env; info(e: any): object }> = {
+/** `decisao`: quadros por decisão (movimento padrão = DECISAO_QUADROS; a ação vale nesse intervalo e a recompensa soma). */
+const DRILLS: Record<string, { obs: number; acts: number; decisao?: number; make(seed: number, nivel: number): Env; info(e: any): object }> = {
   precisao: {
     obs: PRECISION_OBS, acts: PRECISION_ACTIONS.length, make: (s, n) => new PrecisionDrill(s, false, n as Nivel),
     info: (e: PrecisionDrill) => ({ hits: e.hits, kicks: e.kicks, nivel: e.nivel }),
   },
   velocidade: {
-    obs: PAINEL_OBS, acts: PAINEL_ACTIONS.length, make: (s, n) => new PainelDrill(s, false, n as Nivel),
+    obs: PAINEL_OBS, acts: PAINEL_ACTIONS.length, decisao: DECISAO_QUADROS, make: (s, n) => new PainelDrill(s, false, n as Nivel),
     info: (e: PainelDrill) => ({ hits: e.hits, lights: e.lights, reds: e.reds, nivel: e.nivel }),
   },
   // lights = bolas disparadas e encerradas (o ppo_drill mede o domínio por hits/lights)
@@ -70,9 +72,12 @@ function init(c: { nEnvs: number; seed: number; drill?: string; nivel?: number }
 
 function step(a: Int32Array) {
   const info: unknown[] = [], k = D.acts;
+  const rep = D.decisao ?? 1;
   envs.forEach((e, i) => {
-    e.step(...a.subarray(i * k, i * k + k));
-    rew[i] = e.reward; dones[i] = e.done ? 1 : 0;
+    const acao = a.subarray(i * k, i * k + k);
+    let r = 0;
+    for (let q = 0; q < rep && !e.done; q++) { e.step(...acao); r += e.reward; }
+    rew[i] = r; dones[i] = e.done ? 1 : 0;
     if (e.done) { info.push(D.info(e)); envs[i] = fresh(); }
     envs[i].observe(obs, i * D.obs);
   });

@@ -13,6 +13,7 @@ import { ControleDrill, CONTROLE, CONTROLE_OBS, CONTROLE_ACTIONS } from '../src/
 import { ForcaDrill, FORCA_OBS, FORCA_ACTIONS } from '../src/drills/forca.js';
 import { InteligenciaDrill, INTELIGENCIA_OBS, INTELIGENCIA_ACTIONS } from '../src/drills/inteligencia.js';
 import { Rng } from '../src/rng.js';
+import { DECISAO_QUADROS } from '../src/movimento.js';
 
 interface Layer { in: number; out: number; scale: number; w: string; b: string }
 interface Ckpt { update: number; steps: number; episodes: number; nivel?: number; layers: Layer[] }
@@ -95,9 +96,11 @@ const DRILLS: Record<string, DrillTape> = {
       let hits = 0, lights = 0, reds = 0, best = 0, dist = 0, ons = 0;
       for (let e = 0; e < n; e++) {
         const env = new PainelDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
+        let q = 0;
         while (!env.done) {
           const lit = env.state.some(s => s === 1);
-          env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1]);
+          if (q++ % DECISAO_QUADROS === 0) { env.observe(obs); brain(obs, rng, a); }
+          env.step(a[0], a[1]);
           // distância do centro quando a próxima luz acende: mede o "voltar ao centro"
           if (!lit && env.state.some(s => s === 1)) { dist += Math.hypot(env.player.x, env.player.z); ons++; }
         }
@@ -275,8 +278,10 @@ D.marks(picked, (i, text, nivel) => { if (i >= 0 && !marks.some(m => m.ck === i)
 marks.sort((a, b) => a.ck - b.ck);
 
 const round = (v: number) => +v.toFixed(3);
+/** atividades já no movimento padrão (decisão a cada DECISAO_QUADROS quadros) */
+const MOVIMENTO_PADRAO = new Set(['velocidade']);
 const tape = {
-  exercise: drill, title: D.title,
+  exercise: drill, title: D.title, decisao: MOVIMENTO_PADRAO.has(drill) ? DECISAO_QUADROS : 1,
   dims: { obs: D.obs, actions: [...D.actions], layers: src.checkpoints[0].layers.map(l => [l.in, l.out]) },
   totalEpisodes: picked[picked.length - 1].c.episodes,
   checkpoints: picked.map(({ c, nivel, ...m }) => ({
