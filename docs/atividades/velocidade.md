@@ -46,7 +46,7 @@ Domínios **medidos** no treino (2026-10-16; a média das últimas 300 tentativa
 | Coisa | Medida |
 |---|---|
 | Piso | círculo de raio 7, borda marcada |
-| Atleta | raio 0,55; anda até 4,5/s; gira 3,2 rad/s; começa no centro, olhando para +x |
+| Atleta | raio 0,55; atleta da fita com Velocidade 35 e Controle 35 (até 4,2/s, acelera 5,3/s², freia 8,1/s²); começa no centro |
 | Placas | 12 placas redondas de raio 0,6, embutidas no piso: anel interno com 4 a 2,5 do centro (a 45°, 135°, 225°, 315°) e anel externo com 8 a 5,5 do centro (a cada 45°, começando em 0°) |
 | Pisar | o centro do atleta entra no círculo da placa |
 | Sequência | depois que uma verde é pisada ou apaga, a próxima acende 0,4 s depois, numa placa diferente (sorteada pela semente) |
