@@ -188,8 +188,15 @@ const DRILLS: Record<string, DrillTape> = {
       add(dom(2), `Domínio do nível 2: ${D[2].marcas} portas por tentativa sem derrubar a bola.`);
       const l3 = at(3, () => true);
       add(l3, 'Nível 3 · Lombadas: faixas largas atravessam o caminho. Passar correndo faz a bola pular da bandeja.', 3);
-      if (l3 >= 0) add(at(3, e => e.reds <= picked[l3].reds / 2), 'Aprendeu a tirar o pé antes da lombada.');
-      add(dom(3), `Domínio do nível 3: ${D[3].marcas} marcas por tentativa e menos de ${fmt(D[3].quedas)} bola caída.`);
+      const pe = l3 >= 0 ? at(3, e => e.reds <= picked[l3].reds / 2) : -1;
+      if (pe >= 0) add(pe, 'Aprendeu a tirar o pé antes da lombada.');
+      // último nível: o domínio é a primeira foto que bate a meta (o treino pode ter continuado depois, com --retomar)
+      let d3 = picked.findIndex((e, k) => k > pe && e.nivel === 3 && e.hits >= D[3].marcas - 0.3 && e.reds < D[3].quedas + 0.1);
+      if (d3 < 0) d3 = dom(3);
+      add(d3, `Domínio do nível 3: ${D[3].marcas} marcas por tentativa e menos de ${fmt(D[3].quedas)} bola caída.`);
+      const fim = picked.length - 1, extra = picked[fim];
+      if (d3 >= 0 && fim > d3 + 2 && extra.hits >= picked[d3].hits + 1)
+        add(fim, `Treino extra no nível 3: chegou a ${fmt(Math.round(extra.hits * 10) / 10)} marcas por tentativa (eram ${fmt(Math.round(picked[d3].hits * 10) / 10)} no domínio).`);
     },
   },
   forca: {
