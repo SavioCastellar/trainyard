@@ -176,8 +176,8 @@ const DRILLS: Record<string, DrillTape> = {
       const at = (nivel: number, f: (e: Ev) => boolean) => picked.findIndex(e => e.nivel === nivel && f(e));
       const D = BANDEJA_DOMINIO, fmt = (v: number) => v.toLocaleString('pt-BR');
       // o domínio é medido no treino; nas sementes da fita a última foto do nível pode ficar um pouco abaixo
-      const ok = (n: number) => (e: Ev) => e.hits >= D[n].marcas - 1 && e.reds < D[n].quedas + 0.3;
-      const dom = (n: number) => { const i = at(n, ok(n)), prox = at(n + 1, () => true); return i >= 0 ? i : prox >= 0 ? prox - 1 : -1; };
+      // o treino só sobe de nível depois do domínio: o marco do domínio fica na última foto do nível
+      const dom = (n: number) => { let i = -1; picked.forEach((e, k) => { if (e.nivel === n) i = k; }); return i; };
       add(0, 'Primeira tentativa: sai em disparada e a bola voa da bandeja logo na largada.');
       add(at(1, e => e.hits >= 5), 'Começou a ir de marca em marca.');
       add(at(1, e => e.hits >= 12 && e.reds <= picked[0].reds / 2), 'Aprendeu a arrancar e frear sem derrubar a bola.');
@@ -189,7 +189,7 @@ const DRILLS: Record<string, DrillTape> = {
       const l3 = at(3, () => true);
       add(l3, 'Nível 3 · Lombadas: faixas largas atravessam o caminho. Passar correndo faz a bola pular da bandeja.', 3);
       if (l3 >= 0) add(at(3, e => e.reds <= picked[l3].reds / 2), 'Aprendeu a tirar o pé antes da lombada.');
-      add(at(3, ok(3)), `Domínio do nível 3: ${D[3].marcas} marcas por tentativa e menos de ${fmt(D[3].quedas)} bola caída.`);
+      add(dom(3), `Domínio do nível 3: ${D[3].marcas} marcas por tentativa e menos de ${fmt(D[3].quedas)} bola caída.`);
     },
   },
   forca: {

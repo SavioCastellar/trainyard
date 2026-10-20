@@ -83,9 +83,12 @@ balançando quando sobe na lombada.
 ## Estado
 - Ficha e prévia: aprovadas pelo Savio (2026-10-19), com o slalom no nível 2.
 - Prévia com piloto: `python web/atividades/controle/build.py --previa` → `web/dist/previa-controle.html`.
-- Treino: ligado na ponte (`controle` = Bandeja, decisão a cada 8 quadros), no `ppo_drill.py` (64 entradas,
-  ações `[16, 3]`, domínios da tabela acima) e no `make-tape.ts`. Teste de 3,5 min na nuvem: nível 1 de
-  0,2 para 18 marcas por tentativa, com ~2 bolas caídas (ainda sem domínio). Treino de verdade no
-  computador do Savio (`docs/migracao-movimento.md`).
+- Treino (2026-10-20, computador do Savio): os 3 níveis dominados em 35 min (440 mil tentativas).
+  Nível 1 em 9,9 min (22 marcas e 0,94 bola caída); nível 2 em mais 22,8 min (o mais difícil: ficou
+  ~10 min entre 1 e 1,3 bola caída antes de chegar a 14 portas e 0,64); nível 3 em mais 1,8 min
+  (10 marcas e 0,75), porque o atleta já chega sabendo dosar o ritmo. Fita `fitas/controle.json`
+  (66 fotos), página `web/dist/treino-controle.html`. Aguardando o Savio aprovar a fita.
+- Antes, o circuito travava o treino por volta da tentativa 40 mil (laço sem fim quando o sorteio
+  ficava encurralado num canto); corrigido em `grow()` e coberto por teste.
 - A simulação, o teste e a página das Plataformas saíram. A fita antiga `fitas/controle.json` não
   funciona com a página nova e é substituída quando a fita da Bandeja ficar pronta.
