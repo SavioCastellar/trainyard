@@ -36,18 +36,28 @@ alvo mais rápido de acertar e chuta quando a mira está boa.
 - **Treino (2026-10-16):** 20M passos, ~22 mil tentativas, ~25 min. Nível 1 em 3.840 tentativas;
   nível 2 em 19.840 (cai de 26 para 18 e volta); nível 3 em 21.824 (cai de 26 para 11 e volta a 25).
 
+**Movimento novo (2026-10-20), medido com o piloto escrito à mão** (`pilotoPrecisao`, 40 tentativas): vira
+parado para a direção mais perto do alvo e chuta com o ajuste fino que falta.
+| Nível | Aleatório | Piloto sem o comportamento do nível | Piloto com | Domínio |
+|---|---|---|---|---|
+| 1 | 2,2 | — | 29,0 | 26 |
+| 2 | 2,4 | 25,5 (ignora o tempo aceso) | 28,1 | 26 |
+| 3 | 3,0 | 13,4 (mira onde o alvo está) | 26,9 | 25 |
+
+Os domínios continuam os mesmos.
+
 ## Medidas (unidades da simulação ≈ metros; fonte: `sim/src/drills/precision.ts`)
 | Coisa | Medida |
 |---|---|
 | Arena | círculo de raio 12, borda marcada no chão |
-| Atleta | raio 0,55; anda até 4,5/s; gira 3,2 rad/s |
+| Atleta | raio 0,55; movimento padrão (`movimento.ts`) com os atributos da fita (Velocidade 35, Controle 35): 4,2 m/s, gira o corpo até 7,5 rad/s |
 | Bola | raio 0,32; sai a 15/s; atrito 0,55; some ao parar (< 1,5/s) ou sair da arena |
 | Alvos | 3 ao mesmo tempo, raio 0,7; reaparecem a 3,5–10,5 do centro, longe do atleta e entre si |
 | Alvo aceso (nível 2) | 2,0 s (defasados: no começo 0,7, 1,3 e 2,0 s); depois apaga e reaparece em outro lugar 0,3 s depois |
 | Trilhos (nível 3) | cada alvo percorre um círculo do seu raio (3,5–10,5) a 2,0/s; sentido sorteado |
-| Chute | intervalo mínimo 0,9 s; só uma bola por vez; erro de mira pequeno |
-| Decisões | girar (esquerda, nada, direita), andar (frente, nada, ré), chutar (sim, não) |
-| Observação | 16 raios (alvos acesos e borda), chute pronto, velocidade, centro; para cada alvo: aceso, direção (cos, sen) e distância vistas pelo atleta, tempo aceso restante (nível 2) e velocidade (nível 3) |
+| Chute | intervalo mínimo 0,9 s; só uma bola por vez; erro de mira pequeno; sai na direção do corpo com ajuste fino de −10°, −5°, 0, +5° ou +10° |
+| Decisões | `[direção 16, ritmo 3, chute 6]` a cada 8 quadros: chute 0 = não chuta, 1–5 = chuta com o ajuste fino (2026-10-20, movimento novo; as 16 direções sozinhas, de 22,5° em 22,5°, erram o alvo por 2–3 m a 7 m) |
+| Observação (114) | chute pronto, velocidade e direção do corpo, centro; para cada alvo: aceso, posição relativa, distância, quanto falta virar o corpo para ele (sen, cos), tempo aceso restante (nível 2), velocidade (nível 3) e a direção dele "no idioma das ações" (16); 16 raios em volta do corpo (alvos acesos e borda) |
 
 ## O que se mexe (para o cenário)
 - Atleta: posição, direção, passada, chute.
@@ -65,4 +75,4 @@ alvo mais rápido de acertar e chuta quando a mira está boa.
 ## Estado
 - Ficha: nível 1 aprovado rodando; níveis 2 e 3 aprovados no papel (2026-10-16), com tempo aceso e velocidade do trilho ajustados por medida; aprovação final só vendo rodando.
 - Cenário: protótipo aprovado (dentro de `web/src/precision.template.html`), ainda numa ilha. Refazer dentro do CT (`web/cenarios/precisao.js`).
-- Treino: 3 níveis feitos (`fitas/precisao.json`, 2026-10-16); página `web/atividades/precisao/` → `web/dist/treino-precisao.html`.
+- Treino: 3 níveis feitos com os controles antigos (`fitas/precisao.json`, 2026-10-16). Migrada para o movimento novo em 2026-10-20 (prévia: `python web/atividades/precisao/build.py --previa`); a fita antiga não funciona mais com a página e é refeita no retreino.

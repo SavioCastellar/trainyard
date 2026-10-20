@@ -103,6 +103,9 @@
     #chart { height: 64px; }
     .attempt b { font-size: 22px; }
   }
+  .previa { margin-top: 10px; background: #20222b; color: #fafaf8; font-size: 12.5px; line-height: 1.4; padding: 8px 10px; border-radius: 10px; }
+  body.modo-previa [aria-label="Modo"] { display: none; }
+  body.modo-previa .right, body.modo-previa [data-mode], body.modo-previa .stage { display: none; }
   @media (prefers-reduced-motion: reduce) { .banner { transition: none; } .diary li.new { animation: none; } }
 </style>
 
@@ -124,6 +127,7 @@
       </div>
       <div class="meter" aria-hidden="true"><i id="tbar"></i></div>
       <div class="stage" id="stage"></div>
+      <div class="previa" id="previaNote" hidden><b>Prévia sem treino.</b> Quem decide é um piloto escrito à mão, para você julgar o movimento novo nesta atividade. O treino de verdade vem depois da sua aprovação.</div>
     </section>
   </div>
 
@@ -172,6 +176,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const TAPE = /*TAPE*/;
+/* prévia: sem fita; um piloto escrito à mão decide, para julgar o movimento antes de treinar */
+const PREVIA = /*PREVIA*/;
+const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
 const R = DRILL.PRECISION;
@@ -315,6 +322,7 @@ stations[1].g.visible = false;
    Atleta
    ========================================================= */
 /*CABECUDO*/
+/*ANIMACAO*/
 
 const LOOKS = [
   { nick: 'TROVÃO', num: 10, skin: '#e8b896', hair: 'curto', hairColor: '#1d1a1f', glasses: 'nenhum', beard: 'nenhuma', expr: 'confiante', forca: .35, vel: .7, team: { p: '#1f7a4d', s: '#f4f1e8' } },
@@ -368,7 +376,7 @@ class Station {
     this.st = st; this.main = main; this.g = st.g;
     this.ball = new THREE.Mesh(ballGeo, ballMat); this.ball.castShadow = true; this.ball.visible = false; this.g.add(this.ball);
     this.tg = [0, 1, 2].map(() => makeTarget(this.g));
-    this.obs = new Float32Array(DRILL.PRECISION_OBS); this.act = [1, 1, 0];
+    this.obs = new Float32Array(DRILL.PRECISION_OBS); this.act = [0, 0, 0];
     this.acc = 0; this.spring = { a: 0, v: 0, b: 0, w: 0 }; this.prevY = 0; this.prevVy = 0;
     this.celebrate = 0; this.blink = 2; this.kickT = 0;
     this.buildAthlete();
@@ -383,7 +391,7 @@ class Station {
     this.tag.scale.set(2.2, .55, 1); this.tag.renderOrder = 10; this.g.add(this.tag);
   }
   start(ckIdx, seed, nivel) {
-    this.ck = ckIdx; this.brain = brainAt(ckIdx);
+    this.ck = ckIdx; this.brain = PREVIA ? null : brainAt(ckIdx); this.q = 0; this.anim = novoEstadoAnim(); this.prev = null;
     this.env = new DRILL.PrecisionDrill(seed, true, nivel);
     this.rng = new DRILL.Rng(seed ^ 0x9e3779b9);
     this.evIdx = 0; this.acc = 0;
@@ -393,7 +401,15 @@ class Station {
     const e = this.env, W = (x, y, z) => this.g.localToWorld(new THREE.Vector3(x, y, z));
     if (!e.done) {
       this.acc += dt * speed;
-      while (this.acc >= R.dt && !e.done) { e.observe(this.obs); this.brain(this.obs, this.rng, this.act); e.step(this.act[0], this.act[1], this.act[2]); this.acc -= R.dt; }
+      while (this.acc >= R.dt && !e.done) {
+        this.prev = { x: e.corpo.x, z: e.corpo.z };
+        if (this.q++ % DEC === 0) {
+          if (PREVIA) DRILL.pilotoPrecisao(e, this.rng, this.main ? habilidade() : .15, this.act);
+          else { e.observe(this.obs); this.brain(this.obs, this.rng, this.act); }
+        }
+        e.step(this.act[0], this.act[1], this.act[2]); this.acc -= R.dt;
+      }
+      this.alpha = e.done ? 1 : Math.min(1, this.acc / R.dt); this.play = speed;
     }
     while (this.evIdx < e.events.length) {
       const ev = e.events[this.evIdx++];
@@ -446,40 +462,22 @@ class Station {
     this.animateAthlete(dt, time);
   }
   animateAthlete(dt, time) {
-    const pl = this.env.player, rig = this.rig, b = rig.body, L = rig.legs, A = rig.arms;
-    rig.root.position.set(pl.x, .1, pl.z); rig.root.rotation.y = Math.PI / 2 - pl.h;
-    this.tag.position.set(pl.x, 2.9, pl.z);
-    b.position.set(0, 0, 0); b.rotation.set(0, 0, 0);
-    for (const l of L) l.rotation.set(0, 0, 0);
-    for (const a of A) a.rotation.set(0, 0, 0);
-    const sp = Math.min(1, Math.abs(pl.v) / R.speed), dir = pl.v >= 0 ? 1 : -1, ph = pl.phase * 1.3;
-    let drive = 0, sway = 0;
-    if (this.celebrate > 0) {
-      this.celebrate -= dt;
-      const up = Math.sin((.7 - this.celebrate) / .7 * Math.PI);
-      b.position.y = up * .3; A[0].rotation.z = -2.3 * up; A[1].rotation.z = 2.3 * up; drive = up;
-      setExpr(rig.face, 'confiante');
-    } else {
-      const amp = .2 + .8 * sp;
-      L[0].rotation.x = Math.sin(ph) * amp * dir; L[1].rotation.x = Math.sin(ph + Math.PI) * amp * dir;
-      A[0].rotation.x = Math.sin(ph + Math.PI) * amp * .9; A[1].rotation.x = Math.sin(ph) * amp * .9;
-      A[0].rotation.z = -.12; A[1].rotation.z = .12;
-      b.position.y = Math.abs(Math.sin(ph)) * .07 * sp; b.rotation.x = .15 * sp * dir; sway = Math.cos(ph) * .6 * sp;
-      setExpr(rig.face, this.kickT > 0 ? 'bravo' : this.look.expr);
-    }
+    // animação padrão (web/src/animacao-atleta.js), com o chute por cima
+    const e = this.env, c = e.corpo, al = this.alpha ?? 1, pv = this.prev, rig = this.rig;
+    const ix = pv ? pv.x + (c.x - pv.x) * al : c.x, iz = pv ? pv.z + (c.z - pv.z) * al : c.z;
+    // a cabeça olha o alvo aceso mais perto da frente do corpo
+    let olhar = null, m = Infinity;
+    for (const t of e.targets) { if (t.off > 0) continue; const d = Math.abs(Math.atan2(Math.sin(Math.atan2(t.z - c.z, t.x - c.x) - c.h), Math.cos(Math.atan2(t.z - c.z, t.x - c.x) - c.h))); if (d < m) { m = d; olhar = t; } }
+    animarAtleta(rig, c, this.anim, {
+      dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .1, olhar, parado: false,
+      velMax: e.fis.velMax, expr: this.kickT > 0 ? 'bravo' : this.look.expr, comemorar: this.celebrate > .69,
+    });
+    if (this.celebrate > 0) this.celebrate -= dt;
     if (this.kickT > 0) {
       this.kickT -= dt; const k = 1 - this.kickT / .3, swing = k < .35 ? (k / .35) * .9 : .9 - (k - .35) / .65 * 2.4;
-      L[1].rotation.x = swing; A[0].rotation.x = -swing * .6; drive += 1;
+      rig.legs[1].rotation.x = swing; rig.arms[0].rotation.x = -swing * .6;
     }
-    this.blink -= dt; let ey = 1; if (this.blink < 0) { ey = .1; if (this.blink < -.12) this.blink = 2 + Math.random() * 3; }
-    for (const e of rig.face.eyes) e.scale.y = ey;
-    const vy = (b.position.y - this.prevY) / Math.max(dt, 1e-3), ay = (vy - this.prevVy) / Math.max(dt, 1e-3);
-    this.prevY = b.position.y; this.prevVy = vy;
-    const s = this.spring;
-    s.v += (-70 * s.a - 5 * s.v + THREE.MathUtils.clamp(ay, -60, 60) * .012 + drive * .2) * dt;
-    s.w += (-70 * s.b - 5 * s.w + sway * 2.2) * dt;
-    s.a = THREE.MathUtils.clamp(s.a + s.v * dt, -.5, .5); s.b = THREE.MathUtils.clamp(s.b + s.w * dt, -.4, .4);
-    rig.headPivot.rotation.x = s.a; rig.headPivot.rotation.z = s.b;
+    this.tag.position.set(ix, 2.9, iz);
   }
 }
 
@@ -502,6 +500,13 @@ for (let s = 0; s < SESSIONS; s++) {
   $('sessBtns').append(b);
 }
 
+/* prévia: o relógio vira "decisões certas" do piloto (0% = ao acaso, 100% = perfeito) */
+const habilidade = () => PREVIA ? Math.min(1, minutes / 120) : 1;
+if (PREVIA) {
+  document.body.classList.add('modo-previa'); $('previaNote').hidden = false;
+  $('clock').parentElement.firstChild.textContent = 'Decisões certas ';
+  minutes = 102;
+}
 function attemptNumber(ck) { return CK[ck].episodes + 1 + (mode === 'live' ? liveExtra : 0); }
 function startAttempt() {
   const ck = mode === 'live' ? availIdx() : montageIdx;
@@ -584,7 +589,7 @@ function drawChart() {
    ========================================================= */
 function syncControls() {
   document.querySelectorAll('[data-session]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.session === session)));
-  $('clock').value = minutes; $('clockV').textContent = fmtMin(minutes);
+  $('clock').value = minutes; $('clockV').textContent = PREVIA ? Math.round(minutes / 1.2) + '%' : fmtMin(minutes);
 }
 function setMode(m) {
   mode = m; document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
@@ -597,7 +602,8 @@ document.querySelectorAll('[data-session]').forEach(b => b.addEventListener('cli
   showBanner(`Nível ${n} · ${NIVEIS[n]}`, NIVEL_TXT[n], 2600);
 }));
 $('clock').addEventListener('input', e => {
-  minutes = +e.target.value; $('clockV').textContent = fmtMin(minutes);
+  minutes = +e.target.value; $('clockV').textContent = PREVIA ? Math.round(minutes / 1.2) + '%' : fmtMin(minutes);
+  if (PREVIA) return;
   const av = availIdx();
   if (av !== prevAvail) { prevAvail = av; syncMarks(true); drawChart(); if (mode === 'live') { liveExtra = 0; startAttempt(); } }
   if (minutes === 120) sessionEnd();
@@ -658,6 +664,8 @@ camera.position.set(0, 22, 26);
 syncControls(); resetDiary(); startAttempt(); resize();
 prevAvail = availIdx();
 $('loading').remove();
-if (!reduceMotion) showBanner('Treino de Precisão', 'Arraste o horário em que o app foi aberto para ver o atleta evoluir.', 3200);
+if (!reduceMotion && !PREVIA) showBanner('Treino de Precisão', 'Arraste o horário em que o app foi aberto para ver o atleta evoluir.', 3200);
+/* para testes automáticos (Chromium sem interface) */
+window.__pagina = { main, ghost, camera };
 requestAnimationFrame(frame);
 </script>

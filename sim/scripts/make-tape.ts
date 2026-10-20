@@ -68,7 +68,8 @@ const DRILLS: Record<string, DrillTape> = {
       let hits = 0, kicks = 0, best = 0;
       for (let e = 0; e < n; e++) {
         const env = new PrecisionDrill(9000 + e, false, nivel as Nivel), rng = new Rng(7000 + e);
-        while (!env.done) { env.observe(obs); brain(obs, rng, a); env.step(a[0], a[1], a[2]); }
+        let q = 0;
+        while (!env.done) { if (q++ % DECISAO_QUADROS === 0) { env.observe(obs); brain(obs, rng, a); } env.step(a[0], a[1], a[2]); }
         hits += env.hits; kicks += env.kicks; best = Math.max(best, env.hits);
       }
       return { hits: hits / n, kicks: kicks / n, acc: kicks ? hits / kicks : 0, best };
@@ -288,7 +289,7 @@ marks.sort((a, b) => a.ck - b.ck);
 
 const round = (v: number) => +v.toFixed(3);
 /** atividades já no movimento padrão (decisão a cada DECISAO_QUADROS quadros) */
-const MOVIMENTO_PADRAO = new Set(['velocidade', 'controle']);
+const MOVIMENTO_PADRAO = new Set(['velocidade', 'controle', 'precisao']);
 const tape = {
   exercise: drill, title: D.title, decisao: MOVIMENTO_PADRAO.has(drill) ? DECISAO_QUADROS : 1,
   dims: { obs: D.obs, actions: [...D.actions], layers: src.checkpoints[0].layers.map(l => [l.in, l.out]) },

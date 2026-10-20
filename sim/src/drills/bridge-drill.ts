@@ -18,7 +18,7 @@ interface Env { done: boolean; reward: number; observe(o: Float32Array, off: num
 /** `decisao`: quadros por decisão (movimento padrão = DECISAO_QUADROS; a ação vale nesse intervalo e a recompensa soma). */
 const DRILLS: Record<string, { obs: number; acts: number; decisao?: number; make(seed: number, nivel: number): Env; info(e: any): object }> = {
   precisao: {
-    obs: PRECISION_OBS, acts: PRECISION_ACTIONS.length, make: (s, n) => new PrecisionDrill(s, false, n as Nivel),
+    obs: PRECISION_OBS, acts: PRECISION_ACTIONS.length, decisao: DECISAO_QUADROS, make: (s, n) => new PrecisionDrill(s, false, n as Nivel),
     info: (e: PrecisionDrill) => ({ hits: e.hits, kicks: e.kicks, nivel: e.nivel }),
   },
   velocidade: {

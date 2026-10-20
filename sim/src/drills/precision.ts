@@ -7,13 +7,18 @@
  * Níveis (docs/atividades/precisao.md): 1 alvos fixos; 2 cada alvo fica aceso só 3 s e troca de
  * lugar (bola em alvo apagado não conta); 3 os alvos deslizam em trilhos circulares ao redor do centro.
  *
- * Observação: "posso chutar agora?", velocidade, distância e direção do centro; para cada alvo:
- * aceso, direção (cos, sen) e distância vistos pelo atleta, tempo aceso restante e velocidade
- * no referencial do atleta (aprendizado 19: direção separada da distância generaliza entre níveis);
- * e os 16 raios da versão de 1 nível (alvos acesos e borda).
- * Ações: girar (esq/nada/dir), andar (ré/parado/frente), chutar (não/sim).
+ * Movimento padrão (`movimento.ts`, docs/migracao-movimento.md): o atleta escolhe direção (16) e ritmo (3),
+ * com embalo; parado, o corpo vira para a direção escolhida. Como 16 direções (22,5°) são grossas demais
+ * para mirar, o chute tem ajuste fino: chutar com −10°, −5°, 0, +5° ou +10° em relação ao corpo.
+ *
+ * Observação (referencial do mundo, como as ações): chute pronto, velocidade e direção do corpo, centro;
+ * para cada alvo: aceso, posição relativa, distância, quanto falta virar o corpo para ele (sen, cos),
+ * tempo aceso restante (nível 2) e velocidade (nível 3); a direção de cada alvo "no idioma das ações"
+ * (16 cada); e os 16 raios em volta do corpo (alvos acesos e borda).
+ * Ações: [direção 0..15, ritmo 0..2, chute 0..5] (0 = não chuta; 1..5 = chuta com −10°, −5°, 0, +5°, +10°).
  */
 import { Rng } from '../rng.js';
+import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarCirculo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento, DIRECOES, direcaoComoAcao, difAngulo } from '../movimento.js';
 
 export const PRECISION = {
   arenaR: 12,
@@ -21,9 +26,9 @@ export const PRECISION = {
   targetR: 0.7,
   playerR: 0.55,
   ballR: 0.32,
-  speed: 4.5,
-  turn: 3.2,             // giro lento de propósito: mirar exige planejamento
   kickSpeed: 15,
+  /** ajuste fino do chute em relação à direção do corpo (rad): 5 opções de −10° a +10° */
+  ajustes: [-10, -5, 0, 5, 10].map(g => (g * Math.PI) / 180),
   kickCd: 0.9,
   ballFriction: 0.55,
   aimNoise: 0.035,
@@ -40,8 +45,9 @@ export const PRECISION = {
   dt: 1 / 30,
 } as const;
 
-export const PRECISION_OBS = 5 + PRECISION.targets * 7 + PRECISION.rays * 2;
-export const PRECISION_ACTIONS = [3, 3, 2] as const;
+/** 7 do atleta + 9 por alvo + 16 direções por alvo + 2 por raio */
+export const PRECISION_OBS = 7 + PRECISION.targets * 9 + PRECISION.targets * DIRECOES + PRECISION.rays * 2;
+export const PRECISION_ACTIONS = [...ACOES_MOVIMENTO, 6] as const;
 export type Nivel = 1 | 2 | 3;
 /** domínio por nível, em acertos por tentativa: entre o robô sem e com o comportamento do nível
  *  (sim/test/precisao.test.ts); igual ao DOMINIO do training/ppo_drill.py */
@@ -64,17 +70,22 @@ export class PrecisionDrill {
   done = false;
   hits = 0;
   kicks = 0;
-  player = { x: 0, z: 0, h: 0, v: 0, cd: 0, phase: 0, kickAnim: 0 };
+  /** corpo do atleta (movimento padrão) e o mesmo estado no formato antigo, para as páginas */
+  corpo: Corpo;
+  readonly fis: Fisica;
+  player = { x: 0, z: 0, h: 0, v: 0, u: 0, cd: 0, phase: 0, kickAnim: 0 };
   ball: { x: number; z: number; vx: number; vz: number; live: boolean } = { x: 0, z: 0, vx: 0, vz: 0, live: false };
   targets: Target[] = [];
   events: PrecisionEvent[] | null;
   /** recompensa do último passo */
   reward = 0;
 
-  constructor(seed: number, record = false, readonly nivel: Nivel = 1) {
+  constructor(seed: number, record = false, readonly nivel: Nivel = 1, atributos: AtributosMovimento = ATLETA_FITA) {
     this.rng = new Rng(seed);
     this.events = record ? [] : null;
-    this.player.h = this.rng.next() * Math.PI * 2;
+    this.fis = fisica(atributos);
+    this.corpo = novoCorpo(0, 0, this.rng.next() * Math.PI * 2);
+    espelhar(this.corpo, this.player);
     for (let i = 0; i < PRECISION.targets; i++) this.targets.push(this.spawnTarget(i));
     // nível 2: os alvos começam defasados (1, 2 e 3 s acesos) para nunca apagarem juntos
     if (nivel === 2) this.targets.forEach((t, i) => { t.on = (PRECISION.lit * (i + 1)) / PRECISION.targets; });
@@ -99,58 +110,54 @@ export class PrecisionDrill {
   }
 
   observe(out: Float32Array, off = 0) {
-    const P = this.player, R = PRECISION.arenaR, c = Math.cos(P.h), s = Math.sin(P.h);
-    const look = (o: number, dx: number, dz: number) => {
-      const f = dx * c + dz * s, l = -dx * s + dz * c, d = Math.hypot(f, l);
-      out[o] = d > 1e-6 ? f / d : 1; out[o + 1] = d > 1e-6 ? l / d : 0; out[o + 2] = d / R;
-    };
-    out[off] = P.cd <= 0 && !this.ball.live ? 1 : 0;
-    out[off + 1] = P.v / PRECISION.speed;
-    look(off + 2, -P.x, -P.z);
+    const C = this.corpo, R = PRECISION.arenaR, vm = this.fis.velMax, c = Math.cos(C.h), s = Math.sin(C.h);
+    out[off] = this.player.cd <= 0 && !this.ball.live ? 1 : 0;
+    out[off + 1] = C.vx / vm; out[off + 2] = C.vz / vm; out[off + 3] = c; out[off + 4] = s;
+    out[off + 5] = -C.x / R; out[off + 6] = -C.z / R;
+    const nt = PRECISION.targets, od = off + 7 + nt * 9;
     this.targets.forEach((t, k) => {
-      const o = off + 5 + k * 7;
-      if (t.off > 0) { out.fill(0, o, o + 7); return; }
-      out[o] = 1; look(o + 1, t.x - P.x, t.z - P.z);
-      out[o + 4] = this.nivel === 2 ? t.on / PRECISION.lit : 1;
-      const vx = -Math.sin(t.a) * t.dir, vz = Math.cos(t.a) * t.dir; // velocidade / railSpeed
-      out[o + 5] = vx * c + vz * s; out[o + 6] = -vx * s + vz * c;
+      const o = off + 7 + k * 9;
+      if (t.off > 0) { out.fill(0, o, o + 9); direcaoComoAcao(out, od + k * DIRECOES, 0, 0, false); return; }
+      const dx = t.x - C.x, dz = t.z - C.z, da = difAngulo(C.h, Math.atan2(dz, dx));
+      out[o] = 1; out[o + 1] = dx / R; out[o + 2] = dz / R; out[o + 3] = Math.hypot(dx, dz) / R;
+      // quanto falta virar o corpo para o alvo: é o que decide o ajuste fino do chute
+      out[o + 4] = Math.sin(da); out[o + 5] = Math.cos(da);
+      out[o + 6] = this.nivel === 2 ? t.on / PRECISION.lit : 1;
+      out[o + 7] = -Math.sin(t.a) * t.dir; out[o + 8] = Math.cos(t.a) * t.dir; // velocidade / railSpeed
+      direcaoComoAcao(out, od + k * DIRECOES, dx, dz);
     });
-    const L = PRECISION.rayLen, o = off + 5 + PRECISION.targets * 7;
+    const L = PRECISION.rayLen, o = od + nt * DIRECOES;
     for (let k = 0; k < PRECISION.rays; k++) {
-      const a = P.h + (k * 2 * Math.PI) / PRECISION.rays, dx = Math.cos(a), dz = Math.sin(a);
+      const a = C.h + (k * 2 * Math.PI) / PRECISION.rays, dx = Math.cos(a), dz = Math.sin(a);
       let best: number = L;
       for (const t of this.targets) {
         if (t.off > 0) continue;
-        const mx = P.x - t.x, mz = P.z - t.z, b = mx * dx + mz * dz, cc = mx * mx + mz * mz - PRECISION.targetR ** 2;
+        const mx = C.x - t.x, mz = C.z - t.z, b = mx * dx + mz * dz, cc = mx * mx + mz * mz - PRECISION.targetR ** 2;
         if (cc > 0 && b > 0) continue;
         const disc = b * b - cc;
         if (disc < 0) continue;
         best = Math.min(best, Math.max(0, -b - Math.sqrt(disc)));
       }
-      const bw = P.x * dx + P.z * dz, cw = P.x * P.x + P.z * P.z - R * R;
+      const bw = C.x * dx + C.z * dz, cw = C.x * C.x + C.z * C.z - R * R;
       out[o + k * 2] = best < L ? 1 - best / L : 0;
       out[o + k * 2 + 1] = 1 - Math.min(L, -bw + Math.sqrt(Math.max(0, bw * bw - cw))) / L;
     }
   }
 
-  /** action = [girar 0..2, andar 0..2, chutar 0..1] */
-  step(turn: number, move: number, kick: number) {
+  /** ações = [direção 0..15, ritmo 0..2, chute 0..5] (0 = não chuta; 1..5 = ajuste fino de −10° a +10°) */
+  step(direcao: number, ritmo: number, chute: number) {
     this.reward = 0;
     if (this.done) return;
-    const dt = PRECISION.dt, P = this.player, B = this.ball;
-    P.h += (turn - 1) * PRECISION.turn * dt;
-    const target = move === 2 ? PRECISION.speed : move === 0 ? -PRECISION.speed * 0.5 : 0;
-    P.v += (target - P.v) * Math.min(1, dt * 6);
-    P.x += Math.cos(P.h) * P.v * dt; P.z += Math.sin(P.h) * P.v * dt;
-    const lim = PRECISION.arenaR - PRECISION.playerR, d = Math.hypot(P.x, P.z);
-    if (d > lim) { P.x *= lim / d; P.z *= lim / d; }
-    P.phase += Math.abs(P.v) * dt * 2.4;
+    const dt = PRECISION.dt, P = this.player, B = this.ball, C = this.corpo;
+    moverCorpo(C, this.fis, direcao, ritmo, dt);
+    limitarCirculo(C, PRECISION.arenaR - PRECISION.playerR);
+    espelhar(C, P);
     if (P.cd > 0) P.cd -= dt;
     if (P.kickAnim > 0) P.kickAnim -= dt;
-    if (kick === 1 && P.cd <= 0 && !B.live) {
-      const a = P.h + this.rng.gauss() * PRECISION.aimNoise;
-      B.x = P.x + Math.cos(P.h) * (PRECISION.playerR + PRECISION.ballR);
-      B.z = P.z + Math.sin(P.h) * (PRECISION.playerR + PRECISION.ballR);
+    if (chute >= 1 && P.cd <= 0 && !B.live) {
+      const h = C.h + PRECISION.ajustes[chute - 1], a = h + this.rng.gauss() * PRECISION.aimNoise;
+      B.x = C.x + Math.cos(h) * (PRECISION.playerR + PRECISION.ballR);
+      B.z = C.z + Math.sin(h) * (PRECISION.playerR + PRECISION.ballR);
       B.vx = Math.cos(a) * PRECISION.kickSpeed; B.vz = Math.sin(a) * PRECISION.kickSpeed;
       B.live = true; P.cd = PRECISION.kickCd; P.kickAnim = 0.25; this.kicks++;
       this.events?.push({ type: 'kick', t: this.t, x: B.x, z: B.z, h: a });

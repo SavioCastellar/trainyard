@@ -6,6 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { PrecisionDrill, PRECISION_OBS } from '../src/drills/precision.js';
+import { DECISAO_QUADROS } from '../src/movimento.js';
 import { Rng } from '../src/rng.js';
 
 const tape = JSON.parse(readFileSync(process.argv[2], 'utf8'));
@@ -34,10 +35,11 @@ for (const i of [idx[0] - 1, idx[0], idx[Math.floor(idx.length / 2)], idx[idx.le
   const f = brain(tape.checkpoints[i]), obs = new Float32Array(PRECISION_OBS), a = [0, 0, 0];
   let lead = 0, dist = 0, n = 0, hits = 0;
   for (let s = 0; s < 24; s++) {
-    const e = new PrecisionDrill(9000 + s, false, 3), r = new Rng(7000 + s);
+    const e = new PrecisionDrill(9000 + s, true, 3), r = new Rng(7000 + s);
+    let q = 0;
     let pend: { lead: number; d: number } | null = null;
     while (!e.done) {
-      e.observe(obs); f(obs, r, a);
+      if (q++ % DECISAO_QUADROS === 0) { e.observe(obs); f(obs, r, a); }
       const k0 = e.kicks, h0 = e.hits, P = e.player;
       // alvo mais perto da linha do chute, no instante do chute
       const snap = e.targets.map(t => ({ ...t }));
@@ -46,7 +48,8 @@ for (const i of [idx[0] - 1, idx[0], idx[Math.floor(idx.length / 2)], idx[idx.le
         let best = Infinity;
         for (const t of snap) {
           if (!t.dir) continue;
-          let da = Math.atan2(t.z - P.z, t.x - P.x) - P.h; da = Math.atan2(Math.sin(da), Math.cos(da));
+          const kh = (e.events!.filter(ev => ev.type === 'kick').pop() as { h: number }).h; // direção do chute (corpo + ajuste fino)
+          let da = Math.atan2(t.z - P.z, t.x - P.x) - kh; da = Math.atan2(Math.sin(da), Math.cos(da));
           if (Math.abs(da) < Math.abs(best)) {
             best = da;
             // à frente = chute girado da direção do alvo para o lado em que ele anda

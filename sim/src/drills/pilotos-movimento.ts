@@ -8,6 +8,7 @@ import { DIRECOES, RITMOS, direcaoDoAngulo, difAngulo } from '../movimento.js';
 import { LaboratorioMovimento } from './laboratorio-movimento.js';
 import { PainelDrill, PAINEL } from './painel.js';
 import { BandejaDrill, BANDEJA } from './bandeja.js';
+import { PrecisionDrill, PRECISION } from './precision.js';
 
 /** Movimento novo: vai na direção do alvo visto (ou lembrado); sem informação, procura virando. */
 export function pilotoNovo(lab: LaboratorioMovimento, rng: Rng, habilidade: number, out: number[]) {
@@ -93,5 +94,41 @@ export function pilotoBandeja(e: BandejaDrill, rng: Rng, habilidade: number, out
   if (sp > 1) {
     const passo = (lento ? 2 : 1) * Math.PI / 8;
     out[0] = direcaoDoAngulo(vang + Math.max(-passo, Math.min(passo, falta)));
+  }
+}
+
+/** tempo de voo da bola chutada até a distância d (Infinity se ela para antes) */
+export const vooPrecisao = (d: number) => { const k = 1 - (d * PRECISION.ballFriction) / PRECISION.kickSpeed; return k > 0.1 ? -Math.log(k) / PRECISION.ballFriction : Infinity; };
+
+/**
+ * Precisão: escolhe o alvo mais rápido de acertar (virar o corpo + voo da bola), vira parado para a direção
+ * mais perto dele e chuta com o ajuste fino que falta. `tempo`: no nível 2 ignora alvo que apaga antes da bola
+ * chegar; `antecipa`: no nível 3 mira onde o alvo vai estar. Longe demais (> 9,5), anda trotando até ele.
+ */
+export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, out: number[], { tempo = true, antecipa = true } = {}) {
+  if (rng.next() > habilidade) { out[0] = rng.int(DIRECOES); out[1] = rng.int(RITMOS); out[2] = rng.next() < 0.3 ? 1 + rng.int(5) : 0; return; }
+  const c = e.corpo;
+  let best: { a: number; d: number; custo: number } | null = null;
+  for (const t of e.targets) {
+    if (t.off > 0) continue;
+    let x = t.x, z = t.z, a = 0, d = 0, custo = 0;
+    for (let k = 0; k < (antecipa ? 4 : 1); k++) {
+      a = Math.atan2(z - c.z, x - c.x); d = Math.hypot(x - c.x, z - c.z);
+      custo = Math.abs(difAngulo(c.h, a)) / e.fis.giro + 0.15 + vooPrecisao(d);
+      if (antecipa && t.dir) { const ang = t.a + (t.dir * PRECISION.railSpeed * custo) / t.r; x = Math.cos(ang) * t.r; z = Math.sin(ang) * t.r; }
+    }
+    if (tempo && e.nivel === 2 && t.on < custo + 0.15) continue;
+    if (!best || custo < best.custo) best = { a, d, custo };
+  }
+  out[2] = 0;
+  if (!best) { out[0] = direcaoDoAngulo(c.h); out[1] = 0; return; }
+  out[0] = direcaoDoAngulo(best.a);
+  out[1] = best.d > 9.5 ? 1 : 0;
+  // parado e quase virado: chuta com o ajuste fino que deixa a mira mais perto do alvo
+  const falta = difAngulo(c.h, best.a), sp = Math.hypot(c.vx, c.vz);
+  if (out[1] === 0 && sp < 0.6 && Math.abs(falta) < (12.5 * Math.PI) / 180 && Math.abs(c.w) < 1.5) {
+    let k = 0, m = Infinity;
+    PRECISION.ajustes.forEach((aj, i) => { const err = Math.abs(falta - aj); if (err < m) { m = err; k = i; } });
+    if (m < Math.min(0.12, 0.8 / best.d)) out[2] = k + 1;
   }
 }
