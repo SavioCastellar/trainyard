@@ -767,7 +767,9 @@ function cameraFrame() {
   // segue o atleta de cima e de trás do circuito (alto o bastante para a cabeça não tapar a bandeja)
   const narrow = innerWidth < innerHeight, c = main.env.corpo;
   lookGoal.set(c.x, .8, c.z + (narrow ? 1.2 : .2));
-  camGoal.set(c.x, narrow ? 14 : 9, c.z + (narrow ? 4.6 : 2.9));
+  // no slalom a câmera abre um pouco, para ver as próximas portas
+  const k = main.env.nivel === 2 ? 1.3 : 1;
+  camGoal.set(c.x, (narrow ? 14 : 9) * k, c.z + (narrow ? 4.6 : 2.9) * k);
 }
 let userMoved = false;
 controls.addEventListener('start', () => { userMoved = true; });
