@@ -8,7 +8,7 @@
 import { PrecisionDrill, PRECISION_OBS, PRECISION_ACTIONS } from './precision.js';
 import { PainelDrill, PAINEL_OBS, PAINEL_ACTIONS, type Nivel } from './painel.js';
 import { ReflexoDrill, REFLEXO_OBS, REFLEXO_ACTIONS } from './reflexo.js';
-import { ControleDrill, CONTROLE_OBS, CONTROLE_ACTIONS } from './controle.js';
+import { BandejaDrill, BANDEJA_OBS, BANDEJA_ACTIONS } from './bandeja.js';
 import { ForcaDrill, FORCA_OBS, FORCA_ACTIONS } from './forca.js';
 import { InteligenciaDrill, INTELIGENCIA_OBS, INTELIGENCIA_ACTIONS } from './inteligencia.js';
 import { Rng } from '../rng.js';
@@ -30,10 +30,10 @@ const DRILLS: Record<string, { obs: number; acts: number; decisao?: number; make
     obs: REFLEXO_OBS, acts: REFLEXO_ACTIONS.length, make: (s, n) => new ReflexoDrill(s, false, n as Nivel),
     info: (e: ReflexoDrill) => ({ hits: e.hits, lights: e.shots, reds: 0, struck: e.struck, nivel: e.nivel }),
   },
-  // domínio por contagem: lights = 100 fixo (rate = plataformas/100) e reds = quedas
+  // Bandeja: domínio por contagem (marcas por tentativa, lights = 1) e bolas caídas no lugar das vermelhas
   controle: {
-    obs: CONTROLE_OBS, acts: CONTROLE_ACTIONS.length, make: (s, n) => new ControleDrill(s, false, n as Nivel),
-    info: (e: ControleDrill) => ({ hits: e.hits, lights: 100, reds: e.falls, nivel: e.nivel }),
+    obs: BANDEJA_OBS, acts: BANDEJA_ACTIONS.length, decisao: DECISAO_QUADROS, make: (s, n) => new BandejaDrill(s, false, n as Nivel),
+    info: (e: BandejaDrill) => ({ hits: e.hits, lights: 1, reds: e.drops, misses: e.misses, nivel: e.nivel }),
   },
   // hits = marcas cruzadas; lights = 5 marcas por entrega, então hits/lights = entregas por tentativa (domínio da ficha)
   forca: {

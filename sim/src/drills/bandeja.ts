@@ -60,7 +60,7 @@ export const BANDEJA = {
   bumpH: 0.22,
   bumpKick: 0.4,
   /** tempo parado depois de derrubar a bola */
-  drop: 1.5,
+  drop: 2.5,
   maxTime: 30,
   dt: 1 / 30,
 } as const;

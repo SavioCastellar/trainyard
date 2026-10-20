@@ -7,13 +7,13 @@ equilibre algo ou se equilibre sobre algo, e deixou a escolha com o Claude. Apro
 - **Tipo:** treino de atributo base, individual. **Atributo:** Controle.
 - **Ideia:** o atleta leva uma bandeja com uma bola em cima por um circuito sem fim de marcas no chão.
   A bandeja é um pouco côncava: andando constante, a bola fica no meio. Toda arrancada, freada ou curva
-  empurra a bola para o lado contrário, como num ônibus. Se ela passa da beira, cai. Ele fica 1,5 s
+  empurra a bola para o lado contrário, como num ônibus. Se ela passa da beira, cai. Ele fica 2,5 s
   parado pegando outra bola. Não tem gesto de esporte, robô nem adversário.
 - **Por que treina Controle:** aceleração, frenagem e curva do movimento padrão (`fisica()`, atributo
   Controle) são exatamente o que empurra a bola. O atleta precisa dosar: arrancar em etapas, frear
   antes da curva e virar aos poucos.
 - **Objetivo do atleta (recompensa):** +1 por marca alcançada com a bola na bandeja. Nenhuma outra
-  recompensa: derrubar a bola custa 1,5 s parado (custo natural).
+  recompensa: derrubar a bola custa 2,5 s parado (custo natural). Com 1,5 s, num teste curto o atleta aceitava ~3 bolas caídas por tentativa em troca de correr mais; com 2,5 s elas caem mais rápido.
 - **Duração da tentativa:** 30 s.
 - **Por que é divertido de assistir:**
   - No começo ele sai em disparada e a bola voa logo na largada, ou faz a curva com tudo e ela sai
@@ -58,7 +58,7 @@ balançando quando sobe na lombada.
 | Marca | raio 0,7; chegou quando o centro do atleta entra nela, com a bola na bandeja. Slalom: a marca é uma porta; conta ao cruzar a linha dela, por dentro dos cones |
 | Bandeja | raio útil 0,3 (bola de raio 0,07). A bola sente 5/7 da aceleração do corpo, ao contrário (bola rolando), mais a volta para o meio (côncava: w² × posição) e atrito (c × velocidade). Passou de 0,3 do centro, caiu |
 | Lombada | 4,4 de largura × 1,2 ao longo do caminho × 0,22 de altura, entre 40% e 60% do trecho, sem encostar em marcas nem em outras lombadas; ao subir nela, a bola pula 0,4 × velocidade² (m/s) para a frente e um pouco de lado: a ~1 m/s passa, trotando (2,3) às vezes cai, correndo (4,2) cai sempre. O atleta sobe e desce com ela (só desenho) |
-| Bola caída | 1,5 s parado; volta uma bola nova no meio da bandeja |
+| Bola caída | 2,5 s parado; volta uma bola nova no meio da bandeja |
 | Atleta | movimento padrão (`movimento.ts`), atributos da fita (Velocidade 35, Controle 35): 4,2 m/s, arranca 5,3 m/s², freia 8,1 m/s², curva até 8,2 m/s² |
 | Decisões | `[direção 16, ritmo 3]`, a cada 8 quadros |
 | Observação (64) | velocidade e direção do corpo; bola (posição e velocidade na bandeja); empurrão de agora; parado; as 3 próximas marcas (posição relativa, se há lombada antes e onde, direção em que se passa pela porta); direção da próxima marca e da seguinte "no idioma das ações" (16 + 16) |
@@ -81,8 +81,11 @@ balançando quando sobe na lombada.
 | 3 | painel com a contagem e o recorde, telão mostrando a bandeja de cima |
 
 ## Estado
-- Ficha: proposta do Claude (2026-10-19), a aprovar pelo Savio vendo a prévia.
+- Ficha e prévia: aprovadas pelo Savio (2026-10-19), com o slalom no nível 2.
 - Prévia com piloto: `python web/atividades/controle/build.py --previa` → `web/dist/previa-controle.html`.
-- Treino: a fazer depois da aprovação (ligar a Bandeja na ponte, no `ppo_drill.py` e no `make-tape.ts`).
-- A fita antiga (`fitas/controle.json`, Plataformas) e `web/atividades/controle/controle.template.html`
-  saem quando a fita nova estiver pronta.
+- Treino: ligado na ponte (`controle` = Bandeja, decisão a cada 8 quadros), no `ppo_drill.py` (64 entradas,
+  ações `[16, 3]`, domínios da tabela acima) e no `make-tape.ts`. Teste de 3,5 min na nuvem: nível 1 de
+  0,2 para 18 marcas por tentativa, com ~2 bolas caídas (ainda sem domínio). Treino de verdade no
+  computador do Savio (`docs/migracao-movimento.md`).
+- A simulação, o teste e a página das Plataformas saíram. A fita antiga `fitas/controle.json` não
+  funciona com a página nova e é substituída quando a fita da Bandeja ficar pronta.

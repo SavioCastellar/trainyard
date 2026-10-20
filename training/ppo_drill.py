@@ -24,14 +24,14 @@ from torch.distributions import Categorical
 
 # tamanho da observação e das decisões de cada atividade (iguais a sim/src/drills/<nome>.ts)
 DRILLS = {"precisao": (5 + 3 * 7 + 16 * 2, (3, 3, 2)), "velocidade": (19 + 12 * 5 + 3 * 16, (16, 3)), "reflexo": (7 + 4 * 5 + 4 * 6 + 1, (3, 3, 3)),
-          "controle": (2 + 5 * 9, (3, 3)), "forca": (27, (3, 3)), "inteligencia": (8 + 2 * 5 * 6 + 8, (3, 3))}
+          "controle": (11 + 3 * 7 + 2 * 16, (16, 3)), "forca": (27, (3, 3)), "inteligencia": (8 + 2 * 5 * 6 + 8, (3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha.
 # Valor acima de 1 é acertos/entregas por tentativa (Precisão: igual a PRECISION_DOMINIO em precision.ts).
 DOMINIO = {"precisao": {1: (26, None), 2: (26, None), 3: (25, None)},
            "velocidade": {1: (0.90, None), 2: (0.86, None), 3: (0.82, 0.4)},
            "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.94, None)},
-           # controle: plataformas/100 (a ponte manda lights = 100) e quedas por tentativa no lugar das vermelhas
-           "controle": {1: (0.80, 2), 2: (0.75, 2), 3: (0.35, 5)},
+           # controle (Bandeja): marcas por tentativa e bolas caídas por tentativa no lugar das vermelhas
+           "controle": {1: (20, 1), 2: (14, 1), 3: (10, 1)},
            # força: hits/lights = entregas por tentativa (a ponte manda lights = 5 marcas)
            "forca": {1: (3.0, None), 2: (1.5, None), 3: (1.0, None)},
            # inteligencia: pontos por tentativa (a ponte manda lights = 1)

@@ -23,7 +23,7 @@ zero no computador do Savio, **uma de cada vez**, depois de ele aprovar a prévi
 | # | Atividade | Simulação migrada | Prévia aprovada | Retreinada | Fita aprovada |
 |---|---|---|---|---|---|
 | 1 | Velocidade (Painel de luzes) | sim | sim | sim (2026-10-19, 219 checkpoints) | sim |
-| 2 | Controle (**Bandeja**, nova; substitui as Plataformas) | sim | aguardando | — | — |
+| 2 | Controle (**Bandeja**, nova; substitui as Plataformas) | sim | sim (2026-10-19) | — | — |
 | 3 | Precisão | — | — | — | — |
 | 4 | Reflexo (Lançadores) | — | — | — | — |
 | 5 | Força (Trenó) | — | — | — | — |
@@ -36,9 +36,10 @@ treino de uma atividade migrada só funciona com a fita nova.
 no checkpoint 198. O Savio aprovou o resultado em 2026-10-19.
 
 ## Retreinar uma atividade (no computador do Savio)
+Troque `controle` pela atividade (`velocidade`, `controle`, ...):
 ```powershell
 cd sim; npm install; npx tsc -p .; cd ..\training
-python ppo_drill.py --drill velocidade --minutes 60 --out runs/velocidade
-cd ..\sim; node dist/scripts/make-tape.js ..\training\runs\velocidade\checkpoints.json ..\fitas\velocidade.json
-cd ..; python web/atividades/velocidade/build.py     # gera web/dist/treino-velocidade.html
+python ppo_drill.py --drill controle --minutes 120 --max-steps 4e8 --out runs/controle
+cd ..\sim; node dist/scripts/make-tape.js ..\training\runs\controle\checkpoints.json ..\fitas\controle.json
+cd ..; python web/atividades/controle/build.py     # gera web/dist/treino-controle.html
 ```
