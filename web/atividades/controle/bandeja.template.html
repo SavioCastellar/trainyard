@@ -182,8 +182,8 @@ const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
 const R = DRILL.BANDEJA;
-const NIVEIS = { 1: 'Circuito', 2: 'Vai e volta', 3: 'Lombadas' };
-const NIVEL_TXT = { 1: 'Circuito com curvas suaves. Arrancar ou frear com tudo derruba a bola.', 2: 'Ida e volta entre duas linhas, com a bola mais solta: cada marca é uma parada e uma virada completa.', 3: 'Lombadas largas atravessando o caminho: passar correndo por cima faz a bola pular da bandeja.' };
+const NIVEIS = { 1: 'Circuito', 2: 'Slalom', 3: 'Lombadas' };
+const NIVEL_TXT = { 1: 'Circuito com curvas suaves. Arrancar ou frear com tudo derruba a bola.', 2: 'Portas em zigue-zague: passar por dentro de cada par de cones, virando para um lado e para o outro sem deixar a bola escapar.', 3: 'Lombadas largas atravessando o caminho: passar correndo por cima faz a bola pular da bandeja.' };
 /* escala do desenho da bandeja em relação à simulação (a bandeja aparece um pouco maior para ler de longe) */
 const TRAY_VIS = .42, KV = TRAY_VIS / R.trayR;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -327,22 +327,20 @@ function alturaChao(e, x, z) {
   }
   return 0;
 }
-/* vai e volta: as duas linhas pintadas, com cones nas pontas */
-const LANES = new THREE.Group(); LANES.visible = false; scene.add(LANES);
-const laneMat = new THREE.MeshBasicMaterial({ color: 0xf4f1e8, transparent: true, opacity: .8 });
-const laneCones = [];
-for (const ln of [0, 1]) {
-  const strip = new THREE.Mesh(new THREE.PlaneGeometry(1, .1), laneMat); strip.rotation.x = -Math.PI / 2; strip.position.y = .066; strip.userData.ln = ln; LANES.add(strip);
-  for (const end of [-1, 1]) { const c = new THREE.Mesh(new THREE.ConeGeometry(.16, .42, 14), new THREE.MeshStandardMaterial({ color: 0xf08a24, roughness: .6 })); c.castShadow = true; c.userData = { ln, end }; LANES.add(c); laneCones.push(c); }
+/* slalom (nível 2): portas de dois cones, alternando azul e vermelho; a próxima tem a faixa do chão acesa */
+const GT = [], gateConeGeo = new THREE.ConeGeometry(.2, .85, 18), barGeo = new THREE.PlaneGeometry(1, .14);
+const GATE_COR = [new THREE.Color(0x2f6fd6), new THREE.Color(0xd63a3a)];
+for (let i = 0; i < 7; i++) {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x2f6fd6, roughness: .55 });
+  const cones = [-1, 1].map(sx => { const c = new THREE.Mesh(gateConeGeo, mat); c.castShadow = true; c.userData.sx = sx; g.add(c); return c; });
+  const bar = new THREE.Mesh(barGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false })); bar.rotation.x = -Math.PI / 2; bar.position.y = .07; g.add(bar);
+  const num = new THREE.Mesh(new THREE.PlaneGeometry(.7, .7), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })); num.rotation.x = -Math.PI / 2; num.position.set(0, .075, .55); g.add(num);
+  GT.push({ g, mat, cones, bar, num, idx: -1, fx: 0, caiu: 0 });
 }
-function colocarPista(P) {
-  LANES.visible = !!P; if (!P) return;
-  LANES.position.set(P.x, 0, P.z); LANES.rotation.y = Math.atan2(-P.uz, P.ux);
-  for (const o of LANES.children) {
-    const ln = o.userData.ln, lado = ln === 0 ? -P.meia : P.meia;
-    if (o.userData.end === undefined) { o.scale.x = P.comp; o.position.set(0, .066, lado); }
-    else o.position.set(o.userData.end * (P.comp / 2 + .3), .27, lado);
-  }
+function colocarPorta(v, m, vao) {
+  v.g.position.set(m.x, 0, m.z); v.g.rotation.y = Math.atan2(-m.porta.ux, -m.porta.uz);
+  v.bar.scale.x = vao; for (const c of v.cones) c.position.set(c.userData.sx * vao / 2, .49, 0);
 }
 
 /* =========================================================
@@ -444,7 +442,7 @@ class Station {
     this.evIdx = 0; this.acc = 0; this.prev = null; this.tilt = { x: 0, z: 0 };
     for (const b of this.loose) this.g.remove(b.m); this.loose = [];
     this.tray.ball.visible = true; this.ballPop = 0;
-    if (this.main) { for (const m of MK) { m.idx = -1; m.fx = 0; m.g.visible = false; } colocarPista(this.env.pista); }
+    if (this.main) { for (const m of [...MK, ...GT]) { m.idx = -1; m.fx = 0; m.g.visible = false; } }
     this.hop = 0; this.hopH = 0;
   }
   snap() { const c = this.env.corpo, b = this.env.ball; this.prev = { x: c.x, z: c.z, bx: b.x, bz: b.z }; }
@@ -467,9 +465,12 @@ class Station {
       if (ev.type === 'mark') {
         if (this.main) {
           const m = e.marks[ev.mark]; burst(m.x, .3, m.z, 0x22c55e, 16, 2.6, 3.5); burst(m.x, .3, m.z, 0xffffff, 6, 2, 3.5);
-          const v = MK.find(k => k.idx === ev.mark); if (v) v.fx = 1;
+          const v = [...MK, ...GT].find(k => k.idx === ev.mark); if (v) v.fx = 1;
         }
         this.hitNow = this.main;
+      } else if (ev.type === 'miss') {
+        // passou por fora da porta: os cones tombam
+        if (this.main) { const v = GT.find(k => k.idx === ev.mark); if (v) { v.caiu = 1; v.fx = 1; } const m = e.marks[ev.mark]; burst(m.x, .3, m.z, 0xd63a3a, 10, 1.6, 2); }
       } else if (ev.type === 'drop') {
         // a bola sai da bandeja com a velocidade que tinha e cai no chão
         const tp = this.trayPos, mat = this.tray.ball.material.clone(); mat.depthTest = true;
@@ -530,6 +531,43 @@ class Station {
   updateCourse(dt, time) {
     const e = this.env, want = [];
     for (let i = Math.max(0, e.next - 1); i <= e.next + 3; i++) want.push(i);
+    if (e.marks[e.next].porta) this.updateGates(dt, time, want);
+    else { for (const v of GT) v.g.visible = false; this.updateMarks(dt, time, want); }
+    this.updateTrail();
+  }
+  updateGates(dt, time, want) {
+    const e = this.env, vao = R.niveis[e.nivel].vao;
+    for (const m of MK) m.g.visible = false;
+    for (const v of GT) if (v.idx >= 0 && !want.includes(v.idx) && v.fx <= 0) { v.idx = -1; v.g.visible = false; }
+    for (const i of want) {
+      if (!e.marks[i].porta || GT.some(v => v.idx === i)) continue;
+      const v = GT.find(k => k.idx < 0); if (!v) continue;
+      v.idx = i; v.fx = 0; v.caiu = 0; v.num.material.map = markNum(i); v.num.material.needsUpdate = true; colocarPorta(v, e.marks[i], vao);
+      for (const c of v.cones) c.rotation.set(0, 0, 0);
+    }
+    for (const v of GT) {
+      if (v.idx < 0) continue;
+      const k = v.idx - e.next; v.g.visible = true;
+      if (v.fx > 0) v.fx -= dt * 1.2;
+      v.mat.color.copy(GATE_COR[v.idx % 2]);
+      if (v.caiu > 0) {   // tombando
+        v.caiu = Math.min(1.4, v.caiu + dt * 5);
+        const t = (v.caiu - 1) / .4;
+        for (const c of v.cones) { c.rotation.z = -c.userData.sx * 1.35 * t; c.position.y = .49 - .32 * t; }
+      }
+      if (k < 0) {
+        const f = Math.max(0, v.fx);
+        v.bar.material.color.set(v.caiu > 0 ? 0xe23b3b : 0xeafff0); v.bar.material.opacity = f; v.num.material.opacity = f * .8;
+        if (f <= 0) v.g.visible = false;
+        continue;
+      }
+      const pulse = k === 0 ? .7 + .3 * Math.sin(time * 6) : 1;
+      v.bar.material.color.set(k === 0 ? 0x22c55e : 0xf4f1e8); v.bar.material.opacity = (k === 0 ? 1 : .35) * pulse;
+      v.num.material.opacity = k === 0 ? 1 : .45;
+    }
+  }
+  updateMarks(dt, time, want) {
+    const e = this.env;
     // solta as que saíram, pega as que entraram
     for (const m of MK) if (m.idx >= 0 && !want.includes(m.idx) && m.fx <= 0) { m.idx = -1; m.g.visible = false; }
     for (const i of want) if (!MK.some(m => m.idx === i)) { const m = MK.find(k => k.idx < 0); if (m) { m.idx = i; m.fx = 0; m.num.material.map = markNum(i); m.num.material.needsUpdate = true; } }
@@ -547,6 +585,9 @@ class Station {
       m.ring.material.color.set(k === 0 ? 0xffffff : 0xc8d0d8); m.ring.material.opacity = k === 0 ? 1 : .55 - .1 * k;
       m.num.material.opacity = k === 0 ? 1 : .5; m.cone.visible = true; m.cone.scale.setScalar(k === 0 ? 1 : .8);
     }
+  }
+  updateTrail() {
+    const e = this.env;
     // trilha pontilhada: do atleta à próxima e entre as seguintes
     const M = new THREE.Matrix4(), q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2), sc = new THREE.Vector3(1, 1, 1), P = new THREE.Vector3();
     let n = 0;

@@ -63,7 +63,13 @@ export function pilotoPainel(e: PainelDrill, rng: Rng, habilidade: number, out: 
 export function pilotoBandeja(e: BandejaDrill, rng: Rng, habilidade: number, out: number[], estilo: 'corre' | 'trote' | 'esperto' | 'apressado' = 'esperto') {
   if (rng.next() > habilidade) { out[0] = rng.int(DIRECOES); out[1] = rng.int(RITMOS); return; }
   const c = e.corpo, m0 = e.marks[e.next], m1 = e.marks[e.next + 1];
-  const ang = Math.atan2(m0.z - c.z, m0.x - c.x), d = Math.hypot(m0.x - c.x, m0.z - c.z);
+  // porta (slalom): mira um pouco antes do meio dela e, chegando, um pouco depois, para cruzar por dentro
+  let tx = m0.x, tz = m0.z;
+  if (m0.porta) {
+    const a = (c.x - m0.x) * m0.porta.ux + (c.z - m0.z) * m0.porta.uz, k = a < -1.2 ? -0.5 : 0.8;
+    tx += m0.porta.ux * k; tz += m0.porta.uz * k;
+  }
+  const ang = Math.atan2(tz - c.z, tx - c.x), d = Math.hypot(m0.x - c.x, m0.z - c.z);
   out[0] = direcaoDoAngulo(ang);
   if (estilo === 'corre' || estilo === 'trote') { out[1] = estilo === 'corre' ? 2 : 1; return; }
   const b = e.ball, solta = Math.hypot(b.x, b.z) / BANDEJA.trayR, sp = Math.hypot(c.vx, c.vz);
@@ -72,6 +78,8 @@ export function pilotoBandeja(e: BandejaDrill, rng: Rng, habilidade: number, out
     out[0] = direcaoDoAngulo(Math.atan2(c.vz, c.vx)); out[1] = sp > e.fis.velMax * 0.75 ? 2 : 1; return;
   }
   // parado com a bola balançando: espera ela assentar antes de sair
+  // slalom: vai direto na porta, trotando (correr no zigue-zague balança a bola demais para um piloto simples)
+  if (m0.porta) { out[1] = 1; return; }
   if (sp < 0.4 && solta > 0.35) { out[1] = 0; return; }
   const curva = Math.abs(difAngulo(ang, Math.atan2(m1.z - m0.z, m1.x - m0.x)));
   // trecho com lombada: trota o trecho inteiro (frear de novo logo antes da próxima deixaria a bola balançando)

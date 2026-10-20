@@ -9,8 +9,9 @@
  * são exatamente o que empurra a bola. Mais controle = arranca e freia mais forte, mas também consegue
  * fazer curva mais fechada sem passar do ponto.
  *
- * Níveis: 1 circuito com curvas suaves; 2 vai e volta entre duas linhas (cada marca é uma parada e uma
- * virada completa); 3 circuito com lombadas largas no caminho (passar rápido por cima faz a bola pular).
+ * Níveis: 1 circuito com curvas suaves; 2 slalom de portas em zigue-zague (passar por dentro de cada par de
+ * cones, virando para um lado e para o outro sem parar); 3 circuito com lombadas largas no caminho (passar
+ * rápido por cima faz a bola pular).
  *
  * Observação (referencial do mundo, como as ações): velocidade e direção do corpo, bola na bandeja
  * (posição e velocidade), empurrão que a bola está sentindo agora, parado; as 3 próximas marcas
@@ -18,7 +19,7 @@
  * das ações". Ações: [direção 0..15, ritmo 0..2].
  */
 import { Rng } from '../rng.js';
-import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarRetangulo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento, DIRECOES, direcaoComoAcao } from '../movimento.js';
+import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarRetangulo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento, DIRECOES, direcaoComoAcao, difAngulo } from '../movimento.js';
 
 export const BANDEJA = {
   /** metade do lado da área das marcas; o atleta fica preso numa área um pouco maior */
@@ -38,14 +39,15 @@ export const BANDEJA = {
    * por nível (índice = nível):
    * - tipo 'livre': circuito com curvas; distância entre marcas, curva mínima e máxima (graus), chance de a
    *   curva trocar de lado, lombada = chance de uma lombada grande no meio do trecho
-   * - tipo 'vaivem': duas linhas paralelas a `largura` uma da outra; as marcas alternam de linha (ida e volta),
-   *   andando até `passo` ao longo dela
+   * - tipo 'slalom': portas (pares de cones, vão `vao`) em zigue-zague, a `passo` metros uma da outra ao longo de
+   *   uma linha que faz curvas leves (até `curva` graus por porta), afastadas `lado` metros para um lado e para o
+   *   outro. Conta passar por dentro da porta; passar por fora perde a porta (sem recompensa) e segue para a próxima
    * w = quão funda é a bandeja (frequência do vai e vem da bola, rad/s), c = atrito da bola
    */
   niveis: [
     null,
     { tipo: 'livre', minD: 3.5, maxD: 5, minTurn: 0, maxTurn: 35, flip: 0.5, lombada: 0, w: 6, c: 3 },
-    { tipo: 'vaivem', largura: 5.5, comprimento: 13, passo: 2.5, w: 6, c: 2.5 },
+    { tipo: 'slalom', passo: 3.2, lado: 1.6, vao: 1.4, curva: 12, w: 5.5, c: 3 },
     { tipo: 'livre', minD: 5.5, maxD: 7, minTurn: 0, maxTurn: 45, flip: 0.5, lombada: 0.9, w: 6, c: 3 },
   ],
   /**
@@ -64,21 +66,22 @@ export const BANDEJA = {
 } as const;
 
 export const BANDEJA_LOOK = 3;
-/** 11 do atleta e da bola + 5 por marca vista + 2 × 16 direções (próxima marca e a seguinte) */
-export const BANDEJA_OBS = 11 + BANDEJA_LOOK * 5 + 2 * DIRECOES;
+/** 11 do atleta e da bola + 7 por marca vista + 2 × 16 direções (próxima marca e a seguinte) */
+export const BANDEJA_OBS = 11 + BANDEJA_LOOK * 7 + 2 * DIRECOES;
 export const BANDEJA_ACTIONS = ACOES_MOVIMENTO;
 export type Nivel = 1 | 2 | 3;
 
 export interface Marca {
   x: number; z: number;
-  /** vai e vem: em qual das duas linhas está (0 ou 1); circuito livre: -1 */
-  linha: number;
+  /** slalom: a marca é uma porta; (ux, uz) = direção em que se passa por ela; circuito: null */
+  porta: { ux: number; uz: number } | null;
   /** lombada no caminho da marca anterior até esta (centro e direção do caminho), ou null */
   lomb: { x: number; z: number; ux: number; uz: number } | null;
 }
 
 export type BandejaEvent =
   | { type: 'mark'; t: number; mark: number }
+  | { type: 'miss'; t: number; mark: number; lado: number }
   | { type: 'drop'; t: number; x: number; z: number; vx: number; vz: number; bx: number; bz: number }
   | { type: 'bump'; t: number; kick: number }
   | { type: 'ball'; t: number };
@@ -107,8 +110,10 @@ export class BandejaDrill {
   private head: number;
   private sign: number;
   private onBump = -1;
-  /** vai e vem: centro da pista, direção das linhas (ux, uz) e afastamento de cada linha ao centro */
-  pista: { x: number; z: number; ux: number; uz: number; meia: number; comp: number } | null = null;
+  /** portas perdidas (slalom) */
+  misses = 0;
+  /** slalom: ponto atual da linha central (as portas ficam para um lado e para o outro dela) */
+  private linha = { x: 0, z: 0, lado: 1 };
 
   constructor(seed: number, record = false, readonly nivel: Nivel = 1, atributos: AtributosMovimento = ATLETA_FITA) {
     this.rng = new Rng(seed);
@@ -119,16 +124,15 @@ export class BandejaDrill {
     let x: number, z: number;
     this.head = this.rng.range(-Math.PI, Math.PI);
     this.sign = this.rng.next() < 0.5 ? -1 : 1;
-    if (N.tipo === 'vaivem') {
-      const cx = this.rng.range(-1.5, 1.5), cz = this.rng.range(-1.5, 1.5);
-      this.pista = { x: cx, z: cz, ux: Math.cos(this.head), uz: Math.sin(this.head), meia: N.largura / 2, comp: N.comprimento };
-      const a = this.rng.range(-3, 3);
-      ({ x, z } = this.pontoPista(0, a));
-      this.marks = [{ x, z, linha: 0, lomb: null }];
+    if (N.tipo === 'slalom') {
+      // começa um pouco antes da primeira porta, no meio da linha
+      x = this.rng.range(-4, 4); z = this.rng.range(-4, 4);
+      this.linha = { x, z, lado: this.sign };
+      this.marks = [{ x, z, porta: null, lomb: null }];
     } else {
       const lim = BANDEJA.half / 2;
       x = this.rng.range(-lim, lim); z = this.rng.range(-lim, lim);
-      this.marks = [{ x, z, linha: -1, lomb: null }];
+      this.marks = [{ x, z, porta: null, lomb: null }];
     }
     this.grow();
     const m1 = this.marks[1];
@@ -138,22 +142,21 @@ export class BandejaDrill {
 
   private get N() { return BANDEJA.niveis[this.nivel]!; }
 
-  /** ponto na linha (0 ou 1) do vai e vem, a `ao` metros do centro ao longo dela */
-  pontoPista(linha: number, ao: number) {
-    const P = this.pista!, lado = linha === 0 ? -P.meia : P.meia;
-    return { x: P.x + P.ux * ao - P.uz * lado, z: P.z + P.uz * ao + P.ux * lado };
-  }
-
   /** estende o circuito: curvas limitadas pelo nível, dentro da área; encurralado, aceita qualquer curva */
   private grow() {
     const B = BANDEJA, N = this.N, rng = this.rng, M = this.marks;
-    if (N.tipo === 'vaivem') {
-      const P = this.pista!, lim = P.comp / 2 - 1;
+    if (N.tipo === 'slalom') {
+      const Lh = this.linha;
       while (M.length <= this.next + B.ahead) {
-        const prev = M[M.length - 1], aoPrev = (prev.x - P.x) * P.ux + (prev.z - P.z) * P.uz;
-        const ao = Math.max(-lim, Math.min(lim, aoPrev + rng.range(-N.passo, N.passo)));
-        const linha = 1 - prev.linha, p = this.pontoPista(linha, ao);
-        M.push({ x: p.x, z: p.z, linha, lomb: null });
+        // a linha central faz curvas leves; perto da borda da área, vira para dentro
+        const r = Math.hypot(Lh.x, Lh.z), paraDentro = difAngulo(this.head, Math.atan2(-Lh.z, -Lh.x));
+        const sorteio = rng.range(-N.curva, N.curva) * Math.PI / 180, max = 40 * Math.PI / 180;
+        // longe do meio da área, a linha vira para dentro (mais forte quanto mais longe e mais de frente para fora)
+        const giro = (r > 4 && Math.abs(paraDentro) > 0.6) || r > 5.5 ? Math.max(-max * (r > 6.5 ? 1.6 : 1), Math.min(max * (r > 6.5 ? 1.6 : 1), paraDentro)) : sorteio;
+        this.head += giro;
+        const ux = Math.cos(this.head), uz = Math.sin(this.head);
+        Lh.x += ux * N.passo; Lh.z += uz * N.passo; Lh.lado = -Lh.lado;
+        M.push({ x: Lh.x - uz * N.lado * Lh.lado, z: Lh.z + ux * N.lado * Lh.lado, porta: { ux, uz }, lomb: null });
       }
       return;
     }
@@ -179,7 +182,7 @@ export class BandejaDrill {
             || M.slice(-4).some(m => m.lomb && pts(m.lomb).some(q => meus.some(r => perto(q, r, 1.6))));
           if (ruim) lomb = null;
         }
-        M.push({ x: nx, z: nz, linha: -1, lomb });
+        M.push({ x: nx, z: nz, porta: null, lomb });
         this.head = nh; this.sign = sg;
         break;
       }
@@ -203,11 +206,13 @@ export class BandejaDrill {
     out[off + 4] = b.x / B.trayR; out[off + 5] = b.z / B.trayR; out[off + 6] = b.vx / 2; out[off + 7] = b.vz / 2;
     out[off + 8] = this.push.x / 10; out[off + 9] = this.push.z / 10; out[off + 10] = this.player.frozen > 0 ? 1 : 0;
     for (let k = 0; k < BANDEJA_LOOK; k++) {
-      const m = this.marks[this.next + k], o = off + 11 + k * 5;
+      const m = this.marks[this.next + k], o = off + 11 + k * 7;
       out[o] = (m.x - C.x) / L; out[o + 1] = (m.z - C.z) / L;
       out[o + 2] = m.lomb ? 1 : 0; out[o + 3] = m.lomb ? (m.lomb.x - C.x) / L : 0; out[o + 4] = m.lomb ? (m.lomb.z - C.z) / L : 0;
+      // porta (slalom): direção em que se passa por ela
+      out[o + 5] = m.porta ? m.porta.ux : 0; out[o + 6] = m.porta ? m.porta.uz : 0;
     }
-    const d = off + 11 + BANDEJA_LOOK * 5, m0 = this.marks[this.next], m1 = this.marks[this.next + 1];
+    const d = off + 11 + BANDEJA_LOOK * 7, m0 = this.marks[this.next], m1 = this.marks[this.next + 1];
     direcaoComoAcao(out, d, m0.x - C.x, m0.z - C.z);
     direcaoComoAcao(out, d + DIRECOES, m1.x - m0.x, m1.z - m0.z);
   }
@@ -222,7 +227,7 @@ export class BandejaDrill {
       if (P.frozen <= 0) { b.x = b.z = b.vx = b.vz = 0; this.events?.push({ type: 'ball', t: this.t }); }
       this.push.x = this.push.z = 0;
     } else {
-      const vx0 = C.vx, vz0 = C.vz;
+      const vx0 = C.vx, vz0 = C.vz, x0 = C.x, z0 = C.z;
       moverCorpo(C, this.fis, direcao, ritmo, dt);
       limitarRetangulo(C, B.wall, B.wall, B.playerR);
       // a bola sente a aceleração do corpo ao contrário (e só 5/7, rolando)
@@ -246,7 +251,21 @@ export class BandejaDrill {
         C.vx = C.vz = 0;
       } else {
         const m = this.marks[this.next];
-        if (Math.hypot(C.x - m.x, C.z - m.z) < B.markR) {
+        if (m.porta) {
+          // porta: conta quando o atleta cruza a linha dela; por dentro dos cones ganha, por fora perde a porta
+          const { ux, uz } = m.porta, a0 = (x0 - m.x) * ux + (z0 - m.z) * uz, a1 = (C.x - m.x) * ux + (C.z - m.z) * uz;
+          if (a0 < 0 && a1 >= 0) {
+            const f = a0 / (a0 - a1), cx = x0 + (C.x - x0) * f, cz = z0 + (C.z - z0) * f, lado = -(cx - m.x) * uz + (cz - m.z) * ux;
+            if (Math.abs(lado) < (N as { vao: number }).vao / 2) {
+              this.reward = 1; this.hits++;
+              this.events?.push({ type: 'mark', t: this.t, mark: this.next });
+            } else {
+              this.misses++;
+              this.events?.push({ type: 'miss', t: this.t, mark: this.next, lado });
+            }
+            this.next++; this.grow();
+          }
+        } else if (Math.hypot(C.x - m.x, C.z - m.z) < B.markR) {
           this.reward = 1; this.hits++;
           this.events?.push({ type: 'mark', t: this.t, mark: this.next });
           this.next++; this.grow();
