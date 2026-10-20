@@ -43,3 +43,13 @@ python ppo_drill.py --drill controle --minutes 120 --max-steps 4e8 --out runs/co
 cd ..\sim; node dist/scripts/make-tape.js ..\training\runs\controle\checkpoints.json ..\fitas\controle.json
 cd ..; python web/atividades/controle/build.py     # gera web/dist/treino-controle.html
 ```
+
+## Continuar um treino (mais tempo no último nível)
+`--retomar` carrega a última foto de um treino, continua no nível dela por `--minutes`, sem subir de nível
+nem parar no domínio, e grava a lista inteira de fotos (antigas + novas) no `--out`. O crítico não fica
+nas fotos: nas primeiras `--aquecer` atualizações (30) só ele aprende. Use outra pasta de saída para não
+perder o treino original:
+```powershell
+python ppo_drill.py --drill controle --minutes 20 --max-steps 4e8 --retomar runs/controle/checkpoints.json --out runs/controle-n3
+cd ..\sim; node dist/scripts/make-tape.js ..\training\runs\controle-n3\checkpoints.json ..\fitas\controle.json
+```

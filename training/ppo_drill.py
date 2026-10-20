@@ -124,6 +124,10 @@ def main():
     ap.add_argument("--drill", default="precisao", choices=list(DRILLS))
     ap.add_argument("--nivel", type=int, default=1, help="nível inicial (para testes; a fita oficial começa no 1)")
     ap.add_argument("--after", type=int, default=60, help="atualizações extras depois de dominar o último nível")
+    ap.add_argument("--retomar", default=None, help="checkpoints.json de um treino anterior: continua da última foto, no nível dela, "
+                    "por --minutes, sem subir de nível nem parar no domínio; as fotos novas entram na mesma lista")
+    ap.add_argument("--aquecer", type=int, default=30, help="ao retomar: atualizações só do crítico antes de mexer no ator "
+                    "(o crítico não é guardado nas fotos e começa do zero)")
     args = ap.parse_args()
     global OBS, ACTS
     OBS, ACTS = DRILLS[args.drill]
@@ -137,7 +141,22 @@ def main():
     n, T = args.n_envs, args.steps
     ckpts = [{"update": 0, "steps": 0, "episodes": 0, "nivel": 1, "layers": snapshot(net)}]
     t0 = time.time(); steps = 0; episodes = 0; update = 0; recent = []; lvl = []  # lvl: tentativas no nível atual
-    log = open(os.path.join(args.out, "log.jsonl"), "w")
+    aquecer = 0
+    if args.retomar:
+        antigo = json.load(open(args.retomar))
+        assert antigo["drill"] == args.drill, f"o treino a retomar é de {antigo['drill']}"
+        ckpts = antigo["checkpoints"]; ult = ckpts[-1]
+        lin = [m for m in net.actor if isinstance(m, nn.Linear)]
+        with torch.no_grad():
+            for m, L in zip(lin, ult["layers"]):
+                w = np.frombuffer(bytes.fromhex(L["w"]), np.int16).astype(np.float32) * L["scale"]
+                b = np.frombuffer(bytes.fromhex(L["b"]), np.int16).astype(np.float32) * L["scale"]
+                m.weight.copy_(torch.from_numpy(w.reshape(L["out"], L["in"]))); m.bias.copy_(torch.from_numpy(b))
+        update, steps, episodes, nivel = ult["update"], ult["steps"], ult["episodes"], ult.get("nivel", 1)
+        aquecer = args.aquecer; level_start = update + aquecer
+        if nivel > 1: env.set_level(nivel)
+        print(f"retomando de {args.retomar}: atualização {update}, {episodes} tentativas, nível {nivel}", flush=True)
+    log = open(os.path.join(args.out, "log.jsonl"), "a" if args.retomar else "w")
     while time.time() - t0 < args.minutes * 60 and steps < args.max_steps:
         update += 1
         Bo = np.zeros((T, n, OBS), np.float32); Ba = np.zeros((T, n, len(ACTS)), np.int64)
@@ -170,10 +189,15 @@ def main():
                 nl, ent, v = net.evaluate(O[i], A[i]); ratio = torch.exp(nl - L[i])
                 pg = -torch.min(ratio * AD[i], torch.clamp(ratio, 0.8, 1.2) * AD[i]).mean()
                 loss = pg + 0.5 * ((v - R[i]) ** 2).mean() - 0.01 * ent.mean()
+                if aquecer > 0:  # retomando: primeiro só o crítico aprende (ator parado)
+                    loss = 0.5 * ((v - R[i]) ** 2).mean()
                 opt.zero_grad(); loss.backward(); nn.utils.clip_grad_norm_(net.parameters(), 0.5); opt.step()
+        if aquecer > 0:
+            aquecer -= 1
+            if aquecer == 0: print('crítico aquecido; o ator volta a aprender', flush=True)
         # fotos do cérebro: todas no começo de cada nível (onde a mudança é rápida), depois espaçadas
         u = update - level_start
-        if u <= 40 or (u <= 150 and u % 3 == 0) or update % 8 == 0:
+        if u >= 0 and (u <= 40 or (u <= 150 and u % 3 == 0) or update % 8 == 0):
             ckpts.append({"update": update, "steps": steps, "episodes": episodes, "nivel": nivel, "layers": snapshot(net)})
         mh = float(np.mean(recent[-200:])) if recent else 0.0
         row = {"update": update, "steps": steps, "episodes": episodes, "mean_hits": round(mh, 2), "min": round((time.time() - t0) / 60, 2)}
@@ -186,7 +210,7 @@ def main():
                 rate = sum(e["hits"] for e in w) / max(1, sum(e["lights"] for e in w))
             reds = float(np.mean([e.get("reds", 0) for e in w])) if w else 0.0
             row.update(nivel=nivel, rate=round(rate, 3), reds=round(reds, 2))
-            if mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
+            if not args.retomar and mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
                 print(f"domínio do nível {nivel}: {f'{rate:.1f} acertos' if thr > 1 else f'{rate:.1%} das luzes'}, {reds:.2f} vermelhas, {episodes} tentativas", flush=True)
                 row["dominio"] = nivel
                 if nivel < max(dominio):
