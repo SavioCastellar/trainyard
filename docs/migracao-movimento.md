@@ -23,7 +23,7 @@ zero no computador do Savio, **uma de cada vez**, depois de ele aprovar a prévi
 | # | Atividade | Simulação migrada | Prévia aprovada | Retreinada | Fita aprovada |
 |---|---|---|---|---|---|
 | 1 | Velocidade (Painel de luzes) | sim | sim | sim (2026-10-19, 219 checkpoints) | sim |
-| 2 | Controle (**Bandeja**, nova; substitui as Plataformas) | sim | sim (2026-10-19) | sim (2026-10-20, 35 min) | aguardando |
+| 2 | Controle (**Bandeja**, nova; substitui as Plataformas) | sim | sim (2026-10-19) | sim (2026-10-20, 35 min + 20 min no nível 3) | sim (2026-10-20) |
 | 3 | Precisão | — | — | — | — |
 | 4 | Reflexo (Lançadores) | — | — | — | — |
 | 5 | Força (Trenó) | — | — | — | — |

@@ -89,7 +89,7 @@ balançando quando sobe na lombada.
   (10 marcas e 0,75), porque o atleta já chega sabendo dosar o ritmo. Fita `fitas/controle.json`
   (66 fotos), página `web/dist/treino-controle.html`. Depois, a pedido do Savio, mais 20 min só no nível 3 (`--retomar`):
   de 10 para 12,1 marcas por tentativa, com 0,7 a 0,8 bola caída; a sessão 3 da página passou de 4 para
-  13 fotos. Aguardando o Savio aprovar a fita.
+  13 fotos. Fita aprovada pelo Savio (2026-10-20).
 - Antes, o circuito travava o treino por volta da tentativa 40 mil (laço sem fim quando o sorteio
   ficava encurralado num canto); corrigido em `grow()` e coberto por teste.
 - A simulação, o teste e a página das Plataformas saíram. A fita antiga `fitas/controle.json` não
