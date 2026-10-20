@@ -1,0 +1,732 @@
+<meta charset="utf-8">
+<title>Bandeja</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root {
+    --ink: #20222b;
+    --muted: #626675;
+    --paper: rgba(250, 250, 248, 0.9);
+    --paper-solid: #fafaf8;
+    --line: rgba(32, 34, 43, 0.12);
+    --accent: #1f9d55;
+    --red: #d63a3a;
+    --plum: #3d4fa8;
+    --sky: #c9d3dc;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--sky); color: var(--ink); font-family: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif; overflow: hidden; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  #ui {
+    position: fixed; inset: 0; pointer-events: none;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    display: grid; grid-template-columns: minmax(0, 310px) 1fr minmax(0, 330px); grid-template-rows: 1fr auto; gap: 12px;
+  }
+  .panel {
+    pointer-events: auto; background: var(--paper);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(32, 34, 43, 0.14); padding: 14px 16px;
+  }
+  .left { grid-column: 1; grid-row: 1; align-self: start; display: flex; flex-direction: column; gap: 10px; }
+  .right { grid-column: 3; grid-row: 1; align-self: start; display: flex; flex-direction: column; gap: 10px; max-height: 100%; min-height: 0; }
+  .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { margin: 2px 0 2px; font-size: 24px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; }
+  h2 { margin: 0 0 8px; font-size: 14px; font-weight: 800; }
+  .sub { font-size: 12.5px; color: var(--muted); }
+  .lvl { display: inline-flex; gap: 6px; align-items: center; margin-top: 8px; font-size: 12.5px; font-weight: 700; background: var(--ink); color: var(--paper-solid); border-radius: 99px; padding: 4px 10px; }
+  .lvl .mono { opacity: .7; font-size: 11px; }
+  .attempt { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+  .attempt .lbl { font-size: 12px; color: var(--muted); }
+  .attempt b { font: 700 34px/1 "JetBrains Mono", monospace; letter-spacing: -.02em; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .stat b { display: block; font: 700 20px/1.1 "JetBrains Mono", monospace; }
+  .stat span { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .stat.red b { color: var(--red); }
+  .meter { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--ink); border-radius: inherit; }
+  .stage { font-size: 12px; margin-top: 8px; color: var(--muted); }
+  .stage b { color: var(--ink); }
+  #chart { width: 100%; height: 150px; display: block; }
+  .legend { display: flex; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 4px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 4px; }
+  .diary { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; line-height: 1.35; max-height: 230px; overflow: auto; }
+  .diary li { display: grid; grid-template-columns: 74px 1fr; gap: 6px; }
+  .diary .t { font: 500 11px "JetBrains Mono", monospace; color: var(--muted); padding-top: 1px; }
+  .diary li.mark { cursor: pointer; }
+  .diary li.mark:hover span:last-child { text-decoration: underline; }
+  .diary li.new { animation: flash 1.2s; }
+  @keyframes flash { 0% { background: rgba(31, 157, 85, .25); } 100% { background: transparent; } }
+  .controls { grid-column: 1 / 4; grid-row: 2; justify-self: center; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; padding: 10px 12px; max-width: min(1100px, calc(100vw - 32px)); }
+  .seg { display: flex; background: rgba(32, 34, 43, 0.07); border-radius: 10px; padding: 3px; gap: 2px; align-items: center; }
+  .seg .cap { font-size: 11px; color: var(--muted); padding: 0 6px 0 4px; white-space: nowrap; }
+  button { font: 600 13px/1 "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: transparent; border: 0; border-radius: 8px; padding: 8px 11px; cursor: pointer; }
+  button:hover { background: rgba(32, 34, 43, 0.08); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--plum); outline-offset: 2px; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper-solid); }
+  .toggle[aria-pressed="true"] { background: rgba(31, 157, 85, .16); color: var(--accent); }
+  .clock { display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 170px; }
+  .clock input { flex: 1; accent-color: var(--ink); }
+  .clock .mono { min-width: 46px; }
+  .banner {
+    position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%) scale(.92);
+    background: var(--paper-solid); border-radius: 18px; padding: 16px 24px; text-align: center; max-width: calc(100% - 32px);
+    box-shadow: 0 18px 50px rgba(32, 34, 43, .25); opacity: 0; transition: opacity .25s, transform .35s cubic-bezier(.2,1.6,.4,1); pointer-events: none;
+  }
+  .banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .banner .big { font-size: 30px; font-weight: 800; letter-spacing: -.01em; }
+  .banner .s { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .cmp-labels { position: fixed; top: 27%; left: 0; right: 0; display: flex; justify-content: space-around; pointer-events: none; }
+  .cmp-labels span { background: var(--ink); color: var(--paper-solid); font-weight: 700; font-size: 13px; padding: 6px 12px; border-radius: 99px; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); pointer-events: none; }
+  @media (max-width: 900px) {
+    #ui { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; gap: 8px; }
+    .left { grid-row: 1; }
+    .left .sub, .stage { display: none; }
+    .panel { padding: 10px 12px; border-radius: 12px; }
+    .left .eyebrow { display: none; }
+    h1 { font-size: 18px; display: inline; margin-right: 6px; }
+    .lvl { margin-top: 0; font-size: 11.5px; padding: 3px 8px; }
+    .attempt { margin-top: 4px; } .stats { margin-top: 4px; } .stat b { font-size: 16px; } .meter { margin-top: 6px; }
+    .right { grid-column: 1; grid-row: 3; gap: 8px; }
+    .right h2 { display: none; }
+    .legend { display: none; }
+    .diary { max-height: none; } .diary li:not(:first-child) { display: none; }
+    .controls { grid-column: 1; grid-row: 4; gap: 6px; padding: 8px; }
+    .controls button { padding: 7px 9px; }
+    .clock { min-width: 0; flex: 1 1 100%; }
+    #chart { height: 64px; }
+    .attempt b { font-size: 22px; }
+  }
+  .previa { margin-top: 10px; background: #20222b; color: #fafaf8; font-size: 12.5px; line-height: 1.4; padding: 8px 10px; border-radius: 10px; }
+  body.modo-previa [aria-label="Modo"] { display: none; }
+  body.modo-previa .right, body.modo-previa [data-mode], body.modo-previa .stage { display: none; }
+  @media (prefers-reduced-motion: reduce) { .banner { transition: none; } .diary li.new { animation: none; } }
+</style>
+
+<canvas id="c" aria-label="Estação de treino com o atleta levando uma bandeja com uma bola por um circuito de marcas"></canvas>
+<div class="loading" id="loading">Preparando a estação…</div>
+
+<div id="ui">
+  <div class="left">
+    <section class="panel" aria-label="Sessão de treino">
+      <div class="eyebrow">Centro de treinamento · Controle</div>
+      <h1>Bandeja</h1>
+      <div class="lvl" id="lvl">Nível 1 · Bandeja funda</div>
+      <div class="sub" id="who" style="margin-top:6px">Atleta: TROVÃO 10</div>
+      <div class="attempt"><span class="lbl">Tentativa</span><b id="attempt">1</b></div>
+      <div class="stats">
+        <div class="stat"><b id="hits">0</b><span>Marcas</span></div>
+        <div class="stat red"><b id="reds">0</b><span>Bolas caídas</span></div>
+        <div class="stat"><b id="speedV">0</b><span>km/h</span></div>
+      </div>
+      <div class="meter" aria-hidden="true"><i id="tbar"></i></div>
+      <div class="stage" id="stage"></div>
+      <div class="previa" id="previaNote" hidden><b>Prévia sem treino.</b> Quem decide é um piloto escrito à mão, para você julgar a atividade antes de treinar. O treino de verdade vem depois da sua aprovação.</div>
+    </section>
+  </div>
+
+  <div class="right">
+    <section class="panel" aria-label="Curva de aprendizado">
+      <h2>Curva de aprendizado</h2>
+      <canvas id="chart"></canvas>
+      <div class="legend"><span><i style="background:#1f9d55"></i>Marcas por tentativa</span><span><i style="background:#d63a3a"></i>Bolas caídas por tentativa</span><span><i style="background:rgba(32,34,43,.25)"></i>Ainda não liberado</span></div>
+    </section>
+    <section class="panel" aria-label="Diário do treino">
+      <h2>Diário do treino</h2>
+      <ul class="diary" id="diary"></ul>
+    </section>
+  </div>
+
+  <nav class="panel controls" aria-label="Controles">
+    <div class="seg" role="group" aria-label="Sessão" id="sessBtns"><span class="cap">Sessão</span></div>
+    <label class="clock" for="clock">App aberto em <input type="range" id="clock" min="0" max="120" step="1" value="60"><span class="mono" id="clockV">1h00</span></label>
+    <div class="seg" role="group" aria-label="Modo">
+      <button data-mode="live" aria-pressed="true">Ao vivo</button>
+      <button data-mode="montage" aria-pressed="false">Resumo</button>
+    </div>
+    <div class="seg" role="group" aria-label="Velocidade">
+      <button data-speed="1" aria-pressed="true">1×</button>
+      <button data-speed="2" aria-pressed="false">2×</button>
+      <button data-speed="4" aria-pressed="false">4×</button>
+    </div>
+    <button class="toggle" id="tCmp" aria-pressed="false">Tentativa 1 × agora</button>
+    <button id="bSkin">Trocar atleta</button>
+  </nav>
+</div>
+<div class="cmp-labels" id="cmpLabels" hidden><span id="lblR">Agora</span><span id="lblL">Tentativa 1</span></div>
+<div class="banner" id="banner" role="status"><div class="big" id="bBig"></div><div class="s" id="bS"></div></div>
+
+<script>
+/*DRILL*/
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const TAPE = /*TAPE*/;
+/* prévia: sem fita; um piloto escrito à mão decide, para julgar o movimento antes de treinar */
+const PREVIA = /*PREVIA*/;
+const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
+const TAU = Math.PI * 2;
+const $ = id => document.getElementById(id);
+const R = DRILL.BANDEJA;
+const NIVEIS = { 1: 'Bandeja funda', 2: 'Bandeja rasa', 3: 'Lombadas' };
+const NIVEL_TXT = { 1: 'Bandeja funda e curvas suaves. Arrancar ou frear com tudo derruba a bola.', 2: 'A bandeja é rasa e as curvas são fechadas: é preciso frear antes e virar aos poucos.', 3: 'Lombadas no caminho: passar correndo por cima faz a bola pular.' };
+/* escala do desenho da bandeja em relação à simulação (a bandeja aparece um pouco maior para ler de longe) */
+const TRAY_VIS = .42, KV = TRAY_VIS / R.trayR;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmtN = n => n.toLocaleString('pt-BR');
+const fmtMin = m => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+const pct = v => Math.round(v * 100) + '%';
+const fmt1 = v => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+/* fita: acc = marcas/MAXM (para a curva), hits = marcas por tentativa, reds = bolas caídas por tentativa */
+const MAXM = 25, marcas = c => c.hits ?? c.acc * MAXM;
+
+/* =========================================================
+   Cérebro: lê a foto (pesos de 16 bits) e decide as ações
+   ========================================================= */
+function makeBrain(ck) {
+  const bin = atob(ck.w), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const all = new Int16Array(bytes.buffer);
+  let off = 0;
+  const layers = TAPE.dims.layers.map(([nin, nout], k) => {
+    const s = ck.scales[k];
+    const w = Float32Array.from(all.subarray(off, off + nin * nout), v => v * s); off += nin * nout;
+    const b = Float32Array.from(all.subarray(off, off + nout), v => v * s); off += nout;
+    return { nin, nout, w, b, y: new Float32Array(nout) };
+  });
+  return (obs, rng, out) => {
+    let x = obs;
+    layers.forEach((l, k) => {
+      for (let j = 0; j < l.nout; j++) { let s = l.b[j]; const r = j * l.nin; for (let i = 0; i < l.nin; i++) s += l.w[r + i] * x[i]; l.y[j] = k < layers.length - 1 ? Math.tanh(s) : s; }
+      x = l.y;
+    });
+    let o = 0;
+    TAPE.dims.actions.forEach((n, h) => {
+      let m = -Infinity; for (let i = 0; i < n; i++) m = Math.max(m, x[o + i]);
+      let z = 0; for (let i = 0; i < n; i++) z += Math.exp(x[o + i] - m);
+      let u = rng.next() * z, pick = n - 1;
+      for (let i = 0; i < n; i++) { u -= Math.exp(x[o + i] - m); if (u <= 0) { pick = i; break; } }
+      out[h] = pick; o += n;
+    });
+  };
+}
+const brains = new Map();
+const brainAt = i => { if (!brains.has(i)) brains.set(i, makeBrain(TAPE.checkpoints[i])); return brains.get(i); };
+
+/* =========================================================
+   Cena (visual provisório: o cenário definitivo vem da sessão Cenários)
+   ========================================================= */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+const HORIZON = 0xd9dde2;
+scene.background = new THREE.Color(HORIZON);
+scene.fog = new THREE.Fog(HORIZON, 40, 110);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = 1.35; controls.minDistance = 6; controls.maxDistance = 60; controls.enablePan = false;
+scene.add(new THREE.HemisphereLight(0xeef4ff, 0x8a8f99, 1.2));
+const sun = new THREE.DirectionalLight(0xfff4e6, 2.2);
+sun.position.set(10, 26, 14); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 14, bottom: -14, near: 5, far: 70 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+function canvasTex(draw, w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const dotTex = canvasTex(x => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(.55, '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }, 64, 64);
+
+// piso de cimento do CT, com juntas
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({
+  roughness: 1, map: canvasTex((x, w) => {
+    x.fillStyle = '#a9adb3'; x.fillRect(0, 0, w, w);
+    for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '40,40,50'},.05)`; x.fillRect(Math.random() * w, Math.random() * w, 3, 3); }
+    x.strokeStyle = 'rgba(60,62,70,.35)'; x.lineWidth = 2; x.strokeRect(0, 0, w, w);
+  }, 128, 128),
+}));
+ground.material.map.wrapS = ground.material.map.wrapT = THREE.RepeatWrapping; ground.material.map.repeat.set(40, 40);
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+// galpão do CT (provisório, comum às páginas de treino)
+/*CT*/
+construirCTProvisorio(scene, { livre: (x, z) => Math.abs(x) > 14 || Math.abs(z) > 14 });
+
+// piso emborrachado da estação, com faixa branca na borda da área
+const AREA = R.wall + .6;
+const floor = new THREE.Mesh(new THREE.BoxGeometry(AREA * 2, .06, AREA * 2), new THREE.MeshStandardMaterial({
+  roughness: .95, map: canvasTex((x, w) => {
+    x.fillStyle = '#2c5a4a'; x.fillRect(0, 0, w, w);
+    for (let i = 0; i < 1400; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},.05)`; x.fillRect(Math.random() * w, Math.random() * w, 2, 2); }
+    x.strokeStyle = 'rgba(255,255,255,.07)'; x.lineWidth = 2; x.strokeRect(1, 1, w - 2, w - 2);
+  }, 128, 128),
+}));
+floor.material.map.wrapS = floor.material.map.wrapT = THREE.RepeatWrapping; floor.material.map.repeat.set(AREA / 2, AREA / 2);
+floor.position.y = .03; floor.receiveShadow = true; scene.add(floor);
+const border = new THREE.Mesh(new THREE.RingGeometry(AREA - .12, AREA, 4, 1), new THREE.MeshBasicMaterial({ color: 0xf4f1e8 }));
+border.rotation.set(-Math.PI / 2, 0, Math.PI / 4); border.scale.setScalar(Math.SQRT2); border.position.y = .065; scene.add(border);
+
+/* marcas do circuito: um conjunto reaproveitado (a próxima, as 3 seguintes e a que acabou de ser alcançada) */
+const numTex = new Map();
+const markNum = n => {
+  if (!numTex.has(n)) numTex.set(n, canvasTex((x, w) => { x.font = '800 70px "Bricolage Grotesque", system-ui, sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n, w / 2, w / 2 + 4); }, 128, 128));
+  return numTex.get(n);
+};
+const ringGeo = new THREE.RingGeometry(R.markR - .12, R.markR, 40), discGeo = new THREE.CircleGeometry(R.markR - .12, 40);
+const MK = [];
+for (let i = 0; i < 6; i++) {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const disc = new THREE.Mesh(discGeo, new THREE.MeshBasicMaterial({ color: 0x1f9d55, transparent: true, opacity: .3, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = .07; g.add(disc);
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true })); ring.rotation.x = -Math.PI / 2; ring.position.y = .075; g.add(ring);
+  const num = new THREE.Mesh(new THREE.PlaneGeometry(.8, .8), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })); num.rotation.x = -Math.PI / 2; num.position.y = .08; g.add(num);
+  // cone baixo na beira, para a marca ser lida de longe
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(.13, .34, 14), new THREE.MeshStandardMaterial({ color: 0xf08a24, roughness: .6 })); cone.position.set(R.markR + .12, .23, 0); cone.castShadow = true; g.add(cone);
+  MK.push({ g, disc, ring, num, cone, idx: -1, fx: 0 });
+}
+/* trilha pontilhada entre as marcas */
+const DOTS = 3 * 7, dotGeo = new THREE.CircleGeometry(.07, 10), dots = new THREE.InstancedMesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .55, depthWrite: false }), DOTS);
+dots.frustumCulled = false; scene.add(dots);
+/* lombadas: faixa de borracha amarela e preta */
+const bumpTex = canvasTex((x, w, h) => { for (let k = 0; k < 8; k++) { x.fillStyle = k % 2 ? '#1d1d22' : '#f2c230'; x.beginPath(); x.moveTo(k * w / 8, h); x.lineTo(k * w / 8 + w / 16, 0); x.lineTo((k + 1) * w / 8 + w / 16, 0); x.lineTo((k + 1) * w / 8, h); x.fill(); } }, 256, 32);
+const bumpGeo = new THREE.CylinderGeometry(R.bumpD / 2, R.bumpD / 2, R.bumpW, 16, 1, false, 0, Math.PI);
+const BUMPS = [];
+for (let i = 0; i < 5; i++) {
+  const m = new THREE.Mesh(bumpGeo, new THREE.MeshStandardMaterial({ map: bumpTex, roughness: .8 }));
+  m.scale.set(.45, 1, 1); m.castShadow = true; m.receiveShadow = true; m.visible = false; scene.add(m); BUMPS.push(m);
+}
+
+/* =========================================================
+   Atleta
+   ========================================================= */
+/*CABECUDO*/
+/*ANIMACAO*/
+
+const LOOKS = [
+  { nick: 'TROVÃO', num: 10, skin: '#e8b896', hair: 'curto', hairColor: '#1d1a1f', glasses: 'nenhum', beard: 'nenhuma', expr: 'confiante', forca: .35, vel: .7, team: { p: '#1f7a4d', s: '#f4f1e8' } },
+  { nick: 'PASTEL', num: 1, skin: '#6e4527', hair: 'afro', hairColor: '#1d1a1f', glasses: 'redondo', beard: 'nenhuma', expr: 'neutro', forca: .8, vel: .2, team: { p: '#1f7a4d', s: '#f4f1e8' } },
+  { nick: 'XERIFE', num: 9, skin: '#c98e66', hair: 'bone', hairColor: '#4a2f1e', glasses: 'nenhum', beard: 'bigode', expr: 'bravo', forca: .5, vel: .5, team: { p: '#c62f2f', s: '#1f1d24' } },
+  { nick: 'RAPOSA', num: 4, skin: '#f6d7c3', hair: 'coque', hairColor: '#b5462f', glasses: 'escuro', beard: 'nenhuma', expr: 'confiante', forca: .2, vel: .8, team: { p: '#2459c9', s: '#36d0de' } },
+];
+let lookIdx = 0;
+function tagTex(look) {
+  return canvasTex((x, w) => {
+    const label = `${look.nick} ${look.num}`;
+    x.font = '800 30px "Bricolage Grotesque", system-ui, sans-serif';
+    const tw = Math.min(248, x.measureText(label).width + 28);
+    x.fillStyle = look.team.p; x.beginPath(); x.roundRect((w - tw) / 2, 10, tw, 42, 21); x.fill();
+    x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(label, w / 2, 32);
+  }, 256, 64);
+}
+
+/* partículas */
+const PMAX = 400, pPos = new Float32Array(PMAX * 3), pCol = new Float32Array(PMAX * 3), parts = [];
+for (let i = 0; i < PMAX; i++) { parts.push({ life: 0, vx: 0, vy: 0, vz: 0, g: 9 }); pPos[i * 3 + 1] = -999; }
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3)); pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: .24, map: dotTex, vertexColors: true, transparent: true, depthWrite: false }));
+points.frustumCulled = false; scene.add(points);
+let pNext = 0; const tc = new THREE.Color();
+function burst(x, y, z, color, n, spd, up = 3, grav = 9, life = .8) {
+  tc.set(color);
+  for (let i = 0; i < n; i++) {
+    const k = pNext = (pNext + 1) % PMAX, p = parts[k], a = Math.random() * TAU, s = spd * (.3 + Math.random());
+    p.life = life * (.6 + Math.random() * .6); p.vx = Math.cos(a) * s; p.vz = Math.sin(a) * s; p.vy = up * (.5 + Math.random()); p.g = grav;
+    pPos[k * 3] = x; pPos[k * 3 + 1] = y; pPos[k * 3 + 2] = z; pCol[k * 3] = tc.r; pCol[k * 3 + 1] = tc.g; pCol[k * 3 + 2] = tc.b;
+  }
+}
+function updateParticles(dt) {
+  for (let i = 0; i < PMAX; i++) {
+    const p = parts[i]; if (p.life <= 0) continue;
+    p.life -= dt; p.vy -= p.g * dt;
+    pPos[i * 3] += p.vx * dt; pPos[i * 3 + 1] += p.vy * dt; pPos[i * 3 + 2] += p.vz * dt;
+    if (pPos[i * 3 + 1] < .1) { pPos[i * 3 + 1] = .1; p.vy *= -.25; p.vx *= .6; p.vz *= .6; }
+    if (p.life <= 0) pPos[i * 3 + 1] = -999;
+  }
+  pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
+}
+
+/* bandeja e bola (desenho) */
+function buildTray(ghostly) {
+  const g = new THREE.Group();
+  const op = ghostly ? { transparent: true, opacity: .35, depthWrite: false } : {};
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(TRAY_VIS, TRAY_VIS * .94, .03, 36), new THREE.MeshStandardMaterial({ color: 0xc9ced6, metalness: .6, roughness: .35, ...op }));
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(TRAY_VIS, .018, 6, 40), new THREE.MeshStandardMaterial({ color: 0xe9ecf0, metalness: .6, roughness: .3, ...op }));
+  lip.rotation.x = Math.PI / 2; lip.position.y = .02; plate.castShadow = !ghostly; g.add(plate, lip);
+  // a cabeça grande tapa a bandeja vista de cima: bandeja e bola são desenhadas por cima de tudo
+  for (const m of [plate, lip]) { m.material.depthTest = false; m.renderOrder = 5; }
+  // anel de alerta: aparece quando a bola chega perto da beira
+  const warn = new THREE.Mesh(new THREE.RingGeometry(TRAY_VIS * .78, TRAY_VIS * .98, 40), new THREE.MeshBasicMaterial({ color: 0xe23b3b, transparent: true, opacity: 0, depthWrite: false }));
+  warn.rotation.x = -Math.PI / 2; warn.position.y = .018; g.add(warn);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(R.ballR * KV, 20, 14), new THREE.MeshStandardMaterial({ color: 0xf2c230, roughness: .4, ...op }));
+  ball.castShadow = !ghostly; ball.material.depthTest = false; ball.renderOrder = 7; warn.renderOrder = 6; warn.material.depthTest = false;
+  return { g, ball, warn };
+}
+
+/* =========================================================
+   Uma estação = ambiente + cérebro + visual (o fantasma da comparação corre no mesmo circuito)
+   ========================================================= */
+class Station {
+  constructor(main) {
+    this.main = main; this.g = new THREE.Group(); scene.add(this.g);
+    this.obs = new Float32Array(DRILL.BANDEJA_OBS); this.act = [0, 1];
+    this.acc = 0;
+    this.tray = buildTray(!main); this.g.add(this.tray.g); this.g.add(this.tray.ball);
+    this.loose = [];   // bolas caídas rolando no chão
+    this.buildAthlete();
+  }
+  buildAthlete() {
+    if (this.rig) { this.g.remove(this.rig.root); this.tag && this.g.remove(this.tag); }
+    const look = LOOKS[lookIdx];
+    const p = { ...look, gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false } };
+    this.rig = buildCabecudo(p); this.rig.root.scale.setScalar(.8); this.g.add(this.rig.root);
+    setExpr(this.rig.face, look.expr); this.look = look;
+    if (!this.main) {
+      this.rig.root.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = .35; o.material.depthWrite = false; } o.castShadow = false; });
+      this.tag = null; return;
+    }
+    this.tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tagTex(look), transparent: true, depthTest: false }));
+    this.tag.scale.set(2, .5, 1); this.tag.renderOrder = 10; this.g.add(this.tag);
+  }
+  start(ckIdx, seed, nivel) {
+    this.ck = ckIdx; this.brain = PREVIA ? null : brainAt(ckIdx); this.q = 0; this.anim = novoEstadoAnim();
+    this.env = new DRILL.BandejaDrill(seed, true, nivel);
+    this.rng = new DRILL.Rng(seed ^ 0x9e3779b9);
+    this.evIdx = 0; this.acc = 0; this.prev = null; this.tilt = { x: 0, z: 0 };
+    for (const b of this.loose) this.g.remove(b.m); this.loose = [];
+    this.tray.ball.visible = true; this.ballPop = 0;
+    if (this.main) for (const m of MK) { m.idx = -1; m.fx = 0; m.g.visible = false; }
+  }
+  snap() { const c = this.env.corpo, b = this.env.ball; this.prev = { x: c.x, z: c.z, bx: b.x, bz: b.z }; }
+  update(dt, speed, time) {
+    this.play = speed;
+    const e = this.env;
+    if (!e.done) {
+      this.acc += dt * speed;
+      while (this.acc >= R.dt && !e.done) {
+        this.snap();
+        if (this.q++ % DEC === 0) {
+          if (PREVIA) DRILL.pilotoBandeja(e, this.rng, this.main ? habilidade() : .15, this.act, 'esperto');
+          else { e.observe(this.obs); this.brain(this.obs, this.rng, this.act); }
+        }
+        e.step(this.act[0], this.act[1]); this.acc -= R.dt;
+      }
+    }
+    while (this.evIdx < e.events.length) {
+      const ev = e.events[this.evIdx++];
+      if (ev.type === 'mark') {
+        if (this.main) {
+          const m = e.marks[ev.mark]; burst(m.x, .3, m.z, 0x22c55e, 16, 2.6, 3.5); burst(m.x, .3, m.z, 0xffffff, 6, 2, 3.5);
+          const v = MK.find(k => k.idx === ev.mark); if (v) v.fx = 1;
+        }
+        this.hitNow = this.main;
+      } else if (ev.type === 'drop') {
+        // a bola sai da bandeja com a velocidade que tinha e cai no chão
+        const tp = this.trayPos, mat = this.tray.ball.material.clone(); mat.depthTest = true;
+        const m = new THREE.Mesh(this.tray.ball.geometry, mat); m.renderOrder = 0;
+        m.castShadow = this.main; this.g.add(m);
+        this.loose.push({ m, x: tp.x + ev.bx * KV, y: tp.y + .05, z: tp.z + ev.bz * KV, vx: ev.vx * .9, vy: 1.2, vz: ev.vz * .9, life: 2.6 });
+        this.tray.ball.visible = false;
+        if (this.main) { burst(tp.x, tp.y, tp.z, 0xf2c230, 10, 1.5, 2.5); this.sad = true; }
+      } else if (ev.type === 'ball') { this.tray.ball.visible = true; this.ballPop = 1; }
+      else if (ev.type === 'bump' && this.main) burst(e.corpo.x, .15, e.corpo.z, 0x1d1d22, 6, 1.2, 1.5, 6, .4);
+    }
+    this.alpha = e.done ? 1 : Math.min(1, this.acc / R.dt);
+    this.animateAthlete(dt);
+    this.updateLoose(dt);
+    if (this.main) this.updateCourse(dt, time);
+  }
+  updateLoose(dt) {
+    const sd = dt * (this.play || 1), r = R.ballR * KV;
+    for (const b of this.loose) {
+      b.life -= dt; b.vy -= 9.8 * sd; b.x += b.vx * sd; b.y += b.vy * sd; b.z += b.vz * sd;
+      if (b.y < .06 + r) { b.y = .06 + r; b.vy = Math.abs(b.vy) > .6 ? -b.vy * .45 : 0; b.vx *= Math.pow(.4, sd); b.vz *= Math.pow(.4, sd); }
+      b.m.position.set(b.x, b.y, b.z); b.m.rotation.x += b.vz * sd / r; b.m.rotation.z -= b.vx * sd / r;
+      b.m.scale.setScalar(Math.min(1, b.life / .4));
+    }
+    for (const b of this.loose.filter(b => b.life <= 0)) { this.g.remove(b.m); b.m.material.dispose(); }
+    this.loose = this.loose.filter(b => b.life > 0);
+  }
+  animateAthlete(dt) {
+    // animação padrão (web/src/animacao-atleta.js), com a posição interpolada entre dois passos da simulação
+    const e = this.env, c = e.corpo, pl = e.player, al = this.alpha ?? 1, pv = this.prev;
+    const ix = pv ? pv.x + (c.x - pv.x) * al : c.x, iz = pv ? pv.z + (c.z - pv.z) * al : c.z;
+    const m0 = e.marks[e.next];
+    animarAtleta(this.rig, c, this.anim, {
+      dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .06, olhar: m0, parado: false,
+      velMax: e.fis.velMax, expr: pl.frozen > 0 ? 'triste' : this.look.expr, comemorar: false,
+    });
+    this.hitNow = false;
+    // braços para a frente segurando a bandeja (por cima da animação de corrida)
+    const A = this.rig.arms, sw = Math.sin(c.passada * 2.3) * .06;
+    A[0].rotation.set(-1.25 + sw, 0, .32); A[1].rotation.set(-1.25 - sw, 0, -.32);
+    if (pl.frozen > 0) { A[0].rotation.set(-.3, 0, -.15); A[1].rotation.set(-.3, 0, .15); }
+    // bandeja: na frente do peito; inclina um pouco com o empurrão (só para ler a física)
+    const h = this.rig.root.rotation.y, fx = Math.sin(h), fz = Math.cos(h);
+    const tp = this.trayPos = { x: ix + fx * .7, y: .86 + this.rig.body.position.y * .8, z: iz + fz * .7 };
+    this.tilt.x += (e.push.z * .012 - this.tilt.x) * Math.min(1, dt * 8);
+    this.tilt.z += (-e.push.x * .012 - this.tilt.z) * Math.min(1, dt * 8);
+    const T = this.tray.g; T.position.set(tp.x, tp.y, tp.z); T.rotation.set(this.tilt.x, 0, this.tilt.z);
+    const b = e.ball, bx = pv ? pv.bx + (b.x - pv.bx) * al : b.x, bz = pv ? pv.bz + (b.z - pv.bz) * al : b.z;
+    if (this.ballPop > 0) this.ballPop = Math.max(0, this.ballPop - dt * 3);
+    const br = R.ballR * KV;
+    this.tray.ball.position.set(tp.x + bx * KV, tp.y + .03 + br + Math.sin(this.ballPop * Math.PI) * .25, tp.z + bz * KV);
+    this.tray.ball.rotation.x += b.vz * dt / br; this.tray.ball.rotation.z -= b.vx * dt / br;
+    const solta = Math.hypot(bx, bz) / R.trayR;
+    this.tray.warn.material.opacity = THREE.MathUtils.clamp((solta - .55) / .35, 0, 1) * .85;
+    if (this.tag) this.tag.position.set(ix, 2.5, iz);
+  }
+  updateCourse(dt, time) {
+    const e = this.env, want = [];
+    for (let i = Math.max(0, e.next - 1); i <= e.next + 3; i++) want.push(i);
+    // solta as que saíram, pega as que entraram
+    for (const m of MK) if (m.idx >= 0 && !want.includes(m.idx) && m.fx <= 0) { m.idx = -1; m.g.visible = false; }
+    for (const i of want) if (!MK.some(m => m.idx === i)) { const m = MK.find(k => k.idx < 0); if (m) { m.idx = i; m.fx = 0; m.num.material.map = markNum(i); m.num.material.needsUpdate = true; } }
+    for (const m of MK) {
+      if (m.idx < 0) continue;
+      const mk = e.marks[m.idx], k = m.idx - e.next; m.g.visible = true; m.g.position.set(mk.x, 0, mk.z);
+      if (m.fx > 0) m.fx -= dt * 1.6;
+      if (k < 0) {   // já alcançada: pisca e some
+        const f = Math.max(0, m.fx); m.disc.material.color.set(0xeafff0); m.disc.material.opacity = .7 * f; m.ring.material.opacity = f; m.num.material.opacity = f; m.cone.visible = false;
+        if (f <= 0) m.g.visible = false;
+        continue;
+      }
+      const pulse = k === 0 ? .75 + .25 * Math.sin(time * 6) : 1;
+      m.disc.material.color.set(k === 0 ? 0x22c55e : 0x8fa3b0); m.disc.material.opacity = (k === 0 ? .45 : .18) * pulse;
+      m.ring.material.color.set(k === 0 ? 0xffffff : 0xc8d0d8); m.ring.material.opacity = k === 0 ? 1 : .55 - .1 * k;
+      m.num.material.opacity = k === 0 ? 1 : .5; m.cone.visible = true; m.cone.scale.setScalar(k === 0 ? 1 : .8);
+    }
+    // trilha pontilhada: do atleta à próxima e entre as seguintes
+    const M = new THREE.Matrix4(), q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2), sc = new THREE.Vector3(1, 1, 1), P = new THREE.Vector3();
+    let n = 0;
+    for (let s = 0; s < 3; s++) {
+      const a = s === 0 ? e.corpo : e.marks[e.next + s - 1], b = e.marks[e.next + s], L = Math.hypot(b.x - a.x, b.z - a.z);
+      for (let j = 1; j <= 7; j++) {
+        const f = j / 8, ok = L * f > R.markR + .1 && L * (1 - f) > R.markR + .1 && (s > 0 || L * f > .9);
+        P.set(a.x + (b.x - a.x) * f, ok ? .072 : -5, a.z + (b.z - a.z) * f); M.compose(P, q, sc); dots.setMatrixAt(n++, M);
+      }
+    }
+    dots.instanceMatrix.needsUpdate = true;
+    // lombadas da trilha à vista
+    let u = 0;
+    for (let i = Math.max(1, e.next - 1); i <= e.next + 3 && u < BUMPS.length; i++) {
+      const L = e.marks[i]?.lomb; if (!L) continue;
+      const m = BUMPS[u++]; m.visible = true; m.position.set(L.x, .06, L.z); m.rotation.set(0, Math.atan2(-L.ux, -L.uz), Math.PI / 2);
+    }
+    for (; u < BUMPS.length; u++) BUMPS[u].visible = false;
+  }
+}
+
+const main = new Station(true);
+const ghost = new Station(false);
+ghost.g.visible = false;
+
+/* =========================================================
+   Sessões: uma por nível da fita
+   ========================================================= */
+const CK = TAPE.checkpoints, N = CK.length;
+const LEVELS = [...new Set(CK.map(c => c.nivel || 1))];
+const SESSIONS = LEVELS.length;
+const sessionRange = s => { const n = LEVELS[s]; return [CK.findIndex(c => (c.nivel || 1) === n), CK.findLastIndex(c => (c.nivel || 1) === n)]; };
+let session = 0, minutes = 60, mode = 'live', speed = 1, compare = false;
+let montageIdx = 0, attemptSeed = 1, liveExtra = 0, sessionRecord = 0, shownMarks = new Set();
+const availIdx = () => { const [a, b] = sessionRange(session); return a + Math.round((b - a) * Math.min(1, minutes / 120)); };
+const nivelOf = i => CK[i].nivel || 1;
+for (let s = 0; s < SESSIONS; s++) {
+  const b = document.createElement('button'); b.dataset.session = s; b.textContent = s + 1; b.title = `Nível ${LEVELS[s]} · ${NIVEIS[LEVELS[s]]}`;
+  $('sessBtns').append(b);
+}
+
+/* prévia: o relógio vira "decisões certas" do piloto (0% = ao acaso, 100% = perfeito) */
+const habilidade = () => PREVIA ? Math.min(1, minutes / 120) : 1;
+if (PREVIA) {
+  document.body.classList.add('modo-previa'); $('previaNote').hidden = false;
+  $('clock').parentElement.firstChild.textContent = 'Decisões certas ';
+  minutes = 102;
+}
+function attemptNumber(ck) { return CK[ck].episodes + 1 + (mode === 'live' ? liveExtra : 0); }
+function startAttempt() {
+  const ck = mode === 'live' ? availIdx() : montageIdx;
+  attemptSeed = (attemptSeed * 48271) % 2147483647;
+  main.start(ck, attemptSeed, nivelOf(ck));
+  if (compare) ghost.start(0, attemptSeed, nivelOf(ck));
+  updatePanel();
+}
+function attemptEnded() {
+  const h = main.env.hits;
+  if (mode === 'live' && h > sessionRecord) {
+    if (sessionRecord > 0) addDiary(`Tentativa ${fmtN(attemptNumber(main.ck))}`, `Novo recorde da sessão: ${h} marcas numa tentativa.`, true);
+    sessionRecord = h;
+  }
+}
+function addDiary(t, text, fresh, ck) {
+  const li = document.createElement('li'); if (fresh) li.className = 'new';
+  if (ck !== undefined) { li.classList.add('mark'); li.title = 'Assistir este momento'; li.addEventListener('click', () => jumpTo(ck)); }
+  li.innerHTML = `<span class="t">${t}</span><span></span>`; li.lastChild.textContent = text;
+  $('diary').prepend(li);
+  while ($('diary').children.length > 30) $('diary').lastChild.remove();
+}
+function syncMarks(fresh) {
+  const [a] = sessionRange(session), upTo = availIdx();
+  for (const m of TAPE.milestones) {
+    if (m.ck >= a && m.ck <= upTo && !shownMarks.has(m.ck)) { shownMarks.add(m.ck); addDiary(`Tentativa ${fmtN(CK[m.ck].episodes + 1)}`, m.text, fresh, m.ck); }
+  }
+}
+function resetDiary() {
+  $('diary').innerHTML = ''; shownMarks = new Set(); sessionRecord = 0;
+  const a = sessionRange(session)[0];
+  addDiary(fmtMin(0), `Início da sessão ${session + 1} (nível ${LEVELS[session]}): o atleta parte de ${fmt1(marcas(CK[a]))} marcas e ${fmt1(CK[a].reds || 0)} bolas caídas por tentativa.`, false);
+  syncMarks(false);
+}
+function jumpTo(ck) {
+  for (let s = 0; s < SESSIONS; s++) { const [a, b] = sessionRange(s); if (ck >= a && ck <= b) { session = s; minutes = Math.round((ck - a) / Math.max(1, b - a) * 120); break; } }
+  syncControls(); setMode('live'); resetDiary(); liveExtra = 0; startAttempt(); drawChart();
+}
+
+/* painel */
+function updatePanel() {
+  const e = main.env, ck = CK[main.ck];
+  $('attempt').textContent = fmtN(attemptNumber(main.ck));
+  $('hits').textContent = e.hits; $('reds').textContent = e.drops; $('speedV').textContent = Math.round(Math.hypot(e.corpo.vx, e.corpo.vz) * 3.6);
+  $('lvl').textContent = `Nível ${e.nivel} · ${NIVEIS[e.nivel]}`;
+  $('tbar').style.width = (e.t / R.maxTime * 100).toFixed(1) + '%';
+  const [a] = sessionRange(session);
+  $('stage').innerHTML = mode === 'live'
+    ? `Sessão <b>${session + 1}</b> de ${SESSIONS} · app aberto em <b>${fmtMin(minutes)}</b> · média nesta etapa: <b>${fmt1(marcas(ck))}</b> marcas`
+    : `Resumo: foto <b>${main.ck - a + 1}</b> de ${Math.max(1, availIdx() - a + 1)} da sessão · média nesta etapa: <b>${fmt1(marcas(ck))}</b> marcas`;
+  $('lblR').textContent = `Agora · tentativa ${fmtN(attemptNumber(main.ck))}`;
+}
+
+/* curva de aprendizado: marcas por tentativa (escala até MAXM) e bolas caídas (escala até 6) */
+function drawChart() {
+  const cv = $('chart'), r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2);
+  cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+  const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0);
+  const w = r.width, h = r.height, padL = 30, padB = 18, padT = 8, padR = 6;
+  const X = i => padL + (i / Math.max(1, N - 1)) * (w - padL - padR), Y = v => h - padB - v * (h - padT - padB);
+  x.font = '500 10px "JetBrains Mono", monospace'; x.fillStyle = '#626675'; x.strokeStyle = 'rgba(32,34,43,.1)'; x.lineWidth = 1;
+  for (const v of [0, .5, 1]) { x.beginPath(); x.moveTo(padL, Y(v) + .5); x.lineTo(w - padR, Y(v) + .5); x.stroke(); x.textAlign = 'right'; x.fillText(Math.round(v * MAXM), padL - 4, Y(v) + 3); }
+  for (let s = 1; s < SESSIONS; s++) { const e = sessionRange(s)[0]; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(X(e) + .5, padT); x.lineTo(X(e) + .5, h - padB); x.stroke(); x.setLineDash([]); }
+  x.textAlign = 'center';
+  for (let s = 0; s < SESSIONS; s++) { const [a, b] = sessionRange(s); x.fillStyle = s === session ? '#20222b' : '#626675'; x.fillText(`N${LEVELS[s]}`, (X(a) + X(b)) / 2, h - 5); }
+  const [sa] = sessionRange(session), av = availIdx();
+  const line = (from, to, val) => { x.beginPath(); for (let i = from; i <= to; i++) { const px = X(i), py = Y(val(CK[i])); i === from ? x.moveTo(px, py) : x.lineTo(px, py); } };
+  x.strokeStyle = 'rgba(32,34,43,.25)'; x.setLineDash([3, 3]); x.lineWidth = 1.5; line(av, N - 1, c => c.acc); x.stroke(); x.setLineDash([]);
+  line(0, av, c => c.acc); x.lineTo(X(av), h - padB); x.lineTo(X(0), h - padB); x.closePath(); x.fillStyle = 'rgba(31,157,85,.12)'; x.fill();
+  line(0, av, c => c.acc); x.strokeStyle = '#1f9d55'; x.lineWidth = 2; x.lineJoin = 'round'; x.stroke();
+  const r3 = CK.findIndex(c => c.nivel === 3);
+  if (av >= 0) { line(0, av, c => Math.min(1, (c.reds || 0) / 6)); x.strokeStyle = '#d63a3a'; x.lineWidth = 1.5; x.stroke(); }
+  for (const m of TAPE.milestones) { if (m.ck > av) continue; x.fillStyle = '#20222b'; x.beginPath(); x.arc(X(m.ck), Y(CK[m.ck].acc), 2.5, 0, TAU); x.fill(); }
+  const cx = X(main.ck), cy = Y(CK[main.ck].acc);
+  x.fillStyle = '#fafaf8'; x.beginPath(); x.arc(cx, cy, 5.5, 0, TAU); x.fill(); x.fillStyle = '#1f9d55'; x.beginPath(); x.arc(cx, cy, 3.6, 0, TAU); x.fill();
+  void sa;
+}
+
+/* =========================================================
+   Controles
+   ========================================================= */
+function syncControls() {
+  document.querySelectorAll('[data-session]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.session === session)));
+  $('clock').value = minutes; $('clockV').textContent = PREVIA ? Math.round(minutes / 1.2) + '%' : fmtMin(minutes);
+}
+function setMode(m) {
+  mode = m; document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  montageIdx = sessionRange(session)[0];
+}
+let prevAvail = -1;
+document.querySelectorAll('[data-session]').forEach(b => b.addEventListener('click', () => {
+  session = +b.dataset.session; syncControls(); setMode(mode); resetDiary(); liveExtra = 0; startAttempt(); drawChart(); prevAvail = availIdx();
+  const n = LEVELS[session];
+  showBanner(`Nível ${n} · ${NIVEIS[n]}`, NIVEL_TXT[n], 3000);
+}));
+$('clock').addEventListener('input', e => {
+  minutes = +e.target.value; $('clockV').textContent = PREVIA ? Math.round(minutes / 1.2) + '%' : fmtMin(minutes);
+  if (PREVIA) return;
+  const av = availIdx();
+  if (av !== prevAvail) { prevAvail = av; syncMarks(true); drawChart(); if (mode === 'live') { liveExtra = 0; startAttempt(); } }
+  if (minutes === 120) sessionEnd();
+});
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { setMode(b.dataset.mode); liveExtra = 0; startAttempt(); }));
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+$('tCmp').addEventListener('click', e => {
+  compare = !compare; e.currentTarget.setAttribute('aria-pressed', String(compare));
+  ghost.g.visible = compare; $('cmpLabels').hidden = !compare;
+  resetMain = true;
+});
+let resetMain = false;
+$('bSkin').addEventListener('click', () => { lookIdx = (lookIdx + 1) % LOOKS.length; main.buildAthlete(); ghost.buildAthlete(); $('who').textContent = `Atleta: ${LOOKS[lookIdx].nick} ${LOOKS[lookIdx].num}`; });
+let bannerTimer = 0;
+function showBanner(big, s, ms) { $('bBig').textContent = big; $('bS').textContent = s; $('banner').classList.add('show'); clearTimeout(bannerTimer); bannerTimer = setTimeout(() => $('banner').classList.remove('show'), ms); }
+function sessionEnd() {
+  const [a, b] = sessionRange(session);
+  showBanner('Fim da sessão!', `Nível ${LEVELS[session]}: de ${fmt1(marcas(CK[a]))} para ${fmt1(marcas(CK[b]))} marcas por tentativa`, 4200);
+}
+
+/* =========================================================
+   Laço
+   ========================================================= */
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight;
+  camera.fov = innerWidth < innerHeight ? 62 : 40; camera.updateProjectionMatrix(); drawChart();
+}
+addEventListener('resize', resize);
+const camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3();
+function cameraFrame() {
+  // segue o atleta de cima e de trás do circuito (alto o bastante para a cabeça não tapar a bandeja)
+  const narrow = innerWidth < innerHeight, c = main.env.corpo;
+  lookGoal.set(c.x, .8, c.z + (narrow ? 1.2 : .2));
+  camGoal.set(c.x, narrow ? 14 : 9, c.z + (narrow ? 4.6 : 2.9));
+}
+let userMoved = false;
+controls.addEventListener('start', () => { userMoved = true; });
+let last = performance.now(), time = 0, hudT = 0;
+function frame(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now; time += dt;
+  if (resetMain) { resetMain = false; userMoved = false; startAttempt(); }
+  main.update(dt, speed, time);
+  if (compare) ghost.update(dt, speed, time);
+  if (main.env.done && (!compare || ghost.env.done)) {
+    attemptEnded();
+    if (mode === 'montage') { const av = availIdx(), a = sessionRange(session)[0]; montageIdx = montageIdx >= av ? a : Math.min(av, montageIdx + Math.max(1, Math.round((av - a) / 12))); }
+    else liveExtra += 64;
+    startAttempt(); drawChart();
+  }
+  updateParticles(dt);
+  cameraFrame();
+  if (!userMoved) { camera.position.lerp(camGoal, 1 - Math.pow(.1, dt)); controls.target.lerp(lookGoal, 1 - Math.pow(.1, dt)); }
+  else {
+    // a câmera foi girada pelo usuário: mantém o ângulo dele e acompanha o atleta
+    const c = main.env.corpo, k = 1 - Math.pow(.1, dt), dx = (c.x - controls.target.x) * k, dz = (c.z - controls.target.z) * k;
+    controls.target.x += dx; controls.target.z += dz; camera.position.x += dx; camera.position.z += dz;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  hudT += dt; if (hudT > .15) { hudT = 0; updatePanel(); }
+  requestAnimationFrame(frame);
+}
+camera.position.set(0, 11, 8);
+syncControls(); resetDiary(); startAttempt(); resize();
+prevAvail = availIdx();
+$('loading').remove();
+if (!reduceMotion && !PREVIA) showBanner('Bandeja', 'Arraste o horário em que o app foi aberto para ver o atleta evoluir.', 3200);
+/* para testes automáticos (Chromium sem interface) */
+window.__pagina = { main, ghost, camera, controls };
+requestAnimationFrame(frame);
+</script>

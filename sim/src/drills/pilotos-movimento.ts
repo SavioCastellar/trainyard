@@ -7,6 +7,7 @@ import { Rng } from '../rng.js';
 import { DIRECOES, RITMOS, direcaoDoAngulo, difAngulo } from '../movimento.js';
 import { LaboratorioMovimento } from './laboratorio-movimento.js';
 import { PainelDrill, PAINEL } from './painel.js';
+import { BandejaDrill, BANDEJA } from './bandeja.js';
 
 /** Movimento novo: vai na direção do alvo visto (ou lembrado); sem informação, procura virando. */
 export function pilotoNovo(lab: LaboratorioMovimento, rng: Rng, habilidade: number, out: number[]) {
@@ -52,4 +53,32 @@ export function pilotoPainel(e: PainelDrill, rng: Rng, habilidade: number, out: 
     if (dq < dist && dq < 3 && Math.abs(lado) < 0.6) ang -= Math.sign(lado || 1) * 0.7;
   }
   out[0] = direcaoDoAngulo(ang); out[1] = 2;
+}
+
+/**
+ * Bandeja (Controle). Estilos para medir a atividade: 'corre' (sempre em corrida para a marca), 'trote'
+ * (sempre trotando), 'apressado' (o esperto que não liga para lombada) e 'esperto' (corre na reta, trota antes de curva fechada e de lombada e, com a bola
+ * perto da beira, segura o ritmo e a direção em que já está para não mexer mais nela).
+ */
+export function pilotoBandeja(e: BandejaDrill, rng: Rng, habilidade: number, out: number[], estilo: 'corre' | 'trote' | 'esperto' | 'apressado' = 'esperto') {
+  if (rng.next() > habilidade) { out[0] = rng.int(DIRECOES); out[1] = rng.int(RITMOS); return; }
+  const c = e.corpo, m0 = e.marks[e.next], m1 = e.marks[e.next + 1];
+  const ang = Math.atan2(m0.z - c.z, m0.x - c.x), d = Math.hypot(m0.x - c.x, m0.z - c.z);
+  out[0] = direcaoDoAngulo(ang);
+  if (estilo === 'corre' || estilo === 'trote') { out[1] = estilo === 'corre' ? 2 : 1; return; }
+  const b = e.ball, solta = Math.hypot(b.x, b.z) / BANDEJA.trayR, sp = Math.hypot(c.vx, c.vz);
+  if (solta > 0.6 && sp > 0.5) {
+    // segura: continua na direção e no ritmo de agora
+    out[0] = direcaoDoAngulo(Math.atan2(c.vz, c.vx)); out[1] = sp > e.fis.velMax * 0.75 ? 2 : 1; return;
+  }
+  const curva = Math.abs(difAngulo(ang, Math.atan2(m1.z - m0.z, m1.x - m0.x)));
+  const lomb = estilo === 'esperto' && m0.lomb && Math.hypot(m0.lomb.x - c.x, m0.lomb.z - c.z) < 2.2;
+  // vira aos poucos: no máximo uma direção (22,5°) por decisão em corrida, duas trotando
+  const vang = Math.atan2(c.vz, c.vx), falta = difAngulo(vang, ang);
+  const lento = lomb || (curva > 0.8 && d < 2.6) || Math.abs(falta) > 0.5;
+  out[1] = lento ? 1 : 2;
+  if (sp > 1) {
+    const passo = (lento ? 2 : 1) * Math.PI / 8;
+    out[0] = direcaoDoAngulo(vang + Math.max(-passo, Math.min(passo, falta)));
+  }
 }
