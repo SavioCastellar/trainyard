@@ -9,8 +9,8 @@
  * são exatamente o que empurra a bola. Mais controle = arranca e freia mais forte, mas também consegue
  * fazer curva mais fechada sem passar do ponto.
  *
- * Níveis: 1 bandeja funda, curvas suaves; 2 bandeja rasa, curvas fechadas; 3 como o 2 com lombadas
- * no caminho (passar rápido por cima faz a bola pular).
+ * Níveis: 1 circuito com curvas suaves; 2 vai e volta entre duas linhas (cada marca é uma parada e uma
+ * virada completa); 3 circuito com lombadas largas no caminho (passar rápido por cima faz a bola pular).
  *
  * Observação (referencial do mundo, como as ações): velocidade e direção do corpo, bola na bandeja
  * (posição e velocidade), empurrão que a bola está sentindo agora, parado; as 3 próximas marcas
@@ -35,20 +35,28 @@ export const BANDEJA = {
   /** bola rolando sente 5/7 da aceleração (rolamento) */
   roll: 5 / 7,
   /**
-   * por nível (índice = nível): distância entre marcas, curva mínima e máxima (graus) de uma para a outra,
-   * chance de a curva trocar de lado, w = quão funda é a bandeja (frequência do vai e vem, rad/s),
-   * c = atrito da bola, lombada = chance de uma lombada entre duas marcas
+   * por nível (índice = nível):
+   * - tipo 'livre': circuito com curvas; distância entre marcas, curva mínima e máxima (graus), chance de a
+   *   curva trocar de lado, lombada = chance de uma lombada grande no meio do trecho
+   * - tipo 'vaivem': duas linhas paralelas a `largura` uma da outra; as marcas alternam de linha (ida e volta),
+   *   andando até `passo` ao longo dela
+   * w = quão funda é a bandeja (frequência do vai e vem da bola, rad/s), c = atrito da bola
    */
   niveis: [
     null,
-    { minD: 3.5, maxD: 5, minTurn: 0, maxTurn: 35, flip: 0.5, w: 6, c: 3, lombada: 0 },
-    { minD: 2.8, maxD: 4.2, minTurn: 50, maxTurn: 110, flip: 0.4, w: 5, c: 3, lombada: 0 },
-    { minD: 4, maxD: 6, minTurn: 20, maxTurn: 80, flip: 0.4, w: 5, c: 3, lombada: 0.7 },
+    { tipo: 'livre', minD: 3.5, maxD: 5, minTurn: 0, maxTurn: 35, flip: 0.5, lombada: 0, w: 6, c: 3 },
+    { tipo: 'vaivem', largura: 5.5, comprimento: 13, passo: 2.5, w: 6, c: 2.5 },
+    { tipo: 'livre', minD: 5.5, maxD: 7, minTurn: 0, maxTurn: 45, flip: 0.5, lombada: 0.9, w: 6, c: 3 },
   ],
-  /** lombada: largura (atravessada no caminho), espessura e quanto a bola pula por (m/s)² de velocidade */
-  bumpW: 2.4,
-  bumpD: 0.35,
-  bumpKick: 0.12,
+  /**
+   * lombada grande (nível 3): atravessa o caminho de ponta a ponta (largura), comprimento ao longo do caminho,
+   * altura (só desenho) e quanto a bola pula ao subir nela, por (m/s)² de velocidade. Devagar (~1 m/s) passa;
+   * trotando a bola quase sempre cai; correndo, cai sempre.
+   */
+  bumpW: 4.4,
+  bumpD: 1.2,
+  bumpH: 0.22,
+  bumpKick: 0.4,
   /** tempo parado depois de derrubar a bola */
   drop: 1.5,
   maxTime: 30,
@@ -63,6 +71,8 @@ export type Nivel = 1 | 2 | 3;
 
 export interface Marca {
   x: number; z: number;
+  /** vai e vem: em qual das duas linhas está (0 ou 1); circuito livre: -1 */
+  linha: number;
   /** lombada no caminho da marca anterior até esta (centro e direção do caminho), ou null */
   lomb: { x: number; z: number; ux: number; uz: number } | null;
 }
@@ -97,16 +107,29 @@ export class BandejaDrill {
   private head: number;
   private sign: number;
   private onBump = -1;
+  /** vai e vem: centro da pista, direção das linhas (ux, uz) e afastamento de cada linha ao centro */
+  pista: { x: number; z: number; ux: number; uz: number; meia: number; comp: number } | null = null;
 
   constructor(seed: number, record = false, readonly nivel: Nivel = 1, atributos: AtributosMovimento = ATLETA_FITA) {
     this.rng = new Rng(seed);
     this.rngPulo = new Rng(seed ^ 0x5bd1e995);
     this.events = record ? [] : null;
     this.fis = fisica(atributos);
-    const lim = BANDEJA.half / 2, x = this.rng.range(-lim, lim), z = this.rng.range(-lim, lim);
+    const N = this.N;
+    let x: number, z: number;
     this.head = this.rng.range(-Math.PI, Math.PI);
     this.sign = this.rng.next() < 0.5 ? -1 : 1;
-    this.marks = [{ x, z, lomb: null }];
+    if (N.tipo === 'vaivem') {
+      const cx = this.rng.range(-1.5, 1.5), cz = this.rng.range(-1.5, 1.5);
+      this.pista = { x: cx, z: cz, ux: Math.cos(this.head), uz: Math.sin(this.head), meia: N.largura / 2, comp: N.comprimento };
+      const a = this.rng.range(-3, 3);
+      ({ x, z } = this.pontoPista(0, a));
+      this.marks = [{ x, z, linha: 0, lomb: null }];
+    } else {
+      const lim = BANDEJA.half / 2;
+      x = this.rng.range(-lim, lim); z = this.rng.range(-lim, lim);
+      this.marks = [{ x, z, linha: -1, lomb: null }];
+    }
     this.grow();
     const m1 = this.marks[1];
     this.corpo = novoCorpo(x, z, Math.atan2(m1.z - z, m1.x - x));
@@ -115,9 +138,25 @@ export class BandejaDrill {
 
   private get N() { return BANDEJA.niveis[this.nivel]!; }
 
+  /** ponto na linha (0 ou 1) do vai e vem, a `ao` metros do centro ao longo dela */
+  pontoPista(linha: number, ao: number) {
+    const P = this.pista!, lado = linha === 0 ? -P.meia : P.meia;
+    return { x: P.x + P.ux * ao - P.uz * lado, z: P.z + P.uz * ao + P.ux * lado };
+  }
+
   /** estende o circuito: curvas limitadas pelo nível, dentro da área; encurralado, aceita qualquer curva */
   private grow() {
     const B = BANDEJA, N = this.N, rng = this.rng, M = this.marks;
+    if (N.tipo === 'vaivem') {
+      const P = this.pista!, lim = P.comp / 2 - 1;
+      while (M.length <= this.next + B.ahead) {
+        const prev = M[M.length - 1], aoPrev = (prev.x - P.x) * P.ux + (prev.z - P.z) * P.uz;
+        const ao = Math.max(-lim, Math.min(lim, aoPrev + rng.range(-N.passo, N.passo)));
+        const linha = 1 - prev.linha, p = this.pontoPista(linha, ao);
+        M.push({ x: p.x, z: p.z, linha, lomb: null });
+      }
+      return;
+    }
     while (M.length <= this.next + B.ahead) {
       const prev = M[M.length - 1];
       for (let tries = 0; ; tries++) {
@@ -131,10 +170,16 @@ export class BandejaDrill {
         if (M.slice(-4, -1).some(m => Math.hypot(m.x - nx, m.z - nz) < 2 * B.markR + 0.6)) continue;
         let lomb: Marca['lomb'] = null;
         if (N.lombada > 0 && M.length > 1 && rng.next() < N.lombada) {
-          const f = rng.range(0.4, 0.6);
-          lomb = { x: prev.x + (nx - prev.x) * f, z: prev.z + (nz - prev.z) * f, ux: Math.cos(nh), uz: Math.sin(nh) };
+          const f = rng.range(0.4, 0.6), ux = Math.cos(nh), uz = Math.sin(nh);
+          lomb = { x: prev.x + (nx - prev.x) * f, z: prev.z + (nz - prev.z) * f, ux, uz };
+          // não deixa a lombada encostar em marcas nem em outras lombadas (pontas e meio)
+          const pts = (L: NonNullable<Marca['lomb']>) => [-1, 0, 1].map(k => ({ x: L.x - L.uz * k * B.bumpW / 2, z: L.z + L.ux * k * B.bumpW / 2 }));
+          const meus = pts(lomb), perto = (a: { x: number; z: number }, b: { x: number; z: number }, d: number) => Math.hypot(a.x - b.x, a.z - b.z) < d;
+          const ruim = meus.some(q => [...M.slice(-4), { x: nx, z: nz }].some(m => perto(q, m, B.markR + 0.9)))
+            || M.slice(-4).some(m => m.lomb && pts(m.lomb).some(q => meus.some(r => perto(q, r, 1.6))));
+          if (ruim) lomb = null;
         }
-        M.push({ x: nx, z: nz, lomb });
+        M.push({ x: nx, z: nz, linha: -1, lomb });
         this.head = nh; this.sign = sg;
         break;
       }

@@ -71,11 +71,16 @@ export function pilotoBandeja(e: BandejaDrill, rng: Rng, habilidade: number, out
     // segura: continua na direção e no ritmo de agora
     out[0] = direcaoDoAngulo(Math.atan2(c.vz, c.vx)); out[1] = sp > e.fis.velMax * 0.75 ? 2 : 1; return;
   }
+  // parado com a bola balançando: espera ela assentar antes de sair
+  if (sp < 0.4 && solta > 0.35) { out[1] = 0; return; }
   const curva = Math.abs(difAngulo(ang, Math.atan2(m1.z - m0.z, m1.x - m0.x)));
-  const lomb = estilo === 'esperto' && m0.lomb && Math.hypot(m0.lomb.x - c.x, m0.lomb.z - c.z) < 2.2;
+  // trecho com lombada: trota o trecho inteiro (frear de novo logo antes da próxima deixaria a bola balançando)
+  if (m0.lomb && estilo === 'esperto') { out[1] = 1; return; }
+  // volta fechada (vai e vem): freia antes e entra na marca devagar
+  if (curva > 2 && d < 1.3 + sp * sp / 10) { out[1] = sp > 1.1 ? 0 : 1; return; }
   // vira aos poucos: no máximo uma direção (22,5°) por decisão em corrida, duas trotando
   const vang = Math.atan2(c.vz, c.vx), falta = difAngulo(vang, ang);
-  const lento = lomb || (curva > 0.8 && d < 2.6) || Math.abs(falta) > 0.5;
+  const lento = (curva > 0.8 && d < 2.6) || Math.abs(falta) > 0.5;
   out[1] = lento ? 1 : 2;
   if (sp > 1) {
     const passo = (lento ? 2 : 1) * Math.PI / 8;

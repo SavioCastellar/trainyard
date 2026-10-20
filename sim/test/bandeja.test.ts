@@ -39,11 +39,19 @@ test('bandeja: a esmo não chega a lugar nenhum', () => {
   assert.ok(m / 20 < 2, `a esmo ${m / 20}`);
 });
 
-test('bandeja: quem corre sem cuidado derruba a bola; o esperto quase nunca', () => {
+test('bandeja: quem corre sem cuidado derruba a bola; o esperto quase nunca (no 3, quem não tira o pé na lombada derruba)', () => {
   const n1c = media(1, 'corre'), n1e = media(1, 'esperto');
   assert.ok(n1c.quedas > 1.2 && n1e.quedas < 0.6, JSON.stringify({ n1c, n1e }));
   const n2c = media(2, 'corre'), n2t = media(2, 'trote'), n2e = media(2, 'esperto');
-  assert.ok(n2c.quedas > 6 && n2t.quedas > 1.5 && n2e.quedas < 1.2, JSON.stringify({ n2c, n2t, n2e }));
-  const n3a = media(3, 'apressado'), n3e = media(3, 'esperto');
-  assert.ok(n3a.quedas > n3e.quedas + 1.5, JSON.stringify({ n3a, n3e }));
+  assert.ok(n2c.quedas > 4 && n2t.quedas > 2 && n2e.quedas < 1, JSON.stringify({ n2c, n2t, n2e }));
+  const n3c = media(3, 'corre'), n3a = media(3, 'apressado'), n3e = media(3, 'esperto');
+  assert.ok(n3c.quedas > 5 && n3a.quedas > n3e.quedas + 3 && n3e.quedas < 1.2, JSON.stringify({ n3c, n3a, n3e }));
+});
+
+test('bandeja: nível 2 é ida e volta entre duas linhas; nível 3 tem lombadas largas', () => {
+  const e2 = joga(3, 2, piloto('esperto'));
+  assert.ok(e2.pista);
+  for (let i = 1; i < e2.marks.length; i++) assert.notEqual(e2.marks[i].linha, e2.marks[i - 1].linha);
+  const e3 = joga(3, 3, piloto('esperto'));
+  assert.ok(e3.marks.filter(m => m.lomb).length >= 4);
 });

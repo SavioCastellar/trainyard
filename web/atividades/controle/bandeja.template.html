@@ -182,8 +182,8 @@ const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
 const R = DRILL.BANDEJA;
-const NIVEIS = { 1: 'Bandeja funda', 2: 'Bandeja rasa', 3: 'Lombadas' };
-const NIVEL_TXT = { 1: 'Bandeja funda e curvas suaves. Arrancar ou frear com tudo derruba a bola.', 2: 'A bandeja é rasa e as curvas são fechadas: é preciso frear antes e virar aos poucos.', 3: 'Lombadas no caminho: passar correndo por cima faz a bola pular.' };
+const NIVEIS = { 1: 'Circuito', 2: 'Vai e volta', 3: 'Lombadas' };
+const NIVEL_TXT = { 1: 'Circuito com curvas suaves. Arrancar ou frear com tudo derruba a bola.', 2: 'Ida e volta entre duas linhas, com a bola mais solta: cada marca é uma parada e uma virada completa.', 3: 'Lombadas largas atravessando o caminho: passar correndo por cima faz a bola pular da bandeja.' };
 /* escala do desenho da bandeja em relação à simulação (a bandeja aparece um pouco maior para ler de longe) */
 const TRAY_VIS = .42, KV = TRAY_VIS / R.trayR;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -305,12 +305,44 @@ for (let i = 0; i < 6; i++) {
 const DOTS = 3 * 7, dotGeo = new THREE.CircleGeometry(.07, 10), dots = new THREE.InstancedMesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .55, depthWrite: false }), DOTS);
 dots.frustumCulled = false; scene.add(dots);
 /* lombadas: faixa de borracha amarela e preta */
-const bumpTex = canvasTex((x, w, h) => { for (let k = 0; k < 8; k++) { x.fillStyle = k % 2 ? '#1d1d22' : '#f2c230'; x.beginPath(); x.moveTo(k * w / 8, h); x.lineTo(k * w / 8 + w / 16, 0); x.lineTo((k + 1) * w / 8 + w / 16, 0); x.lineTo((k + 1) * w / 8, h); x.fill(); } }, 256, 32);
-const bumpGeo = new THREE.CylinderGeometry(R.bumpD / 2, R.bumpD / 2, R.bumpW, 16, 1, false, 0, Math.PI);
+const bumpTex = canvasTex((x, w, h) => { for (let k = 0; k < 8; k++) { x.fillStyle = k % 2 ? '#1d1d22' : '#f2c230'; x.fillRect(0, k * h / 8, w, h / 8); } }, 32, 256);
+bumpTex.wrapT = THREE.RepeatWrapping; bumpTex.repeat.set(1, R.bumpW / 2.4);
+const bumpGeo = new THREE.CylinderGeometry(R.bumpD / 2, R.bumpD / 2, R.bumpW, 24, 1, false, 0, Math.PI);
+const postGeo = new THREE.CylinderGeometry(.07, .07, .55, 10), postMat = new THREE.MeshStandardMaterial({ color: 0xf2c230, roughness: .6 });
 const BUMPS = [];
 for (let i = 0; i < 5; i++) {
+  // lombada larga (atravessa o caminho de ponta a ponta) com um poste em cada ponta
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
   const m = new THREE.Mesh(bumpGeo, new THREE.MeshStandardMaterial({ map: bumpTex, roughness: .8 }));
-  m.scale.set(.45, 1, 1); m.castShadow = true; m.receiveShadow = true; m.visible = false; scene.add(m); BUMPS.push(m);
+  m.rotation.z = Math.PI / 2; m.scale.set(R.bumpH / (R.bumpD / 2), 1, 1); m.position.y = .06; m.castShadow = true; m.receiveShadow = true; g.add(m);
+  for (const sx of [-1, 1]) { const p = new THREE.Mesh(postGeo, postMat); p.position.set(sx * (R.bumpW / 2 + .1), .33, 0); p.castShadow = true; g.add(p); }
+  BUMPS.push(g);
+}
+/* altura do chão (lombada) num ponto, para o atleta subir e descer */
+function alturaChao(e, x, z) {
+  for (let i = Math.max(1, e.next - 1); i <= e.next; i++) {
+    const L = e.marks[i]?.lomb; if (!L) continue;
+    const dx = x - L.x, dz = z - L.z, a = dx * L.ux + dz * L.uz, sd = -dx * L.uz + dz * L.ux;
+    if (Math.abs(a) < R.bumpD / 2 && Math.abs(sd) < R.bumpW / 2) return R.bumpH * Math.cos(a / (R.bumpD / 2) * Math.PI / 2) ** 2;
+  }
+  return 0;
+}
+/* vai e volta: as duas linhas pintadas, com cones nas pontas */
+const LANES = new THREE.Group(); LANES.visible = false; scene.add(LANES);
+const laneMat = new THREE.MeshBasicMaterial({ color: 0xf4f1e8, transparent: true, opacity: .8 });
+const laneCones = [];
+for (const ln of [0, 1]) {
+  const strip = new THREE.Mesh(new THREE.PlaneGeometry(1, .1), laneMat); strip.rotation.x = -Math.PI / 2; strip.position.y = .066; strip.userData.ln = ln; LANES.add(strip);
+  for (const end of [-1, 1]) { const c = new THREE.Mesh(new THREE.ConeGeometry(.16, .42, 14), new THREE.MeshStandardMaterial({ color: 0xf08a24, roughness: .6 })); c.castShadow = true; c.userData = { ln, end }; LANES.add(c); laneCones.push(c); }
+}
+function colocarPista(P) {
+  LANES.visible = !!P; if (!P) return;
+  LANES.position.set(P.x, 0, P.z); LANES.rotation.y = Math.atan2(-P.uz, P.ux);
+  for (const o of LANES.children) {
+    const ln = o.userData.ln, lado = ln === 0 ? -P.meia : P.meia;
+    if (o.userData.end === undefined) { o.scale.x = P.comp; o.position.set(0, .066, lado); }
+    else o.position.set(o.userData.end * (P.comp / 2 + .3), .27, lado);
+  }
 }
 
 /* =========================================================
@@ -412,7 +444,8 @@ class Station {
     this.evIdx = 0; this.acc = 0; this.prev = null; this.tilt = { x: 0, z: 0 };
     for (const b of this.loose) this.g.remove(b.m); this.loose = [];
     this.tray.ball.visible = true; this.ballPop = 0;
-    if (this.main) for (const m of MK) { m.idx = -1; m.fx = 0; m.g.visible = false; }
+    if (this.main) { for (const m of MK) { m.idx = -1; m.fx = 0; m.g.visible = false; } colocarPista(this.env.pista); }
+    this.hop = 0; this.hopH = 0;
   }
   snap() { const c = this.env.corpo, b = this.env.ball; this.prev = { x: c.x, z: c.z, bx: b.x, bz: b.z }; }
   update(dt, speed, time) {
@@ -446,7 +479,7 @@ class Station {
         this.tray.ball.visible = false;
         if (this.main) { burst(tp.x, tp.y, tp.z, 0xf2c230, 10, 1.5, 2.5); this.sad = true; }
       } else if (ev.type === 'ball') { this.tray.ball.visible = true; this.ballPop = 1; }
-      else if (ev.type === 'bump' && this.main) burst(e.corpo.x, .15, e.corpo.z, 0x1d1d22, 6, 1.2, 1.5, 6, .4);
+      else if (ev.type === 'bump') { this.hop = 1; this.hopH = Math.min(.45, ev.kick * .16); if (this.main) burst(e.corpo.x, .2, e.corpo.z, 0xf2c230, 5, 1, 1.5, 6, .4); }
     }
     this.alpha = e.done ? 1 : Math.min(1, this.acc / R.dt);
     this.animateAthlete(dt);
@@ -470,7 +503,7 @@ class Station {
     const ix = pv ? pv.x + (c.x - pv.x) * al : c.x, iz = pv ? pv.z + (c.z - pv.z) * al : c.z;
     const m0 = e.marks[e.next];
     animarAtleta(this.rig, c, this.anim, {
-      dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .06, olhar: m0, parado: false,
+      dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .06 + (this.chao = alturaChao(e, ix, iz)), olhar: m0, parado: false,
       velMax: e.fis.velMax, expr: pl.frozen > 0 ? 'triste' : this.look.expr, comemorar: false,
     });
     this.hitNow = false;
@@ -480,14 +513,15 @@ class Station {
     if (pl.frozen > 0) { A[0].rotation.set(-.3, 0, -.15); A[1].rotation.set(-.3, 0, .15); }
     // bandeja: na frente do peito; inclina um pouco com o empurrão (só para ler a física)
     const h = this.rig.root.rotation.y, fx = Math.sin(h), fz = Math.cos(h);
-    const tp = this.trayPos = { x: ix + fx * .7, y: .86 + this.rig.body.position.y * .8, z: iz + fz * .7 };
+    const tp = this.trayPos = { x: ix + fx * .7, y: .86 + this.chao + this.rig.body.position.y * .8, z: iz + fz * .7 };
     this.tilt.x += (e.push.z * .012 - this.tilt.x) * Math.min(1, dt * 8);
     this.tilt.z += (-e.push.x * .012 - this.tilt.z) * Math.min(1, dt * 8);
     const T = this.tray.g; T.position.set(tp.x, tp.y, tp.z); T.rotation.set(this.tilt.x, 0, this.tilt.z);
     const b = e.ball, bx = pv ? pv.bx + (b.x - pv.bx) * al : b.x, bz = pv ? pv.bz + (b.z - pv.bz) * al : b.z;
     if (this.ballPop > 0) this.ballPop = Math.max(0, this.ballPop - dt * 3);
+    if (this.hop > 0) this.hop = Math.max(0, this.hop - dt * (this.play || 1) * 2.2);
     const br = R.ballR * KV;
-    this.tray.ball.position.set(tp.x + bx * KV, tp.y + .03 + br + Math.sin(this.ballPop * Math.PI) * .25, tp.z + bz * KV);
+    this.tray.ball.position.set(tp.x + bx * KV, tp.y + .03 + br + Math.sin(this.ballPop * Math.PI) * .25 + Math.sin(this.hop * Math.PI) * this.hopH, tp.z + bz * KV);
     this.tray.ball.rotation.x += b.vz * dt / br; this.tray.ball.rotation.z -= b.vx * dt / br;
     const solta = Math.hypot(bx, bz) / R.trayR;
     this.tray.warn.material.opacity = THREE.MathUtils.clamp((solta - .55) / .35, 0, 1) * .85;
@@ -528,7 +562,7 @@ class Station {
     let u = 0;
     for (let i = Math.max(1, e.next - 1); i <= e.next + 3 && u < BUMPS.length; i++) {
       const L = e.marks[i]?.lomb; if (!L) continue;
-      const m = BUMPS[u++]; m.visible = true; m.position.set(L.x, .06, L.z); m.rotation.set(0, Math.atan2(-L.ux, -L.uz), Math.PI / 2);
+      const m = BUMPS[u++]; m.visible = true; m.position.set(L.x, 0, L.z); m.rotation.set(0, Math.atan2(-L.ux, -L.uz), 0);
     }
     for (; u < BUMPS.length; u++) BUMPS[u].visible = false;
   }
