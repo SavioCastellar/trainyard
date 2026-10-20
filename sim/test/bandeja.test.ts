@@ -55,3 +55,11 @@ test('bandeja: nível 2 é slalom de portas em zigue-zague; nível 3 tem lombada
   const e3 = joga(3, 3, piloto('esperto'));
   assert.ok(e3.marks.filter(m => m.lomb).length >= 4);
 });
+
+test('bandeja: o circuito nunca trava, mesmo encurralado num canto (semente 1599 travava o treino)', () => {
+  for (const nivel of [1, 2, 3] as Nivel[]) for (let s = 1; s <= 3000; s++) {
+    const e = new BandejaDrill(s, false, nivel);
+    for (let k = 0; k < 60; k++) { e.next++; (e as any).grow(); }
+    for (const m of e.marks) assert.ok(Math.abs(m.x) <= 11 && Math.abs(m.z) <= 11, `nível ${nivel} semente ${s}: marca fora da área`);
+  }
+});

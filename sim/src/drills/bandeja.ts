@@ -152,7 +152,8 @@ export class BandejaDrill {
         const r = Math.hypot(Lh.x, Lh.z), paraDentro = difAngulo(this.head, Math.atan2(-Lh.z, -Lh.x));
         const sorteio = rng.range(-N.curva, N.curva) * Math.PI / 180, max = 40 * Math.PI / 180;
         // longe do meio da área, a linha vira para dentro (mais forte quanto mais longe e mais de frente para fora)
-        const giro = (r > 4 && Math.abs(paraDentro) > 0.6) || r > 5.5 ? Math.max(-max * (r > 6.5 ? 1.6 : 1), Math.min(max * (r > 6.5 ? 1.6 : 1), paraDentro)) : sorteio;
+        const lim = r > 6 ? Math.PI / 2 : r > 5 ? max * 1.6 : max;
+        const giro = (r > 4 && Math.abs(paraDentro) > 0.6) || r > 5 ? Math.max(-lim, Math.min(lim, paraDentro)) : sorteio;
         this.head += giro;
         const ux = Math.cos(this.head), uz = Math.sin(this.head);
         Lh.x += ux * N.passo; Lh.z += uz * N.passo; Lh.lado = -Lh.lado;
@@ -166,11 +167,15 @@ export class BandejaDrill {
         const free = tries >= 40;
         const mag = (free ? rng.range(0, 180) : rng.range(N.minTurn, N.maxTurn)) * Math.PI / 180;
         const sg = free ? (rng.next() < 0.5 ? -1 : 1) : rng.next() < N.flip ? -this.sign : this.sign;
-        const nh = this.head + sg * mag, d = rng.range(N.minD, N.maxD);
+        // encurralado num canto (todas as direções saem da área ou caem em cima das últimas marcas): depois de
+        // 80 tentativas aceita marca perto das anteriores e, depois de 120, vai direto para o meio da área.
+        // Sem isso o laço não terminava (aconteceu no treino, por volta da tentativa 40 mil)
+        const centro = tries >= 120;
+        const nh = centro ? Math.atan2(-prev.z, -prev.x) : this.head + sg * mag, d = rng.range(N.minD, N.maxD);
         const nx = prev.x + Math.cos(nh) * d, nz = prev.z + Math.sin(nh) * d;
-        if (Math.abs(nx) > B.half || Math.abs(nz) > B.half) continue;
+        if (!centro && (Math.abs(nx) > B.half || Math.abs(nz) > B.half)) continue;
         // marca nova não cai em cima das últimas
-        if (M.slice(-4, -1).some(m => Math.hypot(m.x - nx, m.z - nz) < 2 * B.markR + 0.6)) continue;
+        if (tries < 80 && M.slice(-4, -1).some(m => Math.hypot(m.x - nx, m.z - nz) < 2 * B.markR + 0.6)) continue;
         let lomb: Marca['lomb'] = null;
         if (N.lombada > 0 && M.length > 1 && rng.next() < N.lombada) {
           const f = rng.range(0.4, 0.6), ux = Math.cos(nh), uz = Math.sin(nh);
