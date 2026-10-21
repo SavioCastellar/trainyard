@@ -125,17 +125,23 @@ export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, 
       if (m < Math.min(0.1, 0.6 / d)) out[2] = k + 1;
     }
   };
+  const S = e.solta;
   if (e.nivel === 1) {
+    if (!S.existe) { out[0] = direcaoDoAngulo(c.h); out[1] = 0; return; }
+    // a pilha mais fácil vista da bola: perto e sem precisar dar a volta na bola
     let best: { a: number; d: number; custo: number } | null = null;
     for (const t of e.pilhas) {
-      const a = Math.atan2(t.z - c.z, t.x - c.x), d = Math.hypot(t.x - c.x, t.z - c.z);
-      const custo = Math.abs(difAngulo(c.h, a)) / e.fis.giro + vooPrecisao(d);
+      const a = Math.atan2(t.z - S.z, t.x - S.x), d = Math.hypot(t.x - S.x, t.z - S.z);
+      const px = S.x - Math.cos(a) * 0.6, pz = S.z - Math.sin(a) * 0.6, ir = Math.hypot(px - c.x, pz - c.z);
+      const custo = ir / 3 + vooPrecisao(d);
       if (!best || custo < best.custo) best = { a, d, custo };
     }
-    if (best) { if (best.d > 9.5) vai(c.x + Math.cos(best.a), c.z + Math.sin(best.a), 0); else mira(best.a, best.d); }
+    if (!best) return;
+    const px = S.x - Math.cos(best.a) * 0.6, pz = S.z - Math.sin(best.a) * 0.6;
+    if (Math.hypot(px - c.x, pz - c.z) > 0.35) { vai(px, pz, 0.2); return; }
+    mira(best.a, best.d);
     return;
   }
-  const S = e.solta;
   if (e.nivel === 2) {
     if (!S.existe) { vai(c.x, Math.max(c.z, 2), 0.3); return; }
     // alvo: painel aceso (ou o do meio, esperando o próximo acender)

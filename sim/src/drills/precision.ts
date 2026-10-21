@@ -2,8 +2,8 @@
  * Treino de Precisão: três estações, uma por nível (pedido do Savio, 2026-10-20). Em todas, +1 por acerto e
  * nenhuma outra recompensa. Medidas em docs/atividades/precisao.md.
  *
- * 1 · Derrubar: 3 pilhas de garrafões espalhadas pelo campo. O atleta chuta (a bola sai do pé, na frente do
- *     corpo) e derruba a pilha; ela é montada de novo em outro lugar.
+ * 1 · Derrubar: 3 pilhas de garrafões espalhadas pelo campo. A máquina solta a bola perto do atleta (2 a 4 m);
+ *     ele vai até ela, chuta e derruba a pilha; ela é montada de novo em outro lugar.
  * 2 · Paredão: uma parede no fundo do campo com 6 painéis; só um fica aceso por vez, e por pouco tempo.
  *     Uma máquina solta a bola num ponto sorteado: o atleta corre até ela e chuta no painel aceso.
  * 3 · Alvo deslizante: um alvo corre num trilho ao longo da parede, de uma ponta à outra. O atleta pega a bola
@@ -34,7 +34,7 @@ export const PRECISION = {
   /** ajuste fino do lançamento em relação à direção do corpo (rad) */
   ajustes: [-10, -5, 0, 5, 10].map(g => (g * Math.PI) / 180),
   aimNoise: 0.02,
-  /** intervalo mínimo entre lançamentos (nível 1); nos outros a bola nova demora `respawn` */
+  /** intervalo mínimo entre lançamentos */
   kickCd: 0.9,
   /** chute: velocidade e atrito da bola rolando (some ao parar abaixo de 1,5/s) */
   kickSpeed: 15,
@@ -46,6 +46,8 @@ export const PRECISION = {
   linha: -1.5,
   bolaZ: [-0.5, 6] as const,
   bolaX: 7,
+  /** nível 1: a bola cai a esta distância do atleta (perto, para o nível ser rápido) */
+  bolaPerto: [2, 4] as const,
   alcance: 0.95,
   pegar: 0.8,
   respawn: 0.6,
@@ -69,7 +71,7 @@ export const PRECISION_OBS = 11 + 4 + DIRECOES + PRECISION_ALVOS * 9 + PRECISION
 export const PRECISION_ACTIONS = [...ACOES_MOVIMENTO, 6] as const;
 export type Nivel = 1 | 2 | 3;
 /** domínio por nível, em acertos por tentativa (medido com os pilotos, ver a ficha); igual ao DOMINIO do ppo_drill.py */
-export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 26, 2: 5.5, 3: 7 };
+export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 9, 2: 5.5, 3: 7 };
 
 export type PrecisionEvent =
   | { type: 'kick'; t: number; x: number; z: number; h: number; mao: boolean }
@@ -117,6 +119,7 @@ export class PrecisionDrill {
     if (nivel === 1) {
       this.corpo = novoCorpo(0, 0, this.rng.next() * Math.PI * 2);
       for (let i = 0; i < P.pilhas; i++) this.pilhas.push(this.novaPilha(i));
+      this.soltarBola();
     } else {
       // começa atrás da linha, de frente para a parede
       this.corpo = novoCorpo(this.rng.range(-4, 4), this.rng.range(3, 6), -Math.PI / 2);
@@ -143,8 +146,17 @@ export class PrecisionDrill {
   private soltarBola() {
     const P = PRECISION, C = this.corpo, S = this.solta;
     for (let tries = 0; tries < 60; tries++) {
-      const x = this.rng.range(-P.bolaX, P.bolaX), z = this.rng.range(P.bolaZ[0], P.bolaZ[1]);
-      if (tries < 50 && Math.hypot(x - C.x, z - C.z) < 2.5) continue;
+      let x: number, z: number;
+      if (this.nivel === 1) {
+        // perto do atleta, dentro do campo e fora das pilhas
+        const a = this.rng.range(-Math.PI, Math.PI), d = this.rng.range(P.bolaPerto[0], P.bolaPerto[1]);
+        x = C.x + Math.cos(a) * d; z = C.z + Math.sin(a) * d;
+        if (tries < 50 && (Math.abs(x) > P.hx - 1 || Math.abs(z) > P.hz - 1 || this.pilhas.some(t => Math.hypot(t.x - x, t.z - z) < 1.6))) continue;
+        x = Math.max(-P.hx + 1, Math.min(P.hx - 1, x)); z = Math.max(-P.hz + 1, Math.min(P.hz - 1, z));
+      } else {
+        x = this.rng.range(-P.bolaX, P.bolaX); z = this.rng.range(P.bolaZ[0], P.bolaZ[1]);
+        if (tries < 50 && Math.hypot(x - C.x, z - C.z) < 2.5) continue;
+      }
       S.x = x; S.z = z; break;
     }
     S.existe = true; S.espera = 0;
@@ -167,18 +179,17 @@ export class PrecisionDrill {
     return [{ x: this.alvo.x, z: -P.hz, on: Infinity, vx: this.alvo.dir * P.alvoVel }];
   }
 
-  /** de onde a bola vai sair: o pé (nível 1), a bola no chão (nível 2) ou a mão (nível 3) */
+  /** de onde a bola vai sair: a bola no chão (níveis 1 e 2) ou a mão (nível 3) */
   origem() {
     const C = this.corpo;
-    return this.nivel === 2 && this.solta.existe ? { x: this.solta.x, z: this.solta.z } : { x: C.x, z: C.z };
+    return this.nivel < 3 && this.solta.existe ? { x: this.solta.x, z: this.solta.z } : { x: C.x, z: C.z };
   }
 
   /** pode lançar agora? */
   pronto() {
     const C = this.corpo, P = this.player, B = this.ball, S = this.solta;
     if (B.live) return false;
-    if (this.nivel === 1) return P.cd <= 0;
-    if (this.nivel === 2) return S.existe && Math.hypot(S.x - C.x, S.z - C.z) < PRECISION.alcance;
+    if (this.nivel < 3) return P.cd <= 0 && S.existe && Math.hypot(S.x - C.x, S.z - C.z) < PRECISION.alcance;
     return this.naMao;
   }
 
@@ -232,17 +243,16 @@ export class PrecisionDrill {
         this.naMao = false;
       } else {
         const O = this.origem();
-        B.x = this.nivel === 1 ? C.x + Math.cos(h) * (P.playerR + P.ballR) : O.x;
-        B.z = this.nivel === 1 ? C.z + Math.sin(h) * (P.playerR + P.ballR) : O.z;
+        B.x = O.x; B.z = O.z;
         B.vx = Math.cos(a) * P.kickSpeed; B.vz = Math.sin(a) * P.kickSpeed; B.mao = false;
-        if (this.nivel === 2) S.existe = false;
+        S.existe = false;
       }
       B.live = true; Pl.cd = P.kickCd; Pl.kickAnim = 0.25; this.kicks++;
       this.events?.push({ type: 'kick', t: this.t, x: B.x, z: B.z, h: a, mao: B.mao });
     }
     if (B.live) this.voar();
-    // máquina de bolas (níveis 2 e 3): solta a próxima logo depois do lançamento, para o atleta já ir buscar
-    if (this.nivel > 1 && !S.existe && !this.naMao) {
+    // máquina de bolas: solta a próxima logo depois do lançamento, para o atleta já ir buscar
+    if (!S.existe && !this.naMao) {
       S.espera += dt;
       if (S.espera >= P.respawn) this.soltarBola();
     }

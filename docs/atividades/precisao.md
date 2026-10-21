@@ -8,7 +8,8 @@ nível é uma estação diferente, e o nível 3 é com a mão, para não ser um 
 - **Objetivo do atleta (recompensa):** +1 por acerto. Nenhuma outra recompensa.
 - **Duração da tentativa:** 30 s.
 - **Por que é divertido de assistir:**
-  - Nível 1: no começo chuta para o nada; depois vira para a pilha e derruba os garrafões, que voam.
+  - Nível 1: no começo nem acha a bola; depois corre até ela, vira para a pilha e derruba os garrafões, que voam.
+    (Na primeira prévia a bola saía do pé, do nada; o Savio achou que parecia um "poder" e pediu a máquina também aqui.)
   - Nível 2: aprende a correr até a bola que a máquina solta, se ajeitar e acertar o painel aceso antes de
     apagar (o painel acende, pisca e estoura em luz no acerto).
   - Nível 3: troca o pé pela mão. Aprende a pegar a bola e arremessar **à frente** do alvo que corre no trilho.
@@ -16,18 +17,18 @@ nível é uma estação diferente, e o nível 3 é com a mão, para não ser um 
 ## Níveis (fita treinada uma vez, subindo de nível quando o atleta domina o atual)
 | Nível | Estação | Domínio (acertos por tentativa) |
 |---|---|---|
-| 1 · Derrubar | 3 pilhas de 6 garrafões espalhadas pelo campo. Chute (a bola sai do pé); derrubou, a pilha é montada em outro lugar | **26** |
+| 1 · Derrubar | 3 pilhas de 6 garrafões espalhadas pelo campo. A máquina solta a bola a 2–4 m do atleta; ele busca e chuta; derrubou, a pilha é montada em outro lugar | **9** |
 | 2 · Paredão | parede no fundo com 6 painéis; só um aceso por vez, por 4 s (pausa de 0,35 s). A máquina solta a bola parada num ponto sorteado; o atleta vai até ela e chuta no painel aceso. Bola em painel apagado não conta | **5,5** |
 | 3 · Alvo deslizante | um alvo corre num trilho ao longo da parede (de −7,5 a +7,5, 2,4/s, volta nas pontas). O atleta pega a bola com a mão e **arremessa**; a bola sai com o embalo do corpo | **7** |
 
 **Medido com o piloto escrito à mão** (`pilotoPrecisao`, 60 tentativas), acertos / lançamentos por tentativa:
 | Nível | Aleatório | Piloto sem o comportamento do nível | Piloto com |
 |---|---|---|---|
-| 1 | 2,6 / 20 | — | 27,7 / 28 |
+| 1 | 0 (nunca chega na bola) | — | 10,0 / 10 |
 | 2 | 0 (nunca chega na bola) | — | 6,0 / 8 |
 | 3 | 0 | 1,1 / 9 (mira onde o alvo está) | 7,6 / 9 (mira à frente) |
 
-O piloto do nível 2 é lento: para atrás da bola antes de chutar. O atleta pode chutar sem parar (o chute
+Os pilotos dos níveis 1 e 2 são lentos: param atrás da bola antes de chutar. O atleta pode chutar sem parar (o chute
 sai na direção do corpo), então deve passar bem do piloto.
 
 ## Medidas (unidades da simulação ≈ metros; fonte: `sim/src/drills/precision.ts`)
@@ -37,8 +38,8 @@ sai na direção do corpo), então deve passar bem do piloto.
 | Linha de arremesso | níveis 2 e 3: o atleta não passa de z = −1,5 (a 6,5 m da parede) |
 | Atleta | movimento padrão (`movimento.ts`), atributos da fita (Velocidade 35, Controle 35) |
 | Bola | raio 0,25. Chute: sai a 15/s, rola com atrito 0,55, some abaixo de 1,5/s. Arremesso: sai da mão a 13/s mais o embalo do corpo, voa reto até a parede (o arco é só desenho) |
-| Lançar | na direção do corpo com ajuste fino de −10°, −5°, 0, +5° ou +10°; erro pequeno. Nível 1: de 0,9 em 0,9 s. Nível 2: só encostado na bola (até 0,95). Nível 3: só com a bola na mão (pega encostando, até 0,8) |
-| Máquina (níveis 2 e 3) | solta a próxima bola 0,6 s depois do lançamento, em x de −7 a 7 e z de −0,5 a 6, longe do atleta |
+| Lançar | na direção do corpo com ajuste fino de −10°, −5°, 0, +5° ou +10°; erro pequeno. Níveis 1 e 2: só encostado na bola (até 0,95), de 0,9 em 0,9 s. Nível 3: só com a bola na mão (pega encostando, até 0,8) |
+| Máquina | solta a próxima bola 0,6 s depois do lançamento. Nível 1: a 2–4 m do atleta, longe das pilhas. Níveis 2 e 3: em x de −7 a 7 e z de −0,5 a 6, longe do atleta |
 | Pilhas (nível 1) | raio 0,6; aparecem longe do atleta e entre si |
 | Painéis (nível 2) | centros em x = −7,5, −4,5, −1,5, 1,5, 4,5, 7,5; 1,8 de largura |
 | Alvo do trilho (nível 3) | raio 0,75 |
@@ -47,7 +48,7 @@ sai na direção do corpo), então deve passar bem do piloto.
 
 ## O que se mexe (para o cenário)
 - Atleta: anda, chuta (perna) ou arremessa (braço sobe atrás da cabeça); segura a bola na mão no nível 3.
-- Bola: rola (futebol) ou voa em arco (handebol); a máquina solta a bola caindo do alto, com uma marca no chão.
+- Bola: rola (futebol) ou voa em arco (handebol); a máquina solta a bola caindo do alto, com uma marca no chão (todos os níveis).
 - Pilhas: garrafões que voam e quicam ao serem derrubados; a pilha nova cresce em outro lugar.
 - Painéis: um aceso em verde, barra embaixo encolhendo com o tempo; estoura em luz no acerto.
 - Trilho: alvo vermelho e branco correndo de uma ponta à outra.

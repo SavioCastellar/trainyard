@@ -79,10 +79,10 @@ const DRILLS: Record<string, DrillTape> = {
       // o domínio é medido no treino (média de 300 tentativas); aqui marca a última foto do nível
       const fim = (nivel: number) => picked.map(e => e.nivel).lastIndexOf(nivel), D = PRECISION_DOMINIO;
       add(0, 'Primeira tentativa: ele ainda não sabe o que é um alvo. Chuta para qualquer lado.');
-      add(at(1, e => e.acc >= 0.15), 'Começou a virar na direção das pilhas antes de chutar.');
+      add(at(1, e => e.kicks >= 3), 'Começou a correr até a bola.');
+      add(at(1, e => e.acc >= 0.3), 'Agora vira para a pilha antes de chutar.');
       add(at(1, e => e.hits >= 5), 'Já derruba 5 pilhas por tentativa.');
       add(at(1, e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
-      add(at(1, e => e.hits >= 15), '15 pilhas por tentativa.');
       add(fim(1), `Domínio do nível 1: ${D[1]} pilhas derrubadas por tentativa.`);
       const l2 = at(2, () => true);
       add(l2, 'Nível 2 · Paredão: a máquina solta a bola em qualquer lugar do campo. Tem que buscar a bola e chutar no painel aceso.', 2);

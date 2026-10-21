@@ -44,7 +44,7 @@ test('precisão: nível 1 tem 3 pilhas; nível 2 acende um painel por vez; níve
 });
 
 test('precisão: o ajuste fino muda a direção do chute', () => {
-  const dirs = [1, 3, 5].map(k => { const e = new PrecisionDrill(9, true, 1); e.step(0, 0, k); return (e.events!.find(ev => ev.type === 'kick') as { h: number }).h; });
+  const dirs = [1, 3, 5].map(k => { const e = new PrecisionDrill(9, true, 1); e.corpo.x = e.solta.x - 0.5; e.corpo.z = e.solta.z; e.step(0, 0, k); return (e.events!.find(ev => ev.type === 'kick') as { h: number }).h; });
   assert.ok(dirs[0] < dirs[1] && dirs[1] < dirs[2], JSON.stringify(dirs));
 });
 

@@ -181,9 +181,9 @@ const PREVIA = /*PREVIA*/;
 const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
-const R = DRILL.PRECISION, DOM = { 1: 26, 2: 5.5, 3: 7 };
+const R = DRILL.PRECISION, DOM = { 1: 9, 2: 5.5, 3: 7 };
 const NIVEIS = { 1: 'Derrubar', 2: 'Paredão', 3: 'Alvo deslizante' };
-const NIVEL_TXT = { 1: 'Três pilhas de garrafões pelo campo. Chutou e derrubou, a pilha é montada em outro lugar.', 2: 'A máquina solta a bola em qualquer lugar: o atleta busca e chuta no painel aceso da parede, antes que apague.', 3: 'Agora é com a mão: pega a bola e arremessa no alvo que corre no trilho. Tem que mirar à frente dele.' };
+const NIVEL_TXT = { 1: 'Três pilhas de garrafões pelo campo. A bola cai perto do atleta: ele busca, chuta e derruba. A pilha é montada em outro lugar.', 2: 'A máquina solta a bola em qualquer lugar: o atleta busca e chuta no painel aceso da parede, antes que apague.', 3: 'Agora é com a mão: pega a bola e arremessa no alvo que corre no trilho. Tem que mirar à frente dele.' };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmtN = n => n.toLocaleString('pt-BR');
 const fmtMin = m => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
@@ -524,7 +524,7 @@ class Station {
     // a cabeça olha o alvo (ou a bola, se ainda precisa buscar)
     const A = e.alvos(), S = e.solta;
     let olhar = null;
-    if (e.nivel > 1 && S.existe && !e.naMao && Math.hypot(S.x - c.x, S.z - c.z) > 1.2) olhar = { x: S.x, z: S.z };
+    if (S.existe && !e.naMao && Math.hypot(S.x - c.x, S.z - c.z) > 1.2) olhar = { x: S.x, z: S.z };
     else if (A.length) { let m = Infinity; for (const t of A) { const d = Math.abs(Math.atan2(Math.sin(Math.atan2(t.z - c.z, t.x - c.x) - c.h), Math.cos(Math.atan2(t.z - c.z, t.x - c.x) - c.h))); if (d < m) { m = d; olhar = t; } } }
     animarAtleta(rig, c, this.anim, {
       dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .06, olhar, parado: false,
