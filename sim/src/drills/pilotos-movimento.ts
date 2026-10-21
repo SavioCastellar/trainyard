@@ -4,7 +4,7 @@
  * cérebro no começo (0) ou no fim (1) do treino.
  */
 import { Rng } from '../rng.js';
-import { DIRECOES, RITMOS, direcaoDoAngulo, difAngulo } from '../movimento.js';
+import { DIRECOES, RITMOS, direcaoDoAngulo, difAngulo, anguloDirecao } from '../movimento.js';
 import { LaboratorioMovimento } from './laboratorio-movimento.js';
 import { PainelDrill, PAINEL } from './painel.js';
 import { BandejaDrill, BANDEJA } from './bandeja.js';
@@ -115,16 +115,15 @@ export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, 
     out[0] = direcaoDoAngulo(Math.atan2(z - c.z, x - c.x)); out[1] = d > 3 ? 2 : d > perto ? 1 : 0;
     return d;
   };
-  /** parado e quase virado para o ângulo `a`: lança com o ajuste fino que deixa a mira mais perto */
+  /** lança na direção mais perto do ângulo `a`, com o ajuste fino que falta (a simulação espera o corpo virar) */
   const mira = (a: number, d: number) => {
-    out[0] = direcaoDoAngulo(a); out[1] = 0;
-    const falta = difAngulo(c.h, a);
-    if (sp < 0.6 && Math.abs(falta) < (12.5 * Math.PI) / 180 && Math.abs(c.w) < 1.5 && e.pronto()) {
-      let k = 0, m = Infinity;
-      P.ajustes.forEach((aj, i) => { const err = Math.abs(falta - aj); if (err < m) { m = err; k = i; } });
-      if (m < Math.min(0.1, 0.6 / d)) out[2] = k + 1;
-    }
+    const k = direcaoDoAngulo(a), res = difAngulo(anguloDirecao(k), a);
+    out[0] = k; out[1] = 0;
+    let j = 0, m = Infinity;
+    P.ajustes.forEach((aj, i) => { const err = Math.abs(res - aj); if (err < m) { m = err; j = i; } });
+    if (sp < 1.5 && m < Math.min(0.1, 0.6 / d)) out[2] = j + 1;
   };
+
   const S = e.solta;
   if (e.nivel === 1) {
     if (!S.existe) { out[0] = direcaoDoAngulo(c.h); out[1] = 0; return; }

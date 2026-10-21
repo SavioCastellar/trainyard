@@ -27,7 +27,7 @@ DRILLS = {"precisao": (11 + 4 + 16 + 3 * 9 + 3 * 16, (16, 3, 6)), "velocidade": 
           "controle": (11 + 3 * 7 + 2 * 16, (16, 3)), "forca": (27, (3, 3)), "inteligencia": (8 + 2 * 5 * 6 + 8, (3, 3))}
 # domínio por nível: (fração mínima de luzes pisadas, máximo de vermelhas por tentativa); medido, ver a ficha.
 # Valor acima de 1 é acertos/entregas por tentativa (Precisão: igual a PRECISION_DOMINIO em precision.ts).
-DOMINIO = {"precisao": {1: (9, None), 2: (5.5, None), 3: (7, None)},
+DOMINIO = {"precisao": {1: (11, None), 2: (6, None), 3: (8, None)},
            "velocidade": {1: (0.90, None), 2: (0.86, None), 3: (0.82, 0.4)},
            "reflexo": {1: (0.90, None), 2: (0.95, None), 3: (0.94, None)},
            # controle (Bandeja): marcas por tentativa e bolas caídas por tentativa no lugar das vermelhas

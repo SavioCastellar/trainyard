@@ -7,23 +7,26 @@
  * 2 · Paredão: uma parede no fundo do campo com 6 painéis; só um fica aceso por vez, e por pouco tempo.
  *     Uma máquina solta a bola num ponto sorteado: o atleta corre até ela e chuta no painel aceso.
  * 3 · Alvo deslizante: um alvo corre num trilho ao longo da parede, de uma ponta à outra. O atleta pega a bola
- *     com a mão e ARREMESSA (para não ser um treino só de futebol); a bola sai com o embalo do corpo, então é
- *     preciso mirar à frente do alvo e compensar a corrida.
+ *     com a mão e ARREMESSA (para não ser um treino só de futebol); é preciso mirar à frente do alvo.
+ *
+ * Lançar (chute ou arremesso) só quase parado e com o corpo virado para a direção escolhida.
  *
  * Nos níveis 2 e 3 o atleta não passa da linha de arremesso (a 6,5 m da parede).
  *
  * Movimento padrão (`movimento.ts`): direção (16) e ritmo (3); parado, o corpo vira para a direção escolhida.
- * O lançamento (chute ou arremesso) sai na direção do corpo com ajuste fino de −10°, −5°, 0, +5° ou +10°.
+ * O lançamento (chute ou arremesso) sai na direção escolhida com ajuste fino de −10°, −5°, 0, +5° ou +10°, desde
+ * que o corpo esteja virado até 60° para ela (o corpo vira sozinho para a direção escolhida).
  *
  * Observação (referencial do mundo, como as ações): pode lançar agora, velocidade e direção do corpo, posição
  * no campo, qual estação (nível), se está com a bola na mão; a bola a buscar (posição relativa, distância e
  * direção "no idioma das ações"); para cada alvo (até 3): aceso, posição relativa ao ponto de onde a bola vai
- * sair, distância, quanto falta virar o corpo para ele (sen, cos), tempo aceso restante, velocidade, e a
- * direção dele "no idioma das ações".
+ * sair, distância, quanto ele foge da direção de 22,5° mais perto (para o ajuste fino), se o corpo está virado
+ * para ele (cos), tempo aceso restante, velocidade, e a direção dele "no idioma das ações". As pilhas vêm da mais
+ * perto para a mais longe.
  * Ações: [direção 0..15, ritmo 0..2, lançar 0..5] (0 = não lança; 1..5 = lança com −10°, −5°, 0, +5°, +10°).
  */
 import { Rng } from '../rng.js';
-import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarRetangulo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento, DIRECOES, direcaoComoAcao, difAngulo } from '../movimento.js';
+import { Corpo, novoCorpo, fisica, Fisica, moverCorpo, limitarRetangulo, espelhar, ATLETA_FITA, ACOES_MOVIMENTO, AtributosMovimento, DIRECOES, direcaoComoAcao, difAngulo, anguloDirecao, direcaoDoAngulo } from '../movimento.js';
 
 export const PRECISION = {
   /** campo: x de −hx a hx, z de −hz (parede) a hz */
@@ -34,6 +37,11 @@ export const PRECISION = {
   /** ajuste fino do lançamento em relação à direção do corpo (rad) */
   ajustes: [-10, -5, 0, 5, 10].map(g => (g * Math.PI) / 180),
   aimNoise: 0.02,
+  /** só lança se o corpo estiver a menos disto (rad) da direção escolhida: 60° */
+  virado: Math.PI / 3,
+  /** só lança quase parado (m/s): precisão é parar, mirar e lançar. Sem isso o atleta chutava na direção em que
+   *  vinha correndo até a bola e nunca aprendia a mirar (teste de 5 min: 12% no alvo, igual ao acaso) */
+  parado: 1.2,
   /** intervalo mínimo entre lançamentos */
   kickCd: 0.9,
   /** chute: velocidade e atrito da bola rolando (some ao parar abaixo de 1,5/s) */
@@ -47,8 +55,8 @@ export const PRECISION = {
   bolaZ: [-0.5, 6] as const,
   bolaX: 7,
   /** nível 1: a bola cai a esta distância do atleta (perto, para o nível ser rápido) */
-  bolaPerto: [2, 4] as const,
-  alcance: 0.95,
+  bolaPerto: [1.2, 2.5] as const,
+  alcance: 1.1,
   pegar: 0.8,
   respawn: 0.6,
   /** nível 2: painéis na parede (centros em x) e meia-largura; tempo aceso e pausa até o próximo */
@@ -71,7 +79,7 @@ export const PRECISION_OBS = 11 + 4 + DIRECOES + PRECISION_ALVOS * 9 + PRECISION
 export const PRECISION_ACTIONS = [...ACOES_MOVIMENTO, 6] as const;
 export type Nivel = 1 | 2 | 3;
 /** domínio por nível, em acertos por tentativa (medido com os pilotos, ver a ficha); igual ao DOMINIO do ppo_drill.py */
-export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 9, 2: 5.5, 3: 7 };
+export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 11, 2: 6, 3: 8 };
 
 export type PrecisionEvent =
   | { type: 'kick'; t: number; x: number; z: number; h: number; mao: boolean }
@@ -174,7 +182,8 @@ export class PrecisionDrill {
   /** alvos como o atleta os vê (até 3): pilhas, o painel aceso ou o alvo do trilho */
   alvos(): Target[] {
     const P = PRECISION;
-    if (this.nivel === 1) return this.pilhas;
+    // pilhas da mais perto para a mais longe (de onde a bola vai sair): o primeiro alvo é sempre o mais fácil
+    if (this.nivel === 1) { const O = this.origem(); return [...this.pilhas].sort((p, q) => Math.hypot(p.x - O.x, p.z - O.z) - Math.hypot(q.x - O.x, q.z - O.z)); }
     if (this.nivel === 2) return this.painel >= 0 && this.painelOn > 0 ? [{ x: P.paineis[this.painel], z: -P.hz, on: this.painelOn, vx: 0 }] : [];
     return [{ x: this.alvo.x, z: -P.hz, on: Infinity, vx: this.alvo.dir * P.alvoVel }];
   }
@@ -210,9 +219,11 @@ export class PrecisionDrill {
     for (let k = 0; k < PRECISION_ALVOS; k++) {
       const t = A[k], o = o0 + k * 9;
       if (!t) { out.fill(0, o, o + 9); direcaoComoAcao(out, od + k * DIRECOES, 0, 0, false); continue; }
-      const dx = t.x - O.x, dz = t.z - O.z, da = difAngulo(C.h, Math.atan2(dz, dx));
+      const dx = t.x - O.x, dz = t.z - O.z, at = Math.atan2(dz, dx), da = difAngulo(C.h, at);
+      // quanto o alvo foge da direção (de 22,5°) mais perto dele: é o que o ajuste fino corrige
+      const res = difAngulo(anguloDirecao(direcaoDoAngulo(at)), at);
       out[o] = 1; out[o + 1] = dx / R; out[o + 2] = dz / R; out[o + 3] = Math.hypot(dx, dz) / R;
-      out[o + 4] = Math.sin(da); out[o + 5] = Math.cos(da);
+      out[o + 4] = res / (Math.PI / DIRECOES); out[o + 5] = Math.cos(da);
       out[o + 6] = Number.isFinite(t.on) ? t.on / P.lit : 1;
       out[o + 7] = t.vx / P.alvoVel; out[o + 8] = 0;
       direcaoComoAcao(out, od + k * DIRECOES, dx, dz);
@@ -234,8 +245,10 @@ export class PrecisionDrill {
     if (this.nivel === 3 && S.existe && !this.naMao && Math.hypot(S.x - C.x, S.z - C.z) < P.pegar) {
       this.naMao = true; S.existe = false; this.events?.push({ type: 'pick', t: this.t });
     }
-    if (lancar >= 1 && this.pronto()) {
-      const h = C.h + P.ajustes[lancar - 1], a = h + this.rng.gauss() * P.aimNoise;
+    // lança na direção escolhida (+ ajuste fino), desde que o corpo já esteja mais ou menos virado para ela
+    const dirLanc = anguloDirecao(direcao);
+    if (lancar >= 1 && this.pronto() && Math.abs(difAngulo(C.h, dirLanc)) < P.virado && Math.hypot(C.vx, C.vz) < P.parado) {
+      const h = dirLanc + P.ajustes[lancar - 1], a = h + this.rng.gauss() * P.aimNoise;
       if (this.nivel === 3) {
         // arremesso: sai da mão, com o embalo do corpo
         B.x = C.x + Math.cos(h) * 0.5; B.z = C.z + Math.sin(h) * 0.5;
