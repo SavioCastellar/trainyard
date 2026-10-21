@@ -8,6 +8,39 @@ const GLB_OSSOS = { quadril: 'mixamorigHips', cabeca: 'mixamorigHead', pernaD: '
 /** braço em T-pose → braço caído ao lado do corpo (graus) */
 const GLB_BRACO_BAIXO = 72;
 
+/**
+ * Pontos do rosto (metros, referencial do personagem: y altura, z frente), medidos na superfície do modelo
+ * (raios de frente, assets/personagem). O nariz é do próprio modelo (estilo anime): ponta em y 1,12, z 0,34;
+ * queixo em y 1,04. Olhos acima do nariz, boca entre o nariz e o queixo.
+ */
+const GLB_ROSTO = {
+  olhoX: .105, olhoY: 1.215, olhoZ: .272, olhoR: .056,
+  sobY: 1.29, sobZ: .276,
+  bocaY: 1.074, bocaZ: .318, bocaW: .032,
+  get oculos() { return { eyeX: this.olhoX, eyeY: this.olhoY, eyeR: this.olhoR, z: this.olhoZ, mouthY: this.bocaY, mouthW: this.bocaW * 1.4 }; },
+};
+/** mesmo formato de buildFace (cabecudo-lib.js): { eyes, brows, mouths }, para setExpr e o piscar funcionarem */
+function buildRostoGLB(g, p) {
+  const R = GLB_ROSTO, f = { eyes: [], brows: [], mouths: {} };
+  const white = M('#ffffff', { roughness: .25 }), pupil = M('#1b1724', { roughness: .2 }), dark = M('#2a1e22', { roughness: .8 });
+  for (const s of [-1, 1]) {
+    const e = new THREE.Group(); e.position.set(s * R.olhoX, R.olhoY, R.olhoZ);
+    add(e, new THREE.SphereGeometry(R.olhoR, 18, 14), white, [0, 0, 0], null, [1, 1.2, .5]);
+    add(e, new THREE.SphereGeometry(R.olhoR * .52, 14, 10), pupil, [s * -R.olhoR * .08, -R.olhoR * .06, R.olhoR * .38]);
+    g.add(e); f.eyes.push(e);
+    const b = add(g, new THREE.BoxGeometry(R.olhoR * 1.7, R.olhoR * .3, R.olhoR * .4), M(darker(p.hairColor, .9)), [s * R.olhoX, R.sobY, R.sobZ]);
+    b.userData.side = s; f.brows.push(b);
+  }
+  const mw = R.bocaW, y = R.bocaY, z = R.bocaZ;
+  const smile = new THREE.TorusGeometry(mw, mw * .22, 8, 20, Math.PI);
+  f.mouths.confiante = add(g, smile, dark, [mw * .25, y, z], [0, 0, Math.PI + .3], [1, .75, 1]);
+  f.mouths.neutro = add(g, new THREE.BoxGeometry(mw * 1.4, mw * .3, mw * .3), dark, [0, y, z]);
+  f.mouths.bravo = add(g, smile, dark, [0, y - mw * .3, z], [0, 0, 0], [1, .6, 1]);
+  f.mouths.feliz = add(g, new THREE.SphereGeometry(mw * .9, 16, 10, 0, TAU, Math.PI / 2, Math.PI / 2), M('#5a1f2c', { roughness: .8 }), [0, y + mw * .4, z - .01], [Math.PI * .08, 0, 0], [1.2, 1.1, .5]);
+  f.mouths.triste = add(g, smile, dark, [0, y - mw * .5, z], [0, 0, 0], [.8, .5, 1]);
+  return f;
+}
+
 /** dados do modelo calculados uma vez: centro e raio da cabeça, no referencial do personagem */
 function prepararModeloGLB(gltf) {
   const cena = gltf.scene; cena.updateMatrixWorld(true);
@@ -38,6 +71,12 @@ function buildAtletaGLB(modelo, p, o = {}) {
     else if (/camisa/.test(m.name)) m.material.color = cor(p.team.p);
     else if (/short/.test(m.name)) m.material.color = cor(p.team.s === '#f4f1e8' ? darker(p.team.p, .55) : p.team.s);
     else if (/tenis/.test(m.name)) m.material.color = cor('#f4f4f2');
+    else if (/cabelo/.test(m.name)) {
+      // cabelos são cascas da cabeça (preparar.py): curto, volume (afro) e moicano; o boné usa a casca curta na cor do time
+      const estilo = { curto: 'cabelo_curto', coque: 'cabelo_curto', bone: 'cabelo_curto', afro: 'cabelo_volume', moicano: 'cabelo_moicano' }[p.hair] || 'cabelo_curto';
+      m.visible = m.name.startsWith(estilo);
+      m.material.color = cor(p.hair === 'bone' ? p.team.s : p.hairColor); m.material.roughness = p.hair === 'bone' ? .6 : .9;
+    }
     m.material.needsUpdate = true;
   });
   // porte: força alarga o corpo, velocidade afina (sem mexer na altura)
@@ -58,11 +97,18 @@ function buildAtletaGLB(modelo, p, o = {}) {
   head.position.copy(osso.cabeca.worldToLocal(root.localToWorld(wc)));
   head.quaternion.copy(osso.cabeca.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(qRoot));
   const sw = osso.cabeca.getWorldScale(new THREE.Vector3()); head.scale.set(k / sw.x, k * (modelo.cabeca.alto / (2 * modelo.cabeca.raio)) / sw.y, k / sw.z);
-  const of = { eyeX: .2, eyeY: .02, eyeR: .12, z: R * .93, browY: .21, mouthY: -.27, mouthW: .1, nose: .07 };
-  const face = buildFace(head, of, p);
-  buildGlasses(head, p.glasses, of);
-  buildBeard(head, p.beard, of, p.hairColor, R);
-  buildHair(head, p.hair, R, p.hairColor, [0, 0, 0], p.team.s);
+  // rosto: noutro grupo, em metros no referencial do personagem (o modelo já tem nariz e queixo; os olhos,
+  // a boca e as sobrancelhas vão nos pontos medidos na superfície do rosto, ver GLB_ROSTO)
+  const rosto = new THREE.Group(); osso.cabeca.add(rosto);
+  rosto.position.copy(osso.cabeca.worldToLocal(root.localToWorld(new THREE.Vector3())));
+  rosto.quaternion.copy(head.quaternion);
+  rosto.scale.set(larg / sw.x, 1 / sw.y, larg / sw.z);
+  const face = buildRostoGLB(rosto, p);
+  buildGlasses(rosto, p.glasses, GLB_ROSTO.oculos);
+  buildBeard(rosto, p.beard, GLB_ROSTO.oculos, p.hairColor, modelo.cabeca.raio * .82, [0, modelo.cabeca.centro.y, modelo.cabeca.centro.z]);
+  // complementos do cabelo: coque atrás, aba do boné na frente
+  if (p.hair === 'coque') add(rosto, new THREE.IcosahedronGeometry(.1, 1), M(p.hairColor, { roughness: .9, flatShading: true }), [0, 1.66, -.16]);
+  if (p.hair === 'bone') add(rosto, new THREE.CylinderGeometry(.24, .24, .02, 20, 1, false, -Math.PI / 2, Math.PI), M(p.team.s, { roughness: .6 }), [0, 1.43, .2], [.18, 0, 0], [1, 1, .85]);
   setExpr(face, p.expr);
   // procuradores (a animação padrão escreve neles)
   const body = new THREE.Group(), legs = [new THREE.Group(), new THREE.Group()], arms = [new THREE.Group(), new THREE.Group()], headPivot = new THREE.Group();
