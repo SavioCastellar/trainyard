@@ -97,38 +97,67 @@ export function pilotoBandeja(e: BandejaDrill, rng: Rng, habilidade: number, out
   }
 }
 
-/** tempo de voo da bola chutada até a distância d (Infinity se ela para antes) */
+/** tempo de voo da bola chutada (rolando) até a distância d (Infinity se ela para antes) */
 export const vooPrecisao = (d: number) => { const k = 1 - (d * PRECISION.ballFriction) / PRECISION.kickSpeed; return k > 0.1 ? -Math.log(k) / PRECISION.ballFriction : Infinity; };
 
 /**
- * Precisão: escolhe o alvo mais rápido de acertar (virar o corpo + voo da bola), vira parado para a direção
- * mais perto dele e chuta com o ajuste fino que falta. `tempo`: no nível 2 ignora alvo que apaga antes da bola
- * chegar; `antecipa`: no nível 3 mira onde o alvo vai estar. Longe demais (> 9,5), anda trotando até ele.
+ * Precisão. Nível 1: escolhe a pilha mais rápida de derrubar, vira parado e chuta com o ajuste fino.
+ * Nível 2: corre até um ponto atrás da bola (na linha do painel aceso), para, vira e chuta; se o painel vai
+ * apagar antes da bola chegar, espera o próximo (`tempo`). Nível 3: pega a bola, para e arremessa à frente
+ * do alvo do trilho (`antecipa`).
  */
-export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, out: number[], { tempo = true, antecipa = true } = {}) {
+export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, out: number[], { tempo = false, antecipa = true } = {}) {
   if (rng.next() > habilidade) { out[0] = rng.int(DIRECOES); out[1] = rng.int(RITMOS); out[2] = rng.next() < 0.3 ? 1 + rng.int(5) : 0; return; }
-  const c = e.corpo;
-  let best: { a: number; d: number; custo: number } | null = null;
-  for (const t of e.targets) {
-    if (t.off > 0) continue;
-    let x = t.x, z = t.z, a = 0, d = 0, custo = 0;
-    for (let k = 0; k < (antecipa ? 4 : 1); k++) {
-      a = Math.atan2(z - c.z, x - c.x); d = Math.hypot(x - c.x, z - c.z);
-      custo = Math.abs(difAngulo(c.h, a)) / e.fis.giro + 0.15 + vooPrecisao(d);
-      if (antecipa && t.dir) { const ang = t.a + (t.dir * PRECISION.railSpeed * custo) / t.r; x = Math.cos(ang) * t.r; z = Math.sin(ang) * t.r; }
-    }
-    if (tempo && e.nivel === 2 && t.on < custo + 0.15) continue;
-    if (!best || custo < best.custo) best = { a, d, custo };
-  }
+  const c = e.corpo, P = PRECISION, sp = Math.hypot(c.vx, c.vz);
   out[2] = 0;
-  if (!best) { out[0] = direcaoDoAngulo(c.h); out[1] = 0; return; }
-  out[0] = direcaoDoAngulo(best.a);
-  out[1] = best.d > 9.5 ? 1 : 0;
-  // parado e quase virado: chuta com o ajuste fino que deixa a mira mais perto do alvo
-  const falta = difAngulo(c.h, best.a), sp = Math.hypot(c.vx, c.vz);
-  if (out[1] === 0 && sp < 0.6 && Math.abs(falta) < (12.5 * Math.PI) / 180 && Math.abs(c.w) < 1.5) {
-    let k = 0, m = Infinity;
-    PRECISION.ajustes.forEach((aj, i) => { const err = Math.abs(falta - aj); if (err < m) { m = err; k = i; } });
-    if (m < Math.min(0.12, 0.8 / best.d)) out[2] = k + 1;
+  const vai = (x: number, z: number, perto: number) => {
+    const d = Math.hypot(x - c.x, z - c.z);
+    out[0] = direcaoDoAngulo(Math.atan2(z - c.z, x - c.x)); out[1] = d > 3 ? 2 : d > perto ? 1 : 0;
+    return d;
+  };
+  /** parado e quase virado para o ângulo `a`: lança com o ajuste fino que deixa a mira mais perto */
+  const mira = (a: number, d: number) => {
+    out[0] = direcaoDoAngulo(a); out[1] = 0;
+    const falta = difAngulo(c.h, a);
+    if (sp < 0.6 && Math.abs(falta) < (12.5 * Math.PI) / 180 && Math.abs(c.w) < 1.5 && e.pronto()) {
+      let k = 0, m = Infinity;
+      P.ajustes.forEach((aj, i) => { const err = Math.abs(falta - aj); if (err < m) { m = err; k = i; } });
+      if (m < Math.min(0.1, 0.6 / d)) out[2] = k + 1;
+    }
+  };
+  if (e.nivel === 1) {
+    let best: { a: number; d: number; custo: number } | null = null;
+    for (const t of e.pilhas) {
+      const a = Math.atan2(t.z - c.z, t.x - c.x), d = Math.hypot(t.x - c.x, t.z - c.z);
+      const custo = Math.abs(difAngulo(c.h, a)) / e.fis.giro + vooPrecisao(d);
+      if (!best || custo < best.custo) best = { a, d, custo };
+    }
+    if (best) { if (best.d > 9.5) vai(c.x + Math.cos(best.a), c.z + Math.sin(best.a), 0); else mira(best.a, best.d); }
+    return;
   }
+  const S = e.solta;
+  if (e.nivel === 2) {
+    if (!S.existe) { vai(c.x, Math.max(c.z, 2), 0.3); return; }
+    // alvo: painel aceso (ou o do meio, esperando o próximo acender)
+    const lit = e.painel >= 0 && e.painelOn > 0, tx = lit ? P.paineis[e.painel] : 0, tz = -P.hz;
+    const a = Math.atan2(tz - S.z, tx - S.x), dB = Math.hypot(tx - S.x, tz - S.z);
+    // fica 0,6 atrás da bola, na linha do chute
+    const px = S.x - Math.cos(a) * 0.6, pz = S.z - Math.sin(a) * 0.6;
+    if (Math.hypot(px - c.x, pz - c.z) > 0.35) { vai(px, pz, 0.2); return; }
+    if (!lit || (tempo && e.painelOn < vooPrecisao(dB) + 0.6)) { out[0] = direcaoDoAngulo(a); out[1] = 0; return; }
+    mira(a, dB);
+    return;
+  }
+  // nível 3: pega a bola, para e arremessa à frente do alvo (a bola voa reta a 13/s)
+  if (!e.naMao) { if (S.existe) vai(S.x, S.z, 0); else { out[0] = direcaoDoAngulo(c.h); out[1] = 0; } return; }
+  let tx = e.alvo.x, dir = e.alvo.dir;
+  const tz = -P.hz + P.ballR;
+  if (antecipa) for (let k = 0; k < 4; k++) {
+    const tv = Math.hypot(tx - c.x, tz - c.z) / P.throwSpeed;
+    // posição do alvo depois de tv segundos, com as voltas no fim do trilho
+    let x = e.alvo.x + e.alvo.dir * P.alvoVel * tv; dir = e.alvo.dir;
+    for (let r = 0; r < 3; r++) { if (x > P.trilho) { x = 2 * P.trilho - x; dir = -1; } else if (x < -P.trilho) { x = -2 * P.trilho - x; dir = 1; } }
+    tx = x;
+  }
+  mira(Math.atan2(tz - c.z, tx - c.x), Math.hypot(tx - c.x, tz - c.z));
 }

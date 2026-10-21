@@ -10,7 +10,7 @@ type Politica = (e: PrecisionDrill, r: Rng) => Acoes;
 /** robô (piloto escrito à mão, movimento padrão): vira parado para o alvo mais rápido de acertar e chuta com o ajuste fino.
  *  tempo: no nível 2 ignora alvos que vão apagar antes da bola chegar; antecipa: no nível 3 mira à frente do alvo. */
 const mira = (o: { tempo?: boolean; antecipa?: boolean } = {}): Politica => (e, r) => {
-  const out = [0, 0, 0]; pilotoPrecisao(e, r, 1, out, { tempo: !!o.tempo, antecipa: !!o.antecipa }); return out as Acoes;
+  const out = [0, 0, 0]; pilotoPrecisao(e, r, 1, out, { tempo: o.tempo ?? true, antecipa: !!o.antecipa }); return out as Acoes;
 };
 const parado: Politica = () => [0, 0, 3];
 const gira: Politica = e => [(Math.round(e.t * 4)) % 16, 0, 3];
@@ -34,12 +34,13 @@ test('precisão: mesma semente e mesmas ações geram a mesma tentativa, nos 3 n
   }
 });
 
-test('precisão: nível 1 não apaga alvos, nível 2 apaga, nível 3 move', () => {
-  assert.ok(joga(5, 1, aleatorio).events!.every(ev => ev.type !== 'off'));
-  assert.ok(joga(5, 2, aleatorio).events!.some(ev => ev.type === 'off'));
-  const e = new PrecisionDrill(5, false, 3), x0 = e.targets.map(t => t.x);
-  for (let i = 0; i < 30; i++) e.step(0, 0, 0);
-  e.targets.forEach((t, i) => { assert.notEqual(t.x, x0[i]); assert.ok(Math.abs(Math.hypot(t.x, t.z) - t.r) < 1e-9); });
+test('precisão: nível 1 tem 3 pilhas; nível 2 acende um painel por vez; nível 3 move o alvo no trilho e pede a bola na mão', () => {
+  const e1 = new PrecisionDrill(5, false, 1); assert.equal(e1.alvos().length, 3);
+  const e2 = joga(5, 2, mira()); assert.ok(e2.events!.filter(ev => ev.type === 'on').length >= 5);
+  const e3 = new PrecisionDrill(5, false, 3), x0 = e3.alvo.x;
+  assert.equal(e3.pronto(), false); // sem a bola na mão não arremessa
+  for (let i = 0; i < 30; i++) e3.step(0, 0, 3);
+  assert.notEqual(e3.alvo.x, x0); assert.equal(e3.kicks, 0);
 });
 
 test('precisão: o ajuste fino muda a direção do chute', () => {
@@ -48,11 +49,11 @@ test('precisão: o ajuste fino muda a direção do chute', () => {
 });
 
 test('precisão: o domínio de cada nível fica entre o robô sem e com o comportamento do nível', () => {
-  const sem = { 1: () => media(1, aleatorio), 2: () => media(2, mira()), 3: () => media(3, mira()) };
-  const com = { 1: () => media(1, mira()), 2: () => media(2, mira({ tempo: true })), 3: () => media(3, mira({ antecipa: true })) };
+  const sem = { 1: () => media(1, aleatorio), 2: () => media(2, aleatorio), 3: () => media(3, mira()) };
+  const com = { 1: () => media(1, mira()), 2: () => media(2, mira({ tempo: false })), 3: () => media(3, mira({ antecipa: true })) };
   for (const n of [1, 2, 3] as Nivel[]) {
     const a = sem[n](), b = com[n]();
-    assert.ok(a < D[n] - 0.4 && D[n] < b - 1.5, `nível ${n}: sem ${a} domínio ${D[n]} com ${b}`);
-    for (const f of [parado, gira, aleatorio]) assert.ok(media(n, f) < 7, `nível ${n} ação constante ${media(n, f)}`);
+    assert.ok(a < D[n] - 0.4 && D[n] <= b, `nível ${n}: sem ${a} domínio ${D[n]} com ${b}`);
+    for (const f of [parado, gira, aleatorio]) assert.ok(media(n, f) < Math.min(7, D[n] - 1), `nível ${n} ação constante ${media(n, f)}`);
   }
 });

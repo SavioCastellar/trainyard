@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Treino de Precisão</title>
+<title>Precisão</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,25 +109,25 @@
   @media (prefers-reduced-motion: reduce) { .banner { transition: none; } .diary li.new { animation: none; } }
 </style>
 
-<canvas id="c" aria-label="Estação de treino com o atleta chutando bolas em alvos"></canvas>
+<canvas id="c" aria-label="Estação de treino de precisão: o atleta derruba pilhas, chuta nos painéis do paredão e arremessa no alvo do trilho"></canvas>
 <div class="loading" id="loading">Preparando a estação…</div>
 
 <div id="ui">
   <div class="left">
     <section class="panel" aria-label="Sessão de treino">
       <div class="eyebrow">Centro de treinamento · Precisão</div>
-      <h1>Treino de Precisão</h1>
-      <div class="lvl" id="lvl">Nível 1 · Alvos fixos</div>
+      <h1>Precisão</h1>
+      <div class="lvl" id="lvl">Nível 1 · Derrubar</div>
       <div class="sub" id="who" style="margin-top:6px">Atleta: TROVÃO 10</div>
       <div class="attempt"><span class="lbl">Tentativa</span><b id="attempt">1</b></div>
       <div class="stats">
         <div class="stat"><b id="hits">0</b><span>Acertos</span></div>
-        <div class="stat"><b id="kicks">0</b><span>Chutes</span></div>
+        <div class="stat"><b id="kicks">0</b><span id="kicksLbl">Chutes</span></div>
         <div class="stat"><b id="acc">–</b><span>No alvo</span></div>
       </div>
       <div class="meter" aria-hidden="true"><i id="tbar"></i></div>
       <div class="stage" id="stage"></div>
-      <div class="previa" id="previaNote" hidden><b>Prévia sem treino.</b> Quem decide é um piloto escrito à mão, para você julgar o movimento novo nesta atividade. O treino de verdade vem depois da sua aprovação.</div>
+      <div class="previa" id="previaNote" hidden><b>Prévia sem treino.</b> Quem decide é um piloto escrito à mão, para você julgar a atividade antes de treinar. O treino de verdade vem depois da sua aprovação.</div>
     </section>
   </div>
 
@@ -135,7 +135,7 @@
     <section class="panel" aria-label="Curva de aprendizado">
       <h2>Curva de aprendizado</h2>
       <canvas id="chart"></canvas>
-      <div class="legend"><span><i style="background:#1f9d55"></i>Acertos por tentativa</span><span><i style="background:rgba(32,34,43,.25)"></i>Ainda não liberado</span></div>
+      <div class="legend"><span><i style="background:#1f9d55"></i>Acertos (a linha tracejada é o domínio do nível)</span><span><i style="background:#d63a3a"></i>% dos lançamentos no alvo</span><span><i style="background:rgba(32,34,43,.25)"></i>Ainda não liberado</span></div>
     </section>
     <section class="panel" aria-label="Diário do treino">
       <h2>Diário do treino</h2>
@@ -181,18 +181,16 @@ const PREVIA = /*PREVIA*/;
 const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
-const R = DRILL.PRECISION;
-const NIVEIS = { 1: 'Alvos fixos', 2: 'Alvos que apagam', 3: 'Alvos móveis' };
-const NIVEL_TXT = {
-  1: 'Três alvos parados. Acertou, o alvo reaparece em outro lugar.',
-  2: `Cada alvo fica aceso só ${String(R.lit).replace('.', ',')} s. Bola em alvo apagado não conta.`,
-  3: 'Os alvos deslizam em trilhos ao redor do centro. É preciso chutar à frente.',
-};
+const R = DRILL.PRECISION, DOM = { 1: 26, 2: 5.5, 3: 7 };
+const NIVEIS = { 1: 'Derrubar', 2: 'Paredão', 3: 'Alvo deslizante' };
+const NIVEL_TXT = { 1: 'Três pilhas de garrafões pelo campo. Chutou e derrubou, a pilha é montada em outro lugar.', 2: 'A máquina solta a bola em qualquer lugar: o atleta busca e chuta no painel aceso da parede, antes que apague.', 3: 'Agora é com a mão: pega a bola e arremessa no alvo que corre no trilho. Tem que mirar à frente dele.' };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmtN = n => n.toLocaleString('pt-BR');
 const fmtMin = m => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
 const pct = v => Math.round(v * 100) + '%';
-const hitsTxt = v => v.toFixed(1).replace('.', ',');
+const fmt1 = v => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+/* curva: acertos por tentativa em relação ao domínio do nível (1 = 1,25 × domínio) */
+const prog = c => Math.min(1, (c.hits || 0) / (DOM[c.nivel || 1] * 1.25));
 
 /* =========================================================
    Cérebro: lê a foto (pesos de 16 bits) e decide as ações
@@ -268,55 +266,82 @@ ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground)
 
 // galpão do CT (provisório, comum às páginas de treino)
 /*CT*/
-const ARENA_GAP = 30;
-construirCTProvisorio(scene, { livre: (x, z) => Math.hypot(x, z) > 14 && Math.hypot(x - ARENA_GAP, z) > 14 && z < 15 });
+construirCTProvisorio(scene, { livre: (x, z) => Math.abs(x) > 13.5 || z > 11.5 || z < -11 });
 
-const targetTex = canvasTex((x, w) => {
-  const c = w / 2, rings = ['#d9482b', '#fff8ec', '#d9482b', '#fff8ec', '#f2c14e'];
-  rings.forEach((col, i) => { x.fillStyle = col; x.beginPath(); x.arc(c, c, c * (1 - i * .19), 0, TAU); x.fill(); });
-}, 256, 256);
-const ballGeo = (() => {
-  const geo = new THREE.IcosahedronGeometry(R.ballR, 1), n = geo.attributes.position.count, cols = new Float32Array(n * 3);
-  for (let f = 0; f < n / 3; f++) { const dark = f % 5 === 0; for (let v = 0; v < 3; v++) { const c = dark ? .12 : .97; cols.set([c, c, dark ? .18 : .95], (f * 3 + v) * 3); } }
-  geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals(); return geo;
-})();
-const ballMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .45, flatShading: true });
-const boardGeo = new THREE.CylinderGeometry(R.targetR, R.targetR, .12, 32);
-const poleGeo = new THREE.CylinderGeometry(.05, .07, .5, 8), poleMat = new THREE.MeshStandardMaterial({ color: 0x4d525c, roughness: .9 });
-function makeTarget(parent) {
-  const g = new THREE.Group();
-  const pole = new THREE.Mesh(poleGeo, poleMat); pole.position.y = .1; g.add(pole);
-  // borda acende no nível 2 (alvo eletrônico); a face é o alvo pintado
-  const rim = new THREE.MeshStandardMaterial({ color: 0xd9482b, emissive: 0x000000, roughness: .6 });
-  const face = new THREE.MeshStandardMaterial({ map: targetTex, roughness: .6 });
-  const board = new THREE.Mesh(boardGeo, [rim, face, face]); board.rotation.x = Math.PI / 2; board.position.y = R.targetR + .02; board.castShadow = true;
-  const holder = new THREE.Group(); holder.add(board); g.add(holder);
-  // nível 2: anel no chão que encolhe com o tempo aceso restante
-  const timer = new THREE.Mesh(new THREE.RingGeometry(R.targetR + .15, R.targetR + .32, 40), new THREE.MeshBasicMaterial({ color: 0xf2c14e, transparent: true, opacity: .9 }));
-  timer.rotation.x = -Math.PI / 2; timer.position.y = .12; timer.visible = false; g.add(timer);
-  parent.add(g);
-  return { g, holder, rim, timer, grow: 1, pop: 0, thetaLen: TAU };
+const HX = R.hx, HZ = R.hz;
+// campo emborrachado com faixa branca na borda
+const floor = new THREE.Mesh(new THREE.BoxGeometry(HX * 2 + 1.2, .06, HZ * 2 + 1.2), new THREE.MeshStandardMaterial({
+  roughness: .95, map: canvasTex((x, w) => {
+    x.fillStyle = '#2c5a4a'; x.fillRect(0, 0, w, w);
+    for (let i = 0; i < 1400; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},.05)`; x.fillRect(Math.random() * w, Math.random() * w, 2, 2); }
+    x.strokeStyle = 'rgba(255,255,255,.07)'; x.lineWidth = 2; x.strokeRect(1, 1, w - 2, w - 2);
+  }, 128, 128),
+}));
+floor.material.map.wrapS = floor.material.map.wrapT = THREE.RepeatWrapping; floor.material.map.repeat.set(HX + .6, HZ + .6);
+floor.position.y = .03; floor.receiveShadow = true; scene.add(floor);
+const lineMat = new THREE.MeshBasicMaterial({ color: 0xf4f1e8 });
+function faixa(x, z, w, d, mat = lineMat) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, .066, z); scene.add(m); return m; }
+faixa(0, -HZ, HX * 2, .1); faixa(0, HZ, HX * 2, .1); faixa(-HX, 0, .1, HZ * 2); faixa(HX, 0, .1, HZ * 2);
+// linha de arremesso (níveis 2 e 3): tracejada em amarelo
+const LINHA = new THREE.Group(); scene.add(LINHA);
+const linhaMat = new THREE.MeshBasicMaterial({ color: 0xf2c230 });
+for (let x = -HX + .4; x < HX; x += 1) { const m = new THREE.Mesh(new THREE.PlaneGeometry(.6, .12), linhaMat); m.rotation.x = -Math.PI / 2; m.position.set(x + .3, .067, R.linha - R.playerR); LINHA.add(m); }
+
+// paredão no fundo, com faixa da atlética
+const WALL_H = 3.4;
+const wall = new THREE.Mesh(new THREE.BoxGeometry(HX * 2 + 1.2, WALL_H, .5), new THREE.MeshStandardMaterial({ color: 0xbfc3c9, roughness: .9 }));
+wall.position.set(0, WALL_H / 2, -HZ - .25); wall.castShadow = true; wall.receiveShadow = true; scene.add(wall);
+const wallTop = new THREE.Mesh(new THREE.BoxGeometry(HX * 2 + 1.25, .35, .52), new THREE.MeshStandardMaterial({ color: 0x1f7a4d, roughness: .7 }));
+wallTop.position.set(0, WALL_H - .17, -HZ - .25); scene.add(wallTop);
+// painéis de luz (nível 2)
+const PAN = R.paineis.map(x => {
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(R.painelMeio * 2 + .16, 1.46, .1), new THREE.MeshStandardMaterial({ color: 0x2a2d35, roughness: .6 }));
+  frame.position.set(x, 1.35, -HZ + .02); scene.add(frame);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x3a3e48, emissive: new THREE.Color(0), roughness: .4 });
+  const face = new THREE.Mesh(new THREE.BoxGeometry(R.painelMeio * 2, 1.3, .06), mat); face.position.set(x, 1.35, -HZ + .08); scene.add(face);
+  const bar = new THREE.Mesh(new THREE.PlaneGeometry(R.painelMeio * 2, .1), new THREE.MeshBasicMaterial({ color: 0xf2c230 }));
+  bar.position.set(x, .52, -HZ + .12); scene.add(bar);
+  return { x, frame, face, mat, bar, fx: 0 };
+});
+// trilho com o alvo deslizante (nível 3)
+const TRILHO = new THREE.Group(); scene.add(TRILHO);
+const rail = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, R.trilho * 2 + 1.6, 10), new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: .7, roughness: .3 }));
+rail.rotation.z = Math.PI / 2; rail.position.set(0, 1.4, -HZ + .2); TRILHO.add(rail);
+const alvoTex = canvasTex((x, w) => { const c = w / 2; [['#e23b3b', 1], ['#f4f1e8', .78], ['#e23b3b', .56], ['#f4f1e8', .34], ['#e23b3b', .14]].forEach(([cor, r]) => { x.fillStyle = cor; x.beginPath(); x.arc(c, c, c * r, 0, TAU); x.fill(); }); }, 128, 128);
+const ALVO = new THREE.Group(); TRILHO.add(ALVO);
+const alvoDisc = new THREE.Mesh(new THREE.CylinderGeometry(R.alvoR, R.alvoR, .08, 36), [new THREE.MeshStandardMaterial({ color: 0xd8dce2 }), new THREE.MeshStandardMaterial({ map: alvoTex, emissive: new THREE.Color(0x401010) }), new THREE.MeshStandardMaterial({ color: 0xd8dce2 })]);
+alvoDisc.rotation.x = Math.PI / 2; alvoDisc.castShadow = true; ALVO.add(alvoDisc);
+const carro = new THREE.Mesh(new THREE.BoxGeometry(.5, .2, .2), new THREE.MeshStandardMaterial({ color: 0x5a6070, metalness: .5 })); carro.position.set(0, R.alvoR + .05, -.05); ALVO.add(carro);
+ALVO.position.set(0, 1.4, -HZ + .3);
+
+/* pilhas de garrafões (nível 1): 3 embaixo, 2, 1 em cima */
+const jugGeo = new THREE.CylinderGeometry(.16, .17, .42, 14), capGeo = new THREE.CylinderGeometry(.06, .06, .08, 10);
+const jugMat = new THREE.MeshStandardMaterial({ color: 0x5aa8e8, transparent: true, opacity: .85, roughness: .2, metalness: .1 }), capMat = new THREE.MeshStandardMaterial({ color: 0x2459c9 });
+const JUG_POS = [[-.34, .21, 0], [0, .21, 0], [.34, .21, 0], [-.17, .63, 0], [.17, .63, 0], [0, 1.05, 0]];
+function jug() { const g = new THREE.Group(); const b = new THREE.Mesh(jugGeo, jugMat); b.castShadow = true; g.add(b); const c = new THREE.Mesh(capGeo, capMat); c.position.y = .25; g.add(c); return g; }
+const PILHAS = [0, 1, 2].map(() => { const g = new THREE.Group(); g.visible = false; scene.add(g); for (const p of JUG_POS) { const j = jug(); j.position.set(...p); g.add(j); } const base = new THREE.Mesh(new THREE.CircleGeometry(R.pilhaR + .1, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .25 })); base.rotation.x = -Math.PI / 2; base.position.y = .068; g.add(base); return { g, grow: 0 }; });
+const voando = [];   // garrafões derrubados
+function derrubar(x, z, vx, vz) {
+  for (const p of JUG_POS) {
+    const j = jug(); j.position.set(x + p[0], p[1], z + p[2]); scene.add(j);
+    const a = Math.random() * TAU, s = 1.5 + Math.random() * 2.5;
+    voando.push({ m: j, vx: Math.cos(a) * s + vx * .25, vy: 2 + Math.random() * 3, vz: Math.sin(a) * s + vz * .25, wx: (Math.random() - .5) * 14, wz: (Math.random() - .5) * 14, life: 1.8 });
+  }
 }
-function buildStation(cx) {
-  const g = new THREE.Group(); g.position.x = cx; scene.add(g);
-  const turf = new THREE.Mesh(new THREE.CylinderGeometry(R.arenaR, R.arenaR + .1, .1, 96), new THREE.MeshStandardMaterial({ color: 0x4f8f4a, roughness: 1 }));
-  turf.position.y = .05; turf.receiveShadow = true; g.add(turf);
-  const edge = new THREE.Mesh(new THREE.RingGeometry(R.arenaR - .1, R.arenaR + .05, 120), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  edge.rotation.x = -Math.PI / 2; edge.position.y = .105; g.add(edge);
-  const spot = new THREE.Mesh(new THREE.CircleGeometry(.25, 20), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .6 }));
-  spot.rotation.x = -Math.PI / 2; spot.position.y = .105; g.add(spot);
-  // rede de contenção em volta
-  const net = new THREE.Mesh(new THREE.CylinderGeometry(R.arenaR + 1.2, R.arenaR + 1.2, 1.1, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x20222b, transparent: true, opacity: .25, side: THREE.DoubleSide, roughness: 1, depthWrite: false }));
-  net.position.y = .55; g.add(net);
-  // trilhos do nível 3 (um anel por alvo, no raio do trilho)
-  const rails = [0, 1, 2].map(() => {
-    const m = new THREE.Mesh(new THREE.RingGeometry(.985, 1, 160), new THREE.MeshBasicMaterial({ color: 0xe9b84a, transparent: true, opacity: .8 }));
-    m.rotation.x = -Math.PI / 2; m.position.y = .11; m.visible = false; g.add(m); return m;
-  });
-  return { g, rails };
+function updateVoando(dt) {
+  for (const v of voando) {
+    v.life -= dt; v.vy -= 9.8 * dt; v.m.position.x += v.vx * dt; v.m.position.y += v.vy * dt; v.m.position.z += v.vz * dt;
+    if (v.m.position.y < .2) { v.m.position.y = .2; v.vy = Math.abs(v.vy) > 1 ? -v.vy * .35 : 0; v.vx *= .7; v.vz *= .7; v.wx *= .6; v.wz *= .6; }
+    v.m.rotation.x += v.wx * dt; v.m.rotation.z += v.wz * dt;
+    v.m.scale.setScalar(Math.min(1, v.life / .4));
+  }
+  for (const v of voando.filter(v => v.life <= 0)) scene.remove(v.m);
+  for (let i = voando.length - 1; i >= 0; i--) if (voando[i].life <= 0) voando.splice(i, 1);
 }
-const stations = [buildStation(0), buildStation(ARENA_GAP)];
-stations[1].g.visible = false;
+/* marca no chão onde a máquina soltou a bola */
+const ringBola = new THREE.Mesh(new THREE.RingGeometry(.42, .52, 32), new THREE.MeshBasicMaterial({ color: 0xf2c230, transparent: true, depthWrite: false }));
+ringBola.rotation.x = -Math.PI / 2; ringBola.position.y = .07; ringBola.visible = false; scene.add(ringBola);
+function mostrarNivel(n) { LINHA.visible = n > 1; TRILHO.visible = n === 3; for (const p of PAN) p.bar.visible = n === 2; for (const p of PILHAS) p.g.visible = n === 1; }
 
 /* =========================================================
    Atleta
@@ -368,121 +393,162 @@ function updateParticles(dt) {
   pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
 }
 
+/* bolas: de futebol (chute, níveis 1 e 2) e de handebol (arremesso, nível 3) */
+const BR = R.ballR;
+const bolaTex = canvasTex((x, w, h) => { x.fillStyle = '#f7f7f2'; x.fillRect(0, 0, w, h); x.fillStyle = '#20222b'; for (let i = 0; i < 9; i++) { const cx = (i % 3 + .5 + (Math.floor(i / 3) % 2) * .5) * w / 3, cy = (Math.floor(i / 3) + .5) * h / 3; x.beginPath(); for (let k = 0; k < 5; k++) { const a = k * TAU / 5; x.lineTo(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12); } x.fill(); } }, 128, 64);
+const handTex = canvasTex((x, w, h) => { x.fillStyle = '#f08a24'; x.fillRect(0, 0, w, h); x.strokeStyle = '#20222b'; x.lineWidth = 3; for (const f of [.25, .5, .75]) { x.beginPath(); x.moveTo(f * w, 0); x.lineTo(f * w, h); x.stroke(); } x.beginPath(); x.moveTo(0, h / 2); x.lineTo(w, h / 2); x.stroke(); }, 128, 64);
+const bolaGeo = new THREE.SphereGeometry(BR, 20, 14);
+const matFut = new THREE.MeshStandardMaterial({ map: bolaTex, roughness: .5 }), matHand = new THREE.MeshStandardMaterial({ map: handTex, roughness: .6 });
+
 /* =========================================================
-   Uma estação = ambiente + cérebro + visual
+   Uma estação = ambiente + cérebro + visual (o fantasma da comparação joga no mesmo campo)
    ========================================================= */
 class Station {
-  constructor(st, main) {
-    this.st = st; this.main = main; this.g = st.g;
-    this.ball = new THREE.Mesh(ballGeo, ballMat); this.ball.castShadow = true; this.ball.visible = false; this.g.add(this.ball);
-    this.tg = [0, 1, 2].map(() => makeTarget(this.g));
+  constructor(main) {
+    this.main = main; this.g = new THREE.Group(); scene.add(this.g);
     this.obs = new Float32Array(DRILL.PRECISION_OBS); this.act = [0, 0, 0];
-    this.acc = 0; this.spring = { a: 0, v: 0, b: 0, w: 0 }; this.prevY = 0; this.prevVy = 0;
-    this.celebrate = 0; this.blink = 2; this.kickT = 0;
+    this.acc = 0;
+    this.bola = new THREE.Mesh(bolaGeo, matFut); this.bola.castShadow = main; this.g.add(this.bola);     // a que voa
+    this.solta = new THREE.Mesh(bolaGeo, matFut); this.solta.castShadow = main; this.g.add(this.solta);  // a que espera no chão (ou na mão)
+    if (!main) for (const m of [this.bola, this.solta]) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .35; }
     this.buildAthlete();
   }
   buildAthlete() {
-    if (this.rig) { this.g.remove(this.rig.root); this.g.remove(this.tag); }
+    if (this.rig) { this.g.remove(this.rig.root); this.tag && this.g.remove(this.tag); }
     const look = LOOKS[lookIdx];
     const p = { ...look, gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false } };
-    this.rig = buildCabecudo(p); this.rig.root.scale.setScalar(.95); this.g.add(this.rig.root);
+    this.rig = buildCabecudo(p); this.rig.root.scale.setScalar(.8); this.g.add(this.rig.root);
     setExpr(this.rig.face, look.expr); this.look = look;
+    if (!this.main) {
+      this.rig.root.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = .35; o.material.depthWrite = false; } o.castShadow = false; });
+      this.tag = null; return;
+    }
     this.tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tagTex(look), transparent: true, depthTest: false }));
-    this.tag.scale.set(2.2, .55, 1); this.tag.renderOrder = 10; this.g.add(this.tag);
+    this.tag.scale.set(2, .5, 1); this.tag.renderOrder = 10; this.g.add(this.tag);
   }
   start(ckIdx, seed, nivel) {
-    this.ck = ckIdx; this.brain = PREVIA ? null : brainAt(ckIdx); this.q = 0; this.anim = novoEstadoAnim(); this.prev = null;
+    this.ck = ckIdx; this.brain = PREVIA ? null : brainAt(ckIdx); this.q = 0; this.anim = novoEstadoAnim();
     this.env = new DRILL.PrecisionDrill(seed, true, nivel);
     this.rng = new DRILL.Rng(seed ^ 0x9e3779b9);
-    this.evIdx = 0; this.acc = 0;
-    this.tg.forEach(t => { t.grow = 0; t.pop = 0; t.holder.position.y = 0; t.holder.rotation.y = 0; });
+    this.evIdx = 0; this.acc = 0; this.prev = null; this.kickT = 0; this.mao = false; this.voo = null; this.queda = 0; this.celebrate = 0;
+    const m = nivel === 3 ? matHand : matFut;
+    if (this.main) { this.bola.material = m; this.solta.material = m; mostrarNivel(nivel); for (const p of PILHAS) p.grow = 1; }
   }
   update(dt, speed, time) {
-    const e = this.env, W = (x, y, z) => this.g.localToWorld(new THREE.Vector3(x, y, z));
+    this.play = speed;
+    const e = this.env;
     if (!e.done) {
       this.acc += dt * speed;
       while (this.acc >= R.dt && !e.done) {
-        this.prev = { x: e.corpo.x, z: e.corpo.z };
+        this.prev = { x: e.corpo.x, z: e.corpo.z, bx: e.ball.x, bz: e.ball.z };
         if (this.q++ % DEC === 0) {
           if (PREVIA) DRILL.pilotoPrecisao(e, this.rng, this.main ? habilidade() : .15, this.act);
           else { e.observe(this.obs); this.brain(this.obs, this.rng, this.act); }
         }
         e.step(this.act[0], this.act[1], this.act[2]); this.acc -= R.dt;
       }
-      this.alpha = e.done ? 1 : Math.min(1, this.acc / R.dt); this.play = speed;
     }
     while (this.evIdx < e.events.length) {
       const ev = e.events[this.evIdx++];
-      if (ev.type === 'hit') {
-        const t = this.tg[ev.target]; t.pop = 1;
-        const q = W(ev.x, .8, ev.z); burst(q.x, q.y, q.z, 0xd9482b, 16, 3.2, 4); burst(q.x, q.y, q.z, 0xfff3d6, 10, 2.6, 4);
-        this.celebrate = .7;
+      if (ev.type === 'kick') {
+        this.kickT = .32; this.mao = ev.mao;
+        // arremesso: arco no ar até a parede (só desenho; a simulação é no chão)
+        if (ev.mao) { const T = Math.max(.2, (ev.z + HZ) / Math.max(1, -e.ball.vz)); this.voo = { t: 0, T, y0: 1.5, vy: (1.4 - 1.5 + 4.9 * T * T) / T }; }
+        else this.voo = null;
+      } else if (ev.type === 'hit') {
+        this.celebrate = .7; this.hitNow = true;
+        if (this.main) {
+          if (e.nivel === 1) { derrubar(ev.x, ev.z, e.ball.vx, e.ball.vz); const P = PILHAS[ev.target]; if (P) P.grow = 0; }
+          else if (e.nivel === 2) { const p = PAN[ev.target]; p.fx = 1; burst(ev.x, 1.35, -HZ + .3, 0xf2c230, 22, 3, 3); burst(ev.x, 1.35, -HZ + .3, 0xffffff, 10, 2.4, 3); }
+          else { burst(ev.x, 1.4, -HZ + .4, 0xe23b3b, 22, 3, 3); burst(ev.x, 1.4, -HZ + .4, 0xffffff, 10, 2.4, 3); }
+        }
       } else if (ev.type === 'miss') {
-        const q = W(ev.x, .2, ev.z); burst(q.x, q.y, q.z, 0xcdbca3, 6, .8, 1.2, 6, .6);
-      } else if (ev.type === 'off') {
-        const tg = e.targets[ev.target], q = W(tg.x, .8, tg.z); burst(q.x, q.y, q.z, 0x8a8f99, 8, 1.2, 1.5, 6, .5);
-      } else if (ev.type === 'kick') this.kickT = .3;
+        if (this.main) burst(ev.x, ev.parede ? 1 : .2, ev.z + (ev.parede ? .3 : 0), 0xb8bcc4, 8, 1.2, 1.5, 6, .5);
+      } else if (ev.type === 'ball') { this.queda = 1; }
+      else if (ev.type === 'spawn' && this.main && e.nivel === 1) { const P = PILHAS[ev.target]; if (P) P.grow = 0; }
     }
-    // alvos: crescem ao aparecer, voam girando quando acertados, somem quando apagam
-    const lp = this.g.worldToLocal(camera.position.clone());
-    e.targets.forEach((tgt, i) => {
-      const t = this.tg[i];
-      if (t.pop > 0) {
-        t.pop -= dt * 2.2 * speed;
-        const k = Math.max(0, t.pop);
-        t.holder.scale.setScalar(Math.max(.001, k)); t.holder.position.y = (1 - k) * 1.6; t.holder.rotation.y += dt * 14;
-        if (t.pop <= 0) { t.grow = 0; t.holder.position.y = 0; t.holder.rotation.y = 0; }
-        t.timer.visible = false;
-        return;
-      }
-      t.g.position.set(tgt.x, 0, tgt.z);
-      if (tgt.off > 0) { t.holder.scale.setScalar(.001); t.timer.visible = false; t.grow = 0; return; }
-      t.grow = Math.min(1, t.grow + dt * 2.5 * speed);
-      const g = t.grow, eb = 1 + 2.7 * Math.pow(g - 1, 3) + 1.7 * Math.pow(g - 1, 2);
-      t.holder.scale.setScalar(Math.max(.001, eb));
-      t.g.rotation.y = Math.atan2(lp.x - tgt.x, lp.z - tgt.z);
-      if (e.nivel === 2) {
-        const f = Math.max(0, tgt.on / R.lit), blink = f < .3 && Math.sin(time * 28) < 0;
-        t.rim.emissive.setHex(blink ? 0x000000 : 0xff5a3a);
-        t.timer.visible = true;
-        const len = Math.max(.01, TAU * f);
-        if (Math.abs(len - t.thetaLen) > .05) { t.thetaLen = len; t.timer.geometry.dispose(); t.timer.geometry = new THREE.RingGeometry(R.targetR + .15, R.targetR + .32, 40, 1, 0, len); }
-        t.timer.material.color.setHex(f < .3 ? 0xd63a3a : 0xf2c14e);
-      } else { t.rim.emissive.setHex(0x000000); t.timer.visible = false; }
-    });
-    // trilhos do nível 3
-    this.st.rails.forEach((m, i) => { const tgt = e.targets[i]; m.visible = !!tgt.dir; if (tgt.dir) m.scale.set(tgt.r, tgt.r, 1); });
-    const B = e.ball;
-    this.ball.visible = B.live;
-    if (B.live) {
-      this.ball.position.set(B.x, R.ballR + .1, B.z);
-      const sp = Math.hypot(B.vx, B.vz);
-      if (sp > .01) { const ax = new THREE.Vector3(B.vz, 0, -B.vx).normalize(); this.ball.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(ax, sp * dt * speed / R.ballR)); }
-    }
-    this.animateAthlete(dt, time);
+    this.alpha = e.done ? 1 : Math.min(1, this.acc / R.dt);
+    this.animateAthlete(dt);
+    this.updateBolas(dt);
+    if (this.main) this.updateAlvos(dt, time);
   }
-  animateAthlete(dt, time) {
-    // animação padrão (web/src/animacao-atleta.js), com o chute por cima
+  updateBolas(dt) {
+    const e = this.env, B = e.ball, S = e.solta, pv = this.prev, al = this.alpha ?? 1, sd = dt * (this.play || 1);
+    // bola em movimento (rolando ou no ar)
+    this.bola.visible = B.live;
+    if (B.live) {
+      const x = pv ? pv.bx + (B.x - pv.bx) * al : B.x, z = pv ? pv.bz + (B.z - pv.bz) * al : B.z;
+      let y = BR + .07;
+      if (this.voo) { this.voo.t += sd; const t = this.voo.t; y = Math.max(BR, this.voo.y0 + this.voo.vy * t - 4.9 * t * t); }
+      this.bola.position.set(x, y, z);
+      const sp = Math.hypot(B.vx, B.vz); if (sp > .01) this.bola.rotateOnWorldAxis(new THREE.Vector3(B.vz, 0, -B.vx).normalize(), sp * sd / BR);
+    }
+    // bola parada no chão (caindo da máquina) ou na mão do atleta
+    if (e.naMao) {
+      this.solta.visible = this.kickT <= .2 || !this.mao;
+      const hand = new THREE.Vector3(); this.rig.handR.getWorldPosition(hand); this.g.worldToLocal(hand);
+      this.solta.position.copy(hand).add(new THREE.Vector3(0, .12, 0));
+    } else if (S.existe) {
+      this.solta.visible = true;
+      if (this.queda > 0) this.queda = Math.max(0, this.queda - sd * 2.2);
+      const q = this.queda, y = BR + .07 + 3 * q * q + Math.abs(Math.sin((1 - q) * Math.PI * 2)) * .25 * q;
+      this.solta.position.set(S.x, y, S.z);
+    } else this.solta.visible = false;
+    if (this.main) {
+      ringBola.visible = S.existe && !e.naMao;
+      if (ringBola.visible) { ringBola.position.set(S.x, .07, S.z); ringBola.material.opacity = .5 + .4 * Math.sin(performance.now() / 160); }
+    }
+  }
+  updateAlvos(dt, time) {
+    const e = this.env, sd = dt * (this.play || 1);
+    if (e.nivel === 1) {
+      e.pilhas.forEach((t, i) => {
+        const P = PILHAS[i]; P.g.position.set(t.x, 0, t.z);
+        P.grow = Math.min(1, P.grow + sd * 2.5); const g = P.grow, eb = 1 + 2.7 * Math.pow(g - 1, 3) + 1.7 * Math.pow(g - 1, 2);
+        P.g.scale.setScalar(Math.max(.001, eb));
+      });
+    }
+    // painéis: o aceso brilha e a barra embaixo encolhe com o tempo que falta
+    PAN.forEach((p, i) => {
+      const aceso = e.nivel === 2 && e.painel === i && e.painelOn > 0;
+      if (p.fx > 0) { p.fx -= dt * 2; p.mat.color.set(0xfff6d6); p.mat.emissive.set(0xf2c230).multiplyScalar(p.fx * 1.4); p.face.position.z = -HZ + .08 - Math.sin(p.fx * Math.PI) * .06; }
+      else if (aceso) { const f = e.painelOn / R.lit, pulse = .75 + .25 * Math.sin(time * 9); p.mat.color.set(0x22c55e); p.mat.emissive.set(0x22c55e).multiplyScalar(.8 * pulse); p.bar.scale.x = Math.max(.01, f); p.bar.material.color.set(f < .3 ? 0xe23b3b : 0xf2c230); p.face.position.z = -HZ + .08; }
+      else { p.mat.color.set(0x3a3e48); p.mat.emissive.setScalar(0); p.bar.scale.x = .01; p.face.position.z = -HZ + .08; }
+    });
+    if (e.nivel === 3) ALVO.position.x = e.alvo.x;
+  }
+  animateAthlete(dt) {
+    // animação padrão (web/src/animacao-atleta.js), com o chute ou o arremesso por cima
     const e = this.env, c = e.corpo, al = this.alpha ?? 1, pv = this.prev, rig = this.rig;
     const ix = pv ? pv.x + (c.x - pv.x) * al : c.x, iz = pv ? pv.z + (c.z - pv.z) * al : c.z;
-    // a cabeça olha o alvo aceso mais perto da frente do corpo
-    let olhar = null, m = Infinity;
-    for (const t of e.targets) { if (t.off > 0) continue; const d = Math.abs(Math.atan2(Math.sin(Math.atan2(t.z - c.z, t.x - c.x) - c.h), Math.cos(Math.atan2(t.z - c.z, t.x - c.x) - c.h))); if (d < m) { m = d; olhar = t; } }
+    // a cabeça olha o alvo (ou a bola, se ainda precisa buscar)
+    const A = e.alvos(), S = e.solta;
+    let olhar = null;
+    if (e.nivel > 1 && S.existe && !e.naMao && Math.hypot(S.x - c.x, S.z - c.z) > 1.2) olhar = { x: S.x, z: S.z };
+    else if (A.length) { let m = Infinity; for (const t of A) { const d = Math.abs(Math.atan2(Math.sin(Math.atan2(t.z - c.z, t.x - c.x) - c.h), Math.cos(Math.atan2(t.z - c.z, t.x - c.x) - c.h))); if (d < m) { m = d; olhar = t; } } }
     animarAtleta(rig, c, this.anim, {
-      dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .1, olhar, parado: false,
-      velMax: e.fis.velMax, expr: this.kickT > 0 ? 'bravo' : this.look.expr, comemorar: this.celebrate > .69,
+      dt: dt * (this.play || 1), rdt: dt, x: ix, z: iz, y: .06, olhar, parado: false,
+      velMax: e.fis.velMax, expr: this.kickT > 0 ? 'bravo' : this.look.expr, comemorar: this.hitNow,
     });
-    if (this.celebrate > 0) this.celebrate -= dt;
+    this.hitNow = false;
     if (this.kickT > 0) {
-      this.kickT -= dt; const k = 1 - this.kickT / .3, swing = k < .35 ? (k / .35) * .9 : .9 - (k - .35) / .65 * 2.4;
-      rig.legs[1].rotation.x = swing; rig.arms[0].rotation.x = -swing * .6;
-    }
-    this.tag.position.set(ix, 2.9, iz);
+      this.kickT -= dt; const k = 1 - this.kickT / .32;
+      if (this.mao) {
+        // arremesso: braço direito sobe atrás da cabeça e desce para a frente
+        const sw = k < .4 ? -1.2 - (k / .4) * 1.8 : -3 + ((k - .4) / .6) * 3.6;
+        rig.arms[1].rotation.x = sw; rig.arms[1].rotation.z = -.2; rig.body.rotation.y = (k < .4 ? -.35 : -.35 + (k - .4) * 1.2);
+      } else {
+        const swing = k < .35 ? (k / .35) * .9 : .9 - (k - .35) / .65 * 2.4;
+        rig.legs[1].rotation.x = swing; rig.arms[0].rotation.x = -swing * .6;
+      }
+    } else if (e.naMao) { rig.arms[1].rotation.x = -1.1; rig.arms[1].rotation.z = -.15; }
+    if (this.tag) this.tag.position.set(ix, 2.5, iz);
   }
 }
 
-const main = new Station(stations[0], true);
-const ghost = new Station(stations[1], false);
+const main = new Station(true);
+const ghost = new Station(false);
+ghost.g.visible = false;
 
 /* =========================================================
    Sessões: uma por nível da fita
@@ -538,7 +604,7 @@ function syncMarks(fresh) {
 function resetDiary() {
   $('diary').innerHTML = ''; shownMarks = new Set(); sessionRecord = 0;
   const a = sessionRange(session)[0];
-  addDiary(fmtMin(0), `Início da sessão ${session + 1} (nível ${LEVELS[session]}): o atleta acerta ${hitsTxt(CK[a].hits)} alvos por tentativa.`, false);
+  addDiary(fmtMin(0), `Início da sessão ${session + 1} (nível ${LEVELS[session]}): o atleta parte de ${fmt1(CK[a].hits || 0)} acertos por tentativa.`, false);
   syncMarks(false);
 }
 function jumpTo(ck) {
@@ -551,17 +617,17 @@ function updatePanel() {
   const e = main.env, ck = CK[main.ck];
   $('attempt').textContent = fmtN(attemptNumber(main.ck));
   $('hits').textContent = e.hits; $('kicks').textContent = e.kicks; $('acc').textContent = e.kicks ? pct(e.hits / e.kicks) : '–';
+  $('kicksLbl').textContent = e.nivel === 3 ? 'Arremessos' : 'Chutes';
   $('lvl').textContent = `Nível ${e.nivel} · ${NIVEIS[e.nivel]}`;
   $('tbar').style.width = (e.t / R.maxTime * 100).toFixed(1) + '%';
   const [a] = sessionRange(session);
   $('stage').innerHTML = mode === 'live'
-    ? `Sessão <b>${session + 1}</b> de ${SESSIONS} · app aberto em <b>${fmtMin(minutes)}</b> · média nesta etapa: <b>${hitsTxt(ck.hits)}</b> acertos por tentativa`
-    : `Resumo: foto <b>${main.ck - a + 1}</b> de ${Math.max(1, availIdx() - a + 1)} da sessão · média nesta etapa: <b>${hitsTxt(ck.hits)}</b> acertos por tentativa`;
+    ? `Sessão <b>${session + 1}</b> de ${SESSIONS} · app aberto em <b>${fmtMin(minutes)}</b> · média nesta etapa: <b>${fmt1(ck.hits || 0)}</b> acertos`
+    : `Resumo: foto <b>${main.ck - a + 1}</b> de ${Math.max(1, availIdx() - a + 1)} da sessão · média nesta etapa: <b>${fmt1(ck.hits || 0)}</b> acertos`;
   $('lblR').textContent = `Agora · tentativa ${fmtN(attemptNumber(main.ck))}`;
 }
 
-/* curva de aprendizado: acertos por tentativa */
-const HMAX = Math.ceil(Math.max(...TAPE.checkpoints.map(c => c.hits)) / 5) * 5, hv = c => c.hits / HMAX;
+/* curva de aprendizado: acertos em relação ao domínio do nível e % dos lançamentos no alvo */
 function drawChart() {
   const cv = $('chart'), r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2);
   cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
@@ -569,17 +635,21 @@ function drawChart() {
   const w = r.width, h = r.height, padL = 30, padB = 18, padT = 8, padR = 6;
   const X = i => padL + (i / Math.max(1, N - 1)) * (w - padL - padR), Y = v => h - padB - v * (h - padT - padB);
   x.font = '500 10px "JetBrains Mono", monospace'; x.fillStyle = '#626675'; x.strokeStyle = 'rgba(32,34,43,.1)'; x.lineWidth = 1;
-  for (const v of [0, .5, 1]) { x.beginPath(); x.moveTo(padL, Y(v) + .5); x.lineTo(w - padR, Y(v) + .5); x.stroke(); x.textAlign = 'right'; x.fillText(String(Math.round(v * HMAX)), padL - 4, Y(v) + 3); }
+  for (const v of [0, .5, 1]) { x.beginPath(); x.moveTo(padL, Y(v) + .5); x.lineTo(w - padR, Y(v) + .5); x.stroke(); x.textAlign = 'right'; x.fillText(pct(v), padL - 4, Y(v) + 3); }
+  // domínio de cada nível (tracejado)
+  x.strokeStyle = 'rgba(31,157,85,.55)'; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(padL, Y(.8) + .5); x.lineTo(w - padR, Y(.8) + .5); x.stroke(); x.setLineDash([]); x.strokeStyle = 'rgba(32,34,43,.1)';
   for (let s = 1; s < SESSIONS; s++) { const e = sessionRange(s)[0]; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(X(e) + .5, padT); x.lineTo(X(e) + .5, h - padB); x.stroke(); x.setLineDash([]); }
   x.textAlign = 'center';
   for (let s = 0; s < SESSIONS; s++) { const [a, b] = sessionRange(s); x.fillStyle = s === session ? '#20222b' : '#626675'; x.fillText(`N${LEVELS[s]}`, (X(a) + X(b)) / 2, h - 5); }
   const [sa] = sessionRange(session), av = availIdx();
   const line = (from, to, val) => { x.beginPath(); for (let i = from; i <= to; i++) { const px = X(i), py = Y(val(CK[i])); i === from ? x.moveTo(px, py) : x.lineTo(px, py); } };
-  x.strokeStyle = 'rgba(32,34,43,.25)'; x.setLineDash([3, 3]); x.lineWidth = 1.5; line(av, N - 1, hv); x.stroke(); x.setLineDash([]);
-  line(0, av, hv); x.lineTo(X(av), h - padB); x.lineTo(X(0), h - padB); x.closePath(); x.fillStyle = 'rgba(31,157,85,.12)'; x.fill();
-  line(0, av, hv); x.strokeStyle = '#1f9d55'; x.lineWidth = 2; x.lineJoin = 'round'; x.stroke();
-  for (const m of TAPE.milestones) { if (m.ck > av) continue; x.fillStyle = '#20222b'; x.beginPath(); x.arc(X(m.ck), Y(hv(CK[m.ck])), 2.5, 0, TAU); x.fill(); }
-  const cx = X(main.ck), cy = Y(hv(CK[main.ck]));
+  x.strokeStyle = 'rgba(32,34,43,.25)'; x.setLineDash([3, 3]); x.lineWidth = 1.5; line(av, N - 1, prog); x.stroke(); x.setLineDash([]);
+  line(0, av, prog); x.lineTo(X(av), h - padB); x.lineTo(X(0), h - padB); x.closePath(); x.fillStyle = 'rgba(31,157,85,.12)'; x.fill();
+  line(0, av, prog); x.strokeStyle = '#1f9d55'; x.lineWidth = 2; x.lineJoin = 'round'; x.stroke();
+  const r3 = CK.findIndex(c => c.nivel === 3);
+  if (av >= 0) { line(0, av, c => c.acc || 0); x.strokeStyle = '#d63a3a'; x.lineWidth = 1.5; x.stroke(); }
+  for (const m of TAPE.milestones) { if (m.ck > av) continue; x.fillStyle = '#20222b'; x.beginPath(); x.arc(X(m.ck), Y(prog(CK[m.ck])), 2.5, 0, TAU); x.fill(); }
+  const cx = X(main.ck), cy = Y(prog(CK[main.ck]));
   x.fillStyle = '#fafaf8'; x.beginPath(); x.arc(cx, cy, 5.5, 0, TAU); x.fill(); x.fillStyle = '#1f9d55'; x.beginPath(); x.arc(cx, cy, 3.6, 0, TAU); x.fill();
   void sa;
 }
@@ -599,7 +669,7 @@ let prevAvail = -1;
 document.querySelectorAll('[data-session]').forEach(b => b.addEventListener('click', () => {
   session = +b.dataset.session; syncControls(); setMode(mode); resetDiary(); liveExtra = 0; startAttempt(); drawChart(); prevAvail = availIdx();
   const n = LEVELS[session];
-  showBanner(`Nível ${n} · ${NIVEIS[n]}`, NIVEL_TXT[n], 2600);
+  showBanner(`Nível ${n} · ${NIVEIS[n]}`, NIVEL_TXT[n], 3000);
 }));
 $('clock').addEventListener('input', e => {
   minutes = +e.target.value; $('clockV').textContent = PREVIA ? Math.round(minutes / 1.2) + '%' : fmtMin(minutes);
@@ -612,7 +682,7 @@ document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click'
 document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
 $('tCmp').addEventListener('click', e => {
   compare = !compare; e.currentTarget.setAttribute('aria-pressed', String(compare));
-  stations[1].g.visible = compare; $('cmpLabels').hidden = !compare;
+  ghost.g.visible = compare; $('cmpLabels').hidden = !compare;
   resetMain = true;
 });
 let resetMain = false;
@@ -621,7 +691,7 @@ let bannerTimer = 0;
 function showBanner(big, s, ms) { $('bBig').textContent = big; $('bS').textContent = s; $('banner').classList.add('show'); clearTimeout(bannerTimer); bannerTimer = setTimeout(() => $('banner').classList.remove('show'), ms); }
 function sessionEnd() {
   const [a, b] = sessionRange(session);
-  showBanner('Fim da sessão!', `Nível ${LEVELS[session]}: de ${hitsTxt(CK[a].hits)} para ${hitsTxt(CK[b].hits)} acertos por tentativa`, 4200);
+  showBanner('Fim da sessão!', `Nível ${LEVELS[session]}: de ${fmt1(CK[a].hits || 0)} para ${fmt1(CK[b].hits || 0)} acertos por tentativa`, 4200);
 }
 
 /* =========================================================
@@ -634,9 +704,17 @@ function resize() {
 addEventListener('resize', resize);
 const camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3();
 function cameraFrame() {
-  const narrow = innerWidth < innerHeight;
-  if (compare) { lookGoal.set(ARENA_GAP / 2, 0, 0); camGoal.set(ARENA_GAP / 2, narrow ? 70 : 40, narrow ? 56 : 44); }
-  else { lookGoal.set(0, 0, narrow ? 5 : 1.5); camGoal.set(0, narrow ? 52 : 27, narrow ? 34 : 31); }
+  const narrow = innerWidth < innerHeight, c = main.env.corpo;
+  if (main.env.nivel === 1) {
+    // derrubar: de cima, seguindo o atleta, com as pilhas em volta
+    lookGoal.set(c.x * .7, .5, c.z * .7 + (narrow ? 1.5 : .5));
+    camGoal.set(c.x * .7, narrow ? 21 : 14, c.z * .7 + (narrow ? 9 : 8));
+  } else {
+    // paredão e trilho: atrás do atleta, olhando para a parede
+    const kx = narrow ? .85 : .5;
+    lookGoal.set(c.x * kx, 1, c.z - (narrow ? 4.5 : 3.6));
+    camGoal.set(c.x * kx, narrow ? 13 : 9, c.z + (narrow ? 8 : 7.2));
+  }
 }
 let userMoved = false;
 controls.addEventListener('start', () => { userMoved = true; });
@@ -652,20 +730,25 @@ function frame(now) {
     else liveExtra += 64;
     startAttempt(); drawChart();
   }
-  updateParticles(dt);
+  updateParticles(dt); updateVoando(dt);
   cameraFrame();
-  if (!userMoved) { camera.position.lerp(camGoal, 1 - Math.pow(.05, dt)); controls.target.lerp(lookGoal, 1 - Math.pow(.05, dt)); }
+  if (!userMoved) { camera.position.lerp(camGoal, 1 - Math.pow(.1, dt)); controls.target.lerp(lookGoal, 1 - Math.pow(.1, dt)); }
+  else {
+    // a câmera foi girada pelo usuário: mantém o ângulo dele e acompanha o atleta
+    const c = main.env.corpo, k = 1 - Math.pow(.1, dt), dx = (c.x - controls.target.x) * k, dz = (c.z - controls.target.z) * k;
+    controls.target.x += dx; controls.target.z += dz; camera.position.x += dx; camera.position.z += dz;
+  }
   controls.update();
   renderer.render(scene, camera);
   hudT += dt; if (hudT > .15) { hudT = 0; updatePanel(); }
   requestAnimationFrame(frame);
 }
-camera.position.set(0, 22, 26);
+camera.position.set(0, 11, 8);
 syncControls(); resetDiary(); startAttempt(); resize();
 prevAvail = availIdx();
 $('loading').remove();
-if (!reduceMotion && !PREVIA) showBanner('Treino de Precisão', 'Arraste o horário em que o app foi aberto para ver o atleta evoluir.', 3200);
+if (!reduceMotion && !PREVIA) showBanner('Precisão', 'Arraste o horário em que o app foi aberto para ver o atleta evoluir.', 3200);
 /* para testes automáticos (Chromium sem interface) */
-window.__pagina = { main, ghost, camera };
+window.__pagina = { main, ghost, camera, controls, PILHAS, scene };
 requestAnimationFrame(frame);
 </script>

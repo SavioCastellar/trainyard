@@ -17,7 +17,7 @@ if previa:
 else:
     tape_path = args[0] if args else os.path.join(root, 'fitas/precisao.json')
     tape = json.dumps(json.load(open(tape_path, encoding='utf8')), separators=(',', ':'))
-out = (open(os.path.join(here, 'precisao.template.html'), encoding='utf8').read()
+out = (open(os.path.join(here, 'alvos.template.html'), encoding='utf8').read()
        .replace('/*DRILL*/', drill)
        .replace('/*CABECUDO*/', read('web/src/cabecudo-lib.js'))
        .replace('/*CT*/', read('web/atividades/ct-provisorio.js'))

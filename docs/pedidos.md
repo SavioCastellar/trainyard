@@ -54,7 +54,7 @@ Estação do **Trenó de carga** para o CT: pista de 15 × 4 com marcas a cada 3
 1,2 × 0,8 com anilhas (leve: poucas; pesada: muitas) e, no nível 3, rampa de x = 5 a 10 subindo 1 com
 platô até o fim. O que se mexe e os níveis do CT estão em `docs/atividades/forca.md`. Hoje a página
 `web/atividades/forca/` usa um visual provisório (grama, marcas que acendem, trenó vermelho).
-## 2026-10-16 · de Treino: Precisão para Central · aberto
+## 2026-10-16 · de Treino: Precisão para Central · feito em parte (2026-10-20: página antiga apagada; falta o CLAUDE.md)
 A Precisão agora tem 3 níveis e a página nova é `web/atividades/precisao/` (`build.py` →
 `web/dist/treino-precisao.html`), no molde das outras atividades. A observação da simulação mudou
 (35 → 58 entradas), então a página antiga (`web/src/precision.template.html` + `web/build_precision.py`)
