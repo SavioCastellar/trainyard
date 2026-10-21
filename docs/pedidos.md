@@ -73,3 +73,10 @@ Movimento padrão novo em `sim/src/movimento.ts` (ver `docs/contratos.md` §2 e 
   passinhos ao girar parado. Levar isso para o `animateCabecudo` compartilhado (o estado de entrada
   é o `Corpo`: `vx, vz, h, w, aFrente, aLado, passada`).
 Pronto quando as fichas estiverem atualizadas e o `animateCabecudo` cobrir esses movimentos.
+## 2026-10-21 · de Central (com o Savio) para Personagem · aberto
+Prova de conceito do atleta em GLB (modelo chibi CC BY 3.0, `assets/personagem/CREDITOS.md`): esqueleto do
+Mixamo, roupas geradas do corpo por script do Blender (`assets/personagem/preparar.py`), rosto e cabelos de
+`cabecudo-lib.js` presos ao osso da cabeça, mesma animação padrão via `web/src/atleta-glb.js`
+(`buildAtletaGLB` + `aplicarEsqueleto`). Página: `python web/personagem-glb/build.py` → `web/dist/atleta-glb.html`.
+Falta decidir com o Savio se troca; depois: número nas costas, base feminina, mais roupas e cabelos, medir
+no celular com 10 e 22 atletas, trocar nas páginas dos treinos.

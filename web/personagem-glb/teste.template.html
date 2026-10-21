@@ -1,0 +1,182 @@
+<meta charset="utf-8">
+<title>Atleta em GLB</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root { --ink: #20222b; --muted: #626675; --paper: rgba(250, 250, 248, .92); --paper-solid: #fafaf8; --accent: #1f9d55; color-scheme: light; }
+  html, body { height: 100%; margin: 0; }
+  body { background: #c9d3dc; color: var(--ink); font-family: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif; overflow: hidden; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .panel { position: fixed; left: 16px; top: calc(env(safe-area-inset-top, 0px) + 16px); width: min(330px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto;
+    background: var(--paper); border-radius: 14px; box-shadow: 0 10px 30px rgba(32, 34, 43, .14); padding: 14px 16px; box-sizing: border-box; }
+  .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { margin: 2px 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+  p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .row { margin-top: 10px; }
+  .row .cap { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  button { font: 600 12.5px/1 "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: rgba(32, 34, 43, .07); border: 0; border-radius: 8px; padding: 7px 9px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--ink); color: var(--paper-solid); }
+  button:focus-visible { outline: 2px solid #3d4fa8; outline-offset: 2px; }
+  .sw { width: 26px; height: 26px; padding: 0; border-radius: 99px; border: 2px solid transparent; }
+  .sw[aria-pressed="true"] { border-color: var(--ink); background-clip: padding-box; }
+  .mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .fps { margin-top: 10px; font-size: 12.5px; }
+  @media (max-width: 700px) { .panel { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); max-height: 46vh; } }
+</style>
+<canvas id="c" aria-label="Comparação do atleta atual com o atleta feito a partir do modelo GLB"></canvas>
+<section class="panel" aria-label="Opções">
+  <div class="eyebrow">Prova de conceito · Personagem</div>
+  <h1>Atleta em GLB</h1>
+  <p>À esquerda o atleta de hoje (formas geradas por código); à direita o modelo GLB com esqueleto, roupas geradas a partir do corpo e o mesmo rosto e cabelos de hoje. Os dois usam a mesma animação.</p>
+  <div class="row"><div class="cap">Ver</div><div class="seg" id="sModo"></div></div>
+  <div class="row"><div class="cap">Atlética</div><div class="seg" id="sTeam"></div></div>
+  <div class="row"><div class="cap">Pele</div><div class="seg" id="sSkin"></div></div>
+  <div class="row"><div class="cap">Cabelo</div><div class="seg" id="sHair"></div></div>
+  <div class="row"><div class="cap">Óculos e barba</div><div class="seg" id="sExtra"></div></div>
+  <div class="row"><div class="cap">Porte</div><div class="seg" id="sPorte"></div></div>
+  <div class="row"><div class="cap">Acabamento do GLB</div><div class="seg" id="sShade"></div></div>
+  <div class="row"><div class="cap">Teste de desempenho</div><div class="seg" id="sCrowd"></div></div>
+  <div class="fps">Quadros por segundo: <b class="mono" id="fps">–</b> · triângulos na tela: <span class="mono" id="tris">–</span></div>
+</section>
+
+<script>
+/*DRILL*/
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as skClone } from 'three/addons/utils/SkeletonUtils.js';
+const THREE_SkeletonUtils = { clone: skClone };
+const GLB64 = '/*GLB*/';
+const TAU = Math.PI * 2, $ = id => document.getElementById(id);
+
+/*CABECUDO*/
+/*ANIMACAO*/
+/*ATLETA_GLB*/
+
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xd9dde2); scene.fog = new THREE.Fog(0xd9dde2, 30, 80);
+const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
+const controls = new OrbitControls(camera, canvas); controls.enableDamping = true; controls.target.set(0, .9, 0); controls.maxPolarAngle = 1.45;
+scene.add(new THREE.HemisphereLight(0xeef4ff, 0x8a8f99, 1.2));
+const sun = new THREE.DirectionalLight(0xfff4e6, 2.2); sun.position.set(6, 14, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 40 }); scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x2c5a4a, roughness: .95 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+/* opções */
+const TEAMS = [{ nome: 'Verde', p: '#1f7a4d', s: '#f4f1e8' }, { nome: 'Vermelho', p: '#c62f2f', s: '#1f1d24' }, { nome: 'Azul', p: '#2459c9', s: '#36d0de' }, { nome: 'Roxo', p: '#5b2a86', s: '#f2c230' }];
+const SKINS = ['#f6d7c3', '#e8b896', '#c98e66', '#6e4527'];
+const HAIRS = [['curto', 'Curto'], ['afro', 'Afro'], ['coque', 'Coque'], ['moicano', 'Moicano'], ['bone', 'Boné']];
+const EXTRAS = [['nenhum|nenhuma', 'Nada'], ['redondo|nenhuma', 'Óculos'], ['nenhum|bigode', 'Bigode'], ['escuro|nenhuma', 'Óculos escuros']];
+const PORTES = [['.35|.7', 'Rápido'], ['.5|.5', 'Médio'], ['.85|.2', 'Forte']];
+const st = { modo: 'parados', team: 0, skin: 1, hair: 'curto', extra: 'nenhum|nenhuma', porte: '.5|.5', suave: false, crowd: 0 };
+function look() {
+  const [glasses, beard] = st.extra.split('|'), [forca, vel] = st.porte.split('|').map(Number);
+  return { nick: 'TROVÃO', num: 10, skin: SKINS[st.skin], hair: st.hair, hairColor: '#1d1a1f', glasses, beard, expr: 'confiante', forca, vel, team: TEAMS[st.team], gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false } };
+}
+function seg(id, items, key, render) {
+  const el = $(id); el.innerHTML = '';
+  for (const [v, label, extra] of items) {
+    const b = document.createElement('button'); b.textContent = label; if (extra) extra(b);
+    b.setAttribute('aria-pressed', String(String(st[key]) === String(v)));
+    b.addEventListener('click', () => { st[key] = v; for (const x of el.children) x.setAttribute('aria-pressed', String(x === b)); render(); });
+    el.append(b);
+  }
+}
+
+/* caminho: os atletas correm por pontos, param em alguns e viram no lugar */
+const PONTOS = [[0, -3, 2], [4, 1, 2], [0, 4, 1], [-4, 1, 0], [0, -3, 2], [-4, -1, 1], [0, 4, 2], [4, -1, 0]];
+const fis = DRILL.fisica(DRILL.ATLETA_FITA);
+class Corredor {
+  constructor(rig, dx, glb, nome) { this.rig = rig; this.dx = dx; this.glb = glb; if (nome) { const t = etiqueta(nome); if (glb) t.position.y = 1.95; rig.root.add(t); this.tag = t; } this.c = DRILL.novoCorpo(0, -3, 0); this.alvo = 1; this.q = 0; this.pausa = 0; this.a = [0, 0]; this.est = novoEstadoAnim(); scene.add(rig.root); }
+  passo(dt) {
+    const c = this.c, P = PONTOS[this.alvo];
+    if (st.modo === 'parados') { c.x = 0; c.z = 0; c.vx = c.vz = 0; c.w = c.aFrente = c.aLado = 0; c.h = Math.PI / 2 + Math.sin(performance.now() / 2200) * 1.2; return; }
+    if (this.q++ % DRILL.DECISAO_QUADROS === 0) {
+      const d = Math.hypot(P[0] - c.x, P[1] - c.z);
+      if (this.pausa > 0) { this.a = [this.a[0], 0]; }
+      else if (d < .6) { this.pausa = P[2] === 0 ? 1.2 : 0; this.alvo = (this.alvo + 1) % PONTOS.length; const N = PONTOS[this.alvo]; this.a = [DRILL.direcaoDoAngulo(Math.atan2(N[1] - c.z, N[0] - c.x)), P[2] === 0 ? 0 : P[2]]; }
+      else this.a = [DRILL.direcaoDoAngulo(Math.atan2(P[1] - c.z, P[0] - c.x)), d > 2 ? P[2] || 2 : 1];
+    }
+    if (this.pausa > 0) this.pausa -= dt;
+    DRILL.moverCorpo(c, fis, this.a[0], this.a[1], dt);
+  }
+  desenhar(dt) {
+    const k = st.modo === 'parados' ? .2 : 1;
+    animarAtleta(this.rig, this.c, this.est, { dt, rdt: dt, x: this.c.x + this.dx * k, z: this.c.z, y: 0, olhar: null, parado: false, velMax: fis.velMax, expr: 'confiante' });
+    if (this.glb) aplicarEsqueleto(this.rig);
+  }
+}
+let modelo = null, atletas = [];
+function montar() {
+  for (const a of atletas) scene.remove(a.rig.root);
+  atletas = [];
+  const p = look();
+  const atual = buildCabecudo(p); atual.root.scale.setScalar(.8);
+  atletas.push(new Corredor(atual, -6, false, 'Atual'));
+  atletas.push(new Corredor(buildAtletaGLB(modelo, p, { suave: st.suave }), 6, true, 'GLB'));
+  // multidão: mais atletas GLB para medir o desempenho
+  for (let i = 0; i < st.crowd; i++) {
+    const q = { ...p, team: TEAMS[i % TEAMS.length], skin: SKINS[i % SKINS.length], hair: HAIRS[i % HAIRS.length][0] };
+    const r = new Corredor(buildAtletaGLB(modelo, q, { suave: st.suave }), 6 + ((i % 5) - 2) * 3, true);
+    r.c.x = ((i * 7) % 9) - 4; r.c.z = ((i * 5) % 9) - 4; r.alvo = i % PONTOS.length;
+    atletas.push(r);
+  }
+}
+function opcoes() {
+  seg('sModo', [['parados', 'Parados, de perto'], ['correndo', 'Correndo']], 'modo', () => { olharCena(); montar(); });
+  seg('sTeam', TEAMS.map((t, i) => [i, '', b => { b.className = 'sw'; b.style.background = `linear-gradient(135deg, ${t.p} 60%, ${t.s} 60%)`; b.title = t.nome; b.setAttribute('aria-label', t.nome); }]), 'team', montar);
+  seg('sSkin', SKINS.map((c, i) => [i, '', b => { b.className = 'sw'; b.style.background = c; b.setAttribute('aria-label', 'Pele ' + (i + 1)); }]), 'skin', montar);
+  seg('sHair', HAIRS, 'hair', montar);
+  seg('sExtra', EXTRAS, 'extra', montar);
+  seg('sPorte', PORTES, 'porte', montar);
+  seg('sShade', [[false, 'Facetado'], [true, 'Suave']], 'suave', montar);
+  seg('sCrowd', [[0, 'Só os dois'], [10, '+10 GLB'], [22, '+22 GLB']], 'crowd', montar);
+}
+
+function etiqueta(txt) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+  x.font = '800 30px "Bricolage Grotesque", system-ui, sans-serif'; const w = x.measureText(txt).width + 32;
+  x.fillStyle = '#20222b'; x.beginPath(); x.roundRect((256 - w) / 2, 10, w, 44, 22); x.fill(); x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 128, 33);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.set(1.4, .35, 1); s.position.y = 2.25; s.renderOrder = 9; return s;
+}
+function olharCena() {
+  const perto = st.modo === 'parados', estreito = innerWidth < innerHeight;
+  // de perto: os dois lado a lado, à direita do painel no computador
+  controls.target.set(perto && !estreito ? -1.3 : 0, perto ? (estreito ? 1.4 : .95) : .9, 0);
+  if (perto) camera.position.set(estreito ? 0 : -1.3, estreito ? 2.2 : 1.5, estreito ? 9 : 6.6); else camera.position.set(0, 9, 22);
+}
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth < innerHeight ? 60 : 35; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize);
+olharCena();
+let last = performance.now(), acc = 0, fr = 0, ft = 0;
+function frame(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now; acc += dt;
+  while (acc >= DRILL.DT) { for (const a of atletas) a.passo(DRILL.DT); acc -= DRILL.DT; }
+  for (const a of atletas) a.desenhar(dt);
+  controls.update(); renderer.render(scene, camera);
+  fr++; ft += dt; if (ft > .5) { $('fps').textContent = Math.round(fr / ft); $('tris').textContent = renderer.info.render.triangles.toLocaleString('pt-BR'); fr = 0; ft = 0; }
+  requestAnimationFrame(frame);
+}
+const bin = atob(GLB64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+new GLTFLoader().parse(buf.buffer, '', gltf => {
+  modelo = prepararModeloGLB(gltf);
+  opcoes(); montar(); resize(); olharCena();
+  window.__pagina = { atletas, camera, controls, modelo };
+  requestAnimationFrame(frame);
+}, e => console.error(e));
+</script>
