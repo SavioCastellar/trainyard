@@ -67,6 +67,45 @@ for v in corpo.data.vertices:
     rf, rc = interp(razao, min(max(z, alturas[0]), alturas[-1])); a = interp(eixo, z)[0]
     r = rf if v.co.y < a else rc
     v.co.y = a + (v.co.y - a) * (1 + (r - 1) * borda)
+# pernas vistas de frente: as linhas que o Savio desenhou (2026-10-22). Pernas mais finas por dentro, afinando até o
+# tornozelo, e o vão entre elas começando mais alto (0,30 m). (altura, fora D, dentro D, dentro E, fora E), x em metros;
+# D = perna direita do atleta (x negativo). Acima de 0,30 m o lado de dentro não tem linha (é o quadril).
+PERNAS = [(0.117, -0.17, -0.077, 0.079, 0.166), (0.137, -0.174, -0.073, 0.073, 0.169), (0.157, -0.178, -0.068, 0.066, 0.171),
+          (0.177, -0.181, -0.062, 0.056, 0.172), (0.196, -0.182, -0.056, 0.049, 0.173), (0.216, -0.183, -0.048, 0.043, 0.176),
+          (0.236, -0.183, -0.04, 0.041, 0.177), (0.256, -0.182, -0.031, 0.036, 0.177), (0.276, -0.182, -0.026, 0.034, 0.177),
+          (0.296, -0.182, -0.022, 0.034, 0.176), (0.315, -0.182, -0.022, 0.034, 0.176), (0.335, -0.181, -0.022, 0.034, 0.176),
+          (0.355, -0.178, -0.022, 0.034, 0.176), (0.375, -0.176, -0.022, 0.034, 0.172), (0.395, -0.175, -0.022, 0.034, 0.172),
+          (0.414, -0.171, -0.022, 0.034, 0.172)]
+VIRILHA = 0.304
+PERNA = ('UpLeg', 'Leg', 'Foot', 'ToeBase', 'Toe_End')
+def lado_perna(v):
+    if not v.groups: return None
+    n = nomes0[max(v.groups, key=lambda g: g.weight).group].replace('mixamorig:', '')
+    return n[:-len('UpLeg')] if n.endswith('UpLeg') else (n.split('Leg')[0] if n.endswith(PERNA) and n.startswith(('Left', 'Right')) else None)
+lados = [lado_perna(v) for v in corpo.data.vertices]
+def extremos_perna(z, lado):
+    """dentro e fora da perna `lado` na altura z (corte das arestas que tocam essa perna)"""
+    xs = []
+    for e in corpo.data.edges:
+        a, b = e.vertices
+        if lado not in (lados[a], lados[b]): continue
+        p, q = corpo.data.vertices[a].co, corpo.data.vertices[b].co
+        if (p.z - z) * (q.z - z) <= 0 and p.z != q.z: xs.append(p.x + (z - p.z) / (q.z - p.z) * (q.x - p.x))
+    if not xs: return None
+    return (max(xs), min(xs)) if lado == 'Right' else (min(xs), max(xs))   # (dentro, fora)
+alt_p = [round(0.10 + k * 0.01, 2) for k in range(32)]                 # 0,10 a 0,41 m
+atual = {l: [(z, *extremos_perna(z, l)) for z in alt_p] for l in ('Left', 'Right')}
+alvo = {'Right': [(r[0], r[2], r[1]) for r in PERNAS], 'Left': [(r[0], r[3], r[4]) for r in PERNAS]}
+for v, l in zip(corpo.data.vertices, lados):
+    if l is None or not (0.07 < v.co.z < 0.42): continue
+    z = v.co.z
+    dA, fA = interp(atual[l], min(max(z, alt_p[0]), alt_p[-1])); dL, fL = interp(alvo[l], z)
+    if z > 0.25 and z < 0.26 and abs(v.co.x) < 0.015:               # ponto da virilha: sobe, no meio das duas linhas
+        v.co.z, v.co.x = VIRILHA, (alvo['Left'][0][1] + alvo['Right'][0][1]) / 2; continue
+    t = (v.co.x - dA) / (fA - dA) if fA != dA else 0
+    novo = dL + t * (fL - dL)
+    peso = clamp01((z - 0.07) / 0.04)                               # dentro do tênis volta ao original
+    v.co.x += (novo - v.co.x) * peso
 # grupo dominante de cada vértice
 nomes = {g.index: g.name.replace('mixamorig:', '') for g in corpo.vertex_groups}
 dom = {}
