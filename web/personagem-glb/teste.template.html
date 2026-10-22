@@ -24,13 +24,16 @@
   .sw[aria-pressed="true"] { border-color: var(--ink); background-clip: padding-box; }
   .mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
   .fps { margin-top: 10px; font-size: 12.5px; }
-  @media (max-width: 700px) { .panel { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); max-height: 46vh; } }
+  #recolher { display: none; float: right; margin-top: -2px; }
+  @media (max-width: 700px) { .panel { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); max-height: 46vh; } #recolher { display: inline-block; }
+    .panel.recolhido > :not(.eyebrow):not(h1) { display: none; } .panel.recolhido h1 { margin: 0; font-size: 18px; } }
 </style>
 <canvas id="c" aria-label="Comparação do atleta atual com o atleta feito a partir do modelo GLB"></canvas>
 <section class="panel" aria-label="Opções">
-  <div class="eyebrow">Prova de conceito · Personagem</div>
+  <div class="eyebrow">Prova de conceito · Personagem<button id="recolher" aria-expanded="true">Esconder</button></div>
   <h1>Atleta em GLB</h1>
-  <p>À esquerda o atleta de hoje (formas geradas por código); à direita o modelo GLB com esqueleto, roupas geradas a partir do corpo e o mesmo rosto e cabelos de hoje. Os dois usam a mesma animação.</p>
+  <p id="texto">À esquerda o atleta de hoje (formas geradas por código); à direita o modelo GLB com esqueleto, roupas geradas a partir do corpo e o mesmo rosto e cabelos de hoje. Os dois usam a mesma animação.</p>
+  <div class="row" id="rComp" hidden><div class="cap">Comparar com</div><div class="seg" id="sComp"></div></div>
   <div class="row"><div class="cap">Ver</div><div class="seg" id="sModo"></div></div>
   <div class="row"><div class="cap">Atlética</div><div class="seg" id="sTeam"></div></div>
   <div class="row"><div class="cap">Pele</div><div class="seg" id="sSkin"></div></div>
@@ -57,7 +60,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as skClone } from 'three/addons/utils/SkeletonUtils.js';
 const THREE_SkeletonUtils = { clone: skClone };
-const GLB64 = '/*GLB*/';
+const GLB64 = '/*GLB*/', GLB64_ANTES = '/*GLB_ANTES*/';
 const TAU = Math.PI * 2, $ = id => document.getElementById(id);
 
 /*CABECUDO*/
@@ -83,7 +86,7 @@ const SKINS = ['#f6d7c3', '#e8b896', '#c98e66', '#6e4527'];
 const HAIRS = [['curto', 'Curto'], ['afro', 'Afro'], ['coque', 'Coque'], ['moicano', 'Moicano'], ['bone', 'Boné']];
 const EXTRAS = [['nenhum|nenhuma', 'Nada'], ['redondo|nenhuma', 'Óculos'], ['nenhum|bigode', 'Bigode'], ['escuro|nenhuma', 'Óculos escuros']];
 const PORTES = [['.35|.7', 'Rápido'], ['.5|.5', 'Médio'], ['.85|.2', 'Forte']];
-const st = { modo: 'parados', team: 0, skin: 1, hair: 'curto', extra: 'nenhum|nenhuma', porte: '.5|.5', suave: false, crowd: 0 };
+const st = { comp: GLB64_ANTES ? 'antes' : 'atual', modo: 'parados', team: 0, skin: 1, hair: 'curto', extra: 'nenhum|nenhuma', porte: '.5|.5', suave: false, crowd: 0 };
 function look() {
   const [glasses, beard] = st.extra.split('|'), [forca, vel] = st.porte.split('|').map(Number);
   return { nick: 'TROVÃO', num: 10, skin: SKINS[st.skin], hair: st.hair, hairColor: '#1d1a1f', glasses, beard, expr: 'confiante', forca, vel, team: TEAMS[st.team], gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false } };
@@ -121,14 +124,17 @@ class Corredor {
     if (this.glb) aplicarEsqueleto(this.rig);
   }
 }
-let modelo = null, atletas = [];
+let modelo = null, modeloAntes = null, atletas = [];
 function montar() {
   for (const a of atletas) scene.remove(a.rig.root);
   atletas = [];
   const p = look();
-  const atual = buildCabecudo(p); atual.root.scale.setScalar(.8);
-  atletas.push(new Corredor(atual, -6, false, 'Atual'));
-  atletas.push(new Corredor(buildAtletaGLB(modelo, p, { suave: st.suave }), 6, true, 'GLB'));
+  if (st.comp === 'antes') atletas.push(new Corredor(buildAtletaGLB(modeloAntes, p, { suave: st.suave }), -6, true, 'Antes'));
+  else { const atual = buildCabecudo(p); atual.root.scale.setScalar(.8); atletas.push(new Corredor(atual, -6, false, 'Atual')); }
+  atletas.push(new Corredor(buildAtletaGLB(modelo, p, { suave: st.suave }), 6, true, st.comp === 'antes' ? 'Depois' : 'GLB'));
+  $('texto').textContent = st.comp === 'antes'
+    ? 'À esquerda o atleta GLB da rodada anterior; à direita o desta rodada. Mesma aparência e mesma animação: gire a câmera e aproxime para ver os detalhes.'
+    : 'À esquerda o atleta de hoje (formas geradas por código); à direita o modelo GLB com esqueleto, roupas geradas a partir do corpo e o mesmo rosto e cabelos de hoje. Os dois usam a mesma animação.';
   // multidão: mais atletas GLB para medir o desempenho
   for (let i = 0; i < st.crowd; i++) {
     const q = { ...p, team: TEAMS[i % TEAMS.length], skin: SKINS[i % SKINS.length], hair: HAIRS[i % HAIRS.length][0] };
@@ -138,6 +144,8 @@ function montar() {
   }
 }
 function opcoes() {
+  if (GLB64_ANTES) { $('rComp').hidden = false; seg('sComp', [['antes', 'Rodada anterior'], ['atual', 'Atleta de hoje (código)']], 'comp', montar); }
+  $('recolher').addEventListener('click', e => { const p = e.target.closest('.panel'), r = p.classList.toggle('recolhido'); e.target.textContent = r ? 'Opções' : 'Esconder'; e.target.setAttribute('aria-expanded', String(!r)); });
   seg('sModo', [['parados', 'Parados, de perto'], ['correndo', 'Correndo']], 'modo', () => { olharCena(); montar(); });
   seg('sTeam', TEAMS.map((t, i) => [i, '', b => { b.className = 'sw'; b.style.background = `linear-gradient(135deg, ${t.p} 60%, ${t.s} 60%)`; b.title = t.nome; b.setAttribute('aria-label', t.nome); }]), 'team', montar);
   seg('sSkin', SKINS.map((c, i) => [i, '', b => { b.className = 'sw'; b.style.background = c; b.setAttribute('aria-label', 'Pele ' + (i + 1)); }]), 'skin', montar);
@@ -157,8 +165,9 @@ function etiqueta(txt) {
 function olharCena() {
   const perto = st.modo === 'parados', estreito = innerWidth < innerHeight;
   // de perto: os dois lado a lado, à direita do painel no computador
-  controls.target.set(perto && !estreito ? -1.3 : 0, perto ? (estreito ? 1.4 : .95) : .9, 0);
-  if (perto) camera.position.set(estreito ? 0 : -1.3, estreito ? 2.2 : 1.5, estreito ? 9 : 6.6); else camera.position.set(0, 9, 22);
+  // no celular o painel ocupa a parte de baixo: os atletas ficam na metade de cima
+  controls.target.set(perto && !estreito ? -1.3 : 0, perto ? (estreito ? .1 : .95) : (estreito ? -2 : .9), 0);
+  if (perto) camera.position.set(estreito ? 0 : -1.3, estreito ? 1.5 : 1.5, estreito ? 8 : 6.6); else camera.position.set(0, 9, 22);
 }
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth < innerHeight ? 60 : 35; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize);
@@ -172,9 +181,10 @@ function frame(now) {
   fr++; ft += dt; if (ft > .5) { $('fps').textContent = Math.round(fr / ft); $('tris').textContent = renderer.info.render.triangles.toLocaleString('pt-BR'); fr = 0; ft = 0; }
   requestAnimationFrame(frame);
 }
-const bin = atob(GLB64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-new GLTFLoader().parse(buf.buffer, '', gltf => {
-  modelo = prepararModeloGLB(gltf);
+const bytes = b64 => { const bin = atob(b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return buf.buffer; };
+const carregar = b64 => new Promise((ok, erro) => new GLTFLoader().parse(bytes(b64), '', ok, erro));
+Promise.all([carregar(GLB64), GLB64_ANTES ? carregar(GLB64_ANTES) : null]).then(([gltf, antes]) => {
+  modelo = prepararModeloGLB(gltf); if (antes) modeloAntes = prepararModeloGLB(antes);
   opcoes(); montar(); resize(); olharCena();
   window.__pagina = { atletas, camera, controls, modelo };
   requestAnimationFrame(frame);

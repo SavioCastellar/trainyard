@@ -70,6 +70,7 @@ function buildAtletaGLB(modelo, p, o = {}) {
     if (/corpo/.test(m.name)) m.material.color = cor(p.skin);
     else if (/camisa/.test(m.name)) m.material.color = cor(p.team.p);
     else if (/short/.test(m.name)) m.material.color = cor(p.team.s === '#f4f1e8' ? darker(p.team.p, .55) : p.team.s);
+    else if (/sola/.test(m.name)) m.material.color = cor(darker(p.team.p, .7));
     else if (/tenis/.test(m.name)) m.material.color = cor('#f4f4f2');
     else if (/cabelo/.test(m.name)) {
       // cabelos são cascas da cabeça (preparar.py): curto, volume (afro) e moicano; o boné usa a casca curta na cor do time
