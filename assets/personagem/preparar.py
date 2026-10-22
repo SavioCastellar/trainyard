@@ -1,7 +1,9 @@
 """Prepara o atleta GLB a partir do FBX do Mixamo: escala (1,75 m), de frente para +Z (glTF), pés no chão,
 e gera roupas como "cascas" do próprio corpo (camisa, short, tênis), já presas ao esqueleto.
 Uso: python3 preparar.py entrada.fbx saida.glb"""
-import bpy, bmesh, sys, mathutils
+import bpy, bmesh, sys, os, mathutils
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 from math import radians
 src, dst = sys.argv[-2], sys.argv[-1]
 ALTURA = 1.75
@@ -193,8 +195,77 @@ cab = {'Head', 'HeadTop_End'}
 curto = casca('cabelo_curto', cab, .012, (.1, .09, .1), onde=linha)
 volume = casca('cabelo_volume', cab, .11, (.1, .09, .1), onde=lambda x, y, z: linha(x, y, z, 1.4, 1.15))
 moicano = casca('cabelo_moicano', cab, .05, (.1, .09, .1), onde=lambda x, y, z: abs(x) < .07 and linha(x, y, z, 1.4, 1.15), maioria=.3)
+def bvh_de(me, faces_ok=None):
+    bm = bmesh.new(); bm.from_mesh(me)
+    if faces_ok: bmesh.ops.delete(bm, geom=[f for f in bm.faces if not faces_ok(f)], context='FACES')
+    t = BVHTree.FromBMesh(bm); bm.free(); return t
+OLHO_NOSSO, FRANJA, ENCOLHE = 1.25, 1.37, .5
+def cabelo_externo(arquivo, pares, cor, dec=.4):
+    """encaixa cabelos de outro modelo (cada um vem com a cabeça de referência dele): alinha a cabeça de referência
+    à nossa (topo e altura dos olhos, largura e fundo) e depois deforma o cabelo radialmente, mantendo a distância
+    que ele tinha do couro cabeludo de referência, agora medida até o nosso"""
+    antes = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=arquivo); bpy.context.view_layer.update()
+    novos = [o for o in bpy.data.objects if o not in antes]
+    nossa = bvh_de(corpo.data, lambda f: sum(dom.get(v.index) in ('Head', 'HeadTop_End', 'Neck') for v in f.verts) * 2 >= len(f.verts))
+    corpo_t = bvh_de(corpo.data)
+    C = Vector((0, .08, 1.40))                          # centro da nossa cabeça (meio do crânio, acima dos olhos)
+    saida = []
+    for nome, cab_ref, partes in pares:
+        ref = bpy.data.objects[cab_ref]
+        P = [ref.matrix_world @ v.co for v in ref.data.vertices]
+        cx = (min(p.x for p in P) + max(p.x for p in P)) / 2
+        cran = [p for p in P if 2.4 < p.z < 2.8]; cy = (min(p.y for p in cran) + max(p.y for p in cran)) / 2
+        TOPO, OLHO = max(p.z for p in P), 1.85               # olhos da cabeça de referência (fundo do nariz entre eles)
+        # os olhos de referência vão um pouco acima dos nossos (1,215): a franja termina acima dos olhos
+        sz = (1.75 - OLHO_NOSSO) / (TOPO - OLHO); sx, sy = .36, .33
+        A = lambda p: Vector(((p.x - cx) * sx, (p.y - cy) * sy + .08, OLHO_NOSSO + (p.z - OLHO) * sz))
+        bm = bmesh.new(); bm.from_mesh(ref.data)
+        for v in bm.verts: v.co = A(ref.matrix_world @ v.co)
+        dele = BVHTree.FromBMesh(bm); bm.free()
+        def raio(t, d):
+            hit = t.ray_cast(C, d); return (hit[0] - C).length if hit[0] else None
+        cache = {}
+        def delta(d):
+            k = (round(d.x, 2), round(d.y, 2), round(d.z, 2))
+            if k not in cache:
+                s, n = 0.0, 0
+                for e in ((0, 0, 0), (.08, 0, 0), (-.08, 0, 0), (0, .08, 0), (0, -.08, 0), (0, 0, .08), (0, 0, -.08)):
+                    dd = (d + Vector(e)).normalized(); a, b = raio(nossa, dd), raio(dele, dd)
+                    if a and b: s += a - b; n += 1
+                cache[k] = s / n if n else 0.0
+            return cache[k]
+        obs = []
+        for parte in partes:
+            o = bpy.data.objects[parte]
+            me = o.data.copy(); me.transform(o.matrix_world)
+            for v in me.vertices:
+                p = A(v.co); d = (p - C)
+                if d.length > 1e-6: p = p + d.normalized() * delta(d.normalized())
+                # franja: o que cai na frente do rosto encolhe para cima, para os olhos e as sobrancelhas aparecerem
+                t = clamp01((-.1 - p.y) / .1) * clamp01((.32 - abs(p.x)) / .08)
+                if p.z < FRANJA and t > 0: p.z = FRANJA - (FRANJA - p.z) * (1 - (1 - ENCOLHE) * t)
+                v.co = p
+            # rede de segurança: nada dentro do corpo
+            for v in me.vertices:
+                loc, nor, _, _ = corpo_t.find_nearest(v.co)
+                if loc is not None and (v.co - loc).dot(nor) < .006: v.co = loc + nor * .006
+            ob = bpy.data.objects.new(nome + ('' if not obs else '_prendedor'), me); bpy.context.collection.objects.link(ob)
+            if dec < 1:  # o original tem 11 a 17 mil triângulos; o corpo inteiro tem uns 3 mil
+                m = ob.modifiers.new('d', 'DECIMATE'); m.ratio = dec
+                bpy.context.view_layer.objects.active = ob; bpy.ops.object.modifier_apply(modifier='d')
+            me.materials.clear(); me.materials.append(mat(ob.name, cor if not obs else (.35, .05, .6)))  # o 2º objeto é o prendedor (cor do time na página)
+            g = ob.vertex_groups.new(name='mixamorig:Head'); g.add(range(len(me.vertices)), 1.0, 'REPLACE')
+            ob.parent = arm; mod = ob.modifiers.new('Armature', 'ARMATURE'); mod.object = arm
+            obs.append(ob)
+        saida += obs
+    for o in novos: bpy.data.objects.remove(o)
+    return saida
+# cabelos de fora (Sketchfab, CC BY 4.0, ver CREDITOS.md): franja (masculino) e chanel com rabinho (feminino)
+anime = cabelo_externo(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cabelos', 'anime-hair.glb'),
+                       [('cabelo_franja', 'Object_12', ['Object_10']), ('cabelo_chanel', 'Object_8', ['Object_6', 'Object_4'])], (.1, .09, .1))
 tenis_obs = tenis()  # por último: apaga faces do corpo e muda os índices usados por `dom`
-for ob in (camisa, short, *tenis_obs, curto, volume, moicano):
+for ob in (camisa, short, *tenis_obs, curto, volume, moicano, *anime):
     print(ob.name, 'faces', len(ob.data.polygons), 'pesos', sum(len(v.groups) > 0 for v in ob.data.vertices), '/', len(ob.data.vertices))
 print('altura', round(max((corpo.matrix_world @ v.co).z for v in corpo.data.vertices), 3), 'bones', len(arm.data.bones))
 for b in ['mixamorig:LeftArm', 'mixamorig:RightArm', 'mixamorig:LeftToe_End', 'mixamorig:Head']: print(b, tuple(round(v, 3) for v in arm.data.bones[b].head_local))

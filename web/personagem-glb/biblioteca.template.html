@@ -215,6 +215,9 @@ const MALHAS = [
   [/^cabelo_curto/, 'Cabelo curto', 'Casca da cabeça; também base do coque e do boné', 'cor do cabelo (boné: cor secundária)'],
   [/^cabelo_volume/, 'Cabelo volume (afro)', 'Casca da cabeça, mais afastada', 'cor do cabelo'],
   [/^cabelo_moicano/, 'Moicano', 'Faixa central da cabeça', 'cor do cabelo'],
+  [/^cabelo_franja/, 'Cabelo franja (teste)', 'Modelo de fora (Sketchfab, H.art) encaixado na cabeça', 'cor do cabelo'],
+  [/^cabelo_chanel_prendedor/, 'Prendedor do chanel', 'Modelo de fora (Sketchfab, H.art)', 'cor principal da atlética'],
+  [/^cabelo_chanel/, 'Cabelo chanel (teste)', 'Modelo de fora (Sketchfab, H.art) encaixado na cabeça', 'cor do cabelo'],
 ];
 const infoMalha = n => { const m = MALHAS.find(([re]) => re.test(n)); const lado = /Left/.test(n) ? ' (esq.)' : /Right/.test(n) ? ' (dir.)' : ''; return m ? { nome: m[1] + lado, origem: m[2], cor: m[3] } : { nome: n, origem: '', cor: '' }; };
 const tris = g => (g.index ? g.index.count : g.attributes.position.count) / 3;
@@ -432,6 +435,7 @@ const ARMARIO = [
   { titulo: 'Calçado', quadro: 'pes', itens: [
     { nome: 'Tênis', st: 'aprov', aplica: {}, ativo: () => true, nota: 'Sola na cor da atlética' }, { nome: 'Meião', st: 'plan', nota: 'Meia alta acima do tênis' }] },
   { titulo: 'Cabelo', quadro: 'cabeca', itens: [['curto', 'Curto'], ['afro', 'Afro'], ['moicano', 'Moicano'], ['coque', 'Coque'], ['bone', 'Boné']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { hair: v }, ativo: () => look.hair === v }))
+    .concat([['franja', 'Franja'], ['chanel', 'Chanel']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { hair: v }, ativo: () => look.hair === v, nota: 'Teste: modelo de fora encaixado' })))
     .concat([{ nome: 'Careca', st: 'plan', nota: 'Existe no atleta de hoje, falta no GLB' }]) },
   { titulo: 'Cor do cabelo', cor: true, itens: HAIR_COLORS.map(([c, n]) => ({ nome: n, st: 'ok', cor: c, aplica: { hairColor: c }, ativo: () => look.hairColor === c })) },
   { titulo: 'Expressão', quadro: 'rosto', itens: [['confiante', 'Confiante'], ['neutro', 'Neutro'], ['bravo', 'Bravo'], ['feliz', 'Feliz'], ['triste', 'Triste']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { expr: v }, ativo: () => look.expr === v })) },
@@ -487,7 +491,7 @@ async function miniaturas() {
 
 /* ---------- ficha técnica ---------- */
 function montarFicha() {
-  let total = 0, n = 0; modelo.gltf.scene.traverse(o => { if (o.isSkinnedMesh) { n++; if (!/cabelo_(volume|moicano)/.test(o.name)) total += tris(o.geometry); } });
+  let total = 0, n = 0; modelo.gltf.scene.traverse(o => { if (o.isSkinnedMesh) { n++; if (!/cabelo_(volume|moicano|franja|chanel)/.test(o.name)) total += tris(o.geometry); } });
   const kb = Math.round(GLB64.length * 3 / 4 / 1024);
   const linhas = [
     ['Altura', '1,75 m (pés no chão, de frente para +Z)'],
