@@ -29,19 +29,44 @@ def mat(nome, cor):
     m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (*cor, 1); m.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = .7
     return m
 corpo.data.materials.clear(); corpo.data.materials.append(mat('pele', (.8, .6, .45)))
-# tronco: o modelo original é um "tubo" com a barriga mais para a frente que o peito. Peito e ombros um pouco
-# mais largos e para a frente, cintura e barriga para dentro, leve curva nas costas (frente = -Y do Blender)
-def bump(z, c, r): t = (z - c) / r; return (1 - t * t) ** 2 if abs(t) < 1 else 0.0
+# tronco de perfil: a linha que o Savio desenhou sobre a vista lateral (2026-10-22), medida na foto e convertida
+# para metros. (altura, frente, costas): y do Blender, frente = -Y. O corpo é comprimido na profundidade, altura por
+# altura, até a silhueta encostar na linha; a largura (X) não muda. Fora de 0,36–0,87 m nada muda.
+PERFIL = [(0.355, -0.092, 0.101), (0.374, -0.093, 0.105), (0.393, -0.094, 0.111), (0.415, -0.094, 0.116), (0.434, -0.094, 0.112),
+          (0.453, -0.094, 0.112), (0.475, -0.093, 0.111), (0.497, -0.093, 0.111), (0.519, -0.089, 0.107), (0.541, -0.087, 0.105),
+          (0.563, -0.084, 0.104), (0.585, -0.083, 0.106), (0.607, -0.084, 0.108), (0.629, -0.084, 0.11), (0.651, -0.085, 0.114),
+          (0.67, -0.088, 0.119), (0.692, -0.09, 0.126), (0.714, -0.094, 0.132), (0.736, -0.094, 0.138), (0.758, -0.093, 0.145),
+          (0.78, -0.091, 0.145), (0.802, -0.084, 0.142), (0.824, -0.072, 0.136), (0.846, -0.049, 0.125), (0.868, -0.014, 0.103)]
 def clamp01(t): return max(0.0, min(1.0, t))
+def interp(tab, z):
+    if z <= tab[0][0]: return tab[0][1:]
+    for a, b in zip(tab, tab[1:]):
+        if z <= b[0]: u = (z - a[0]) / (b[0] - a[0]); return tuple(p + (q - p) * u for p, q in zip(a[1:], b[1:]))
+    return tab[-1][1:]
+def silhueta(z):
+    """frente e costas do corpo na altura z (corte das arestas da malha)"""
+    ys = []
+    for e in corpo.data.edges:
+        p, q = corpo.data.vertices[e.vertices[0]].co, corpo.data.vertices[e.vertices[1]].co
+        if (p.z - z) * (q.z - z) <= 0 and p.z != q.z: ys.append(p.y + (z - p.z) / (q.z - p.z) * (q.y - p.y))
+    return min(ys), max(ys)
+ossos_coluna = [arm.data.bones[f'mixamorig:{n}'].head_local for n in ('Hips', 'Spine', 'Spine1', 'Spine2', 'Neck')]
+eixo = [(o.z, o.y, o.y) for o in ossos_coluna]                    # y da coluna em cada altura
+alturas = [PERFIL[0][0] + k * 0.01 for k in range(int((PERFIL[-1][0] - PERFIL[0][0]) / 0.01) + 1)]
+razao = []                                                       # (altura, fator da frente, fator das costas)
+for z in alturas:
+    (fA, cA), (fL, cL), (a, _) = silhueta(z), interp(PERFIL, z), interp(eixo, z)
+    razao.append((z, (fL - a) / (fA - a), (cL - a) / (cA - a)))
+BRACOS = ('Arm', 'ForeArm', 'Hand')
+nomes0 = {g.index: g.name for g in corpo.vertex_groups}
 for v in corpo.data.vertices:
-    x, y, z = v.co
-    if not (0.5 < z < 0.9 and abs(x) < 0.24): continue
-    perto = 1 - clamp01((abs(x) - 0.15) / 0.09)          # raiz dos braços entra só um pouco
-    sx = 1 + 0.09 * bump(z, .79, .1) - 0.06 * bump(z, .61, .07)
-    v.co.x = x * (1 + (sx - 1) * perto)
-    frente, costas = clamp01(-y / 0.12), clamp01((y - 0.03) / 0.12)
-    v.co.y = y + perto * (frente * (-0.028 * bump(z, .77, .09) + 0.022 * bump(z, .6, .07))
-                          + costas * (0.012 * bump(z, .78, .08) - 0.012 * bump(z, .6, .06)))
+    z = v.co.z
+    if not (PERFIL[0][0] - .02 < z < PERFIL[-1][0] + .03) or not v.groups: continue
+    if nomes0[max(v.groups, key=lambda g: g.weight).group].endswith(BRACOS): continue
+    borda = clamp01((z - PERFIL[0][0] + .02) / .02) * clamp01((PERFIL[-1][0] + .03 - z) / .03)   # entra e sai suave
+    rf, rc = interp(razao, min(max(z, alturas[0]), alturas[-1])); a = interp(eixo, z)[0]
+    r = rf if v.co.y < a else rc
+    v.co.y = a + (v.co.y - a) * (1 + (r - 1) * borda)
 # grupo dominante de cada vértice
 nomes = {g.index: g.name.replace('mixamorig:', '') for g in corpo.vertex_groups}
 dom = {}

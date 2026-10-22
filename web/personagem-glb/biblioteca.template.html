@@ -135,7 +135,7 @@
       <dl class="ficha" id="fichaModelo"></dl>
       <h2>Ainda falta</h2>
       <ul class="pend">
-        <li>Corrigir o corpo (tronco e proporções): o Savio vai ajustar à mão.</li>
+        <li>Corpo visto de frente: o perfil lateral já segue a linha desenhada pelo Savio; a largura ainda é a do modelo original.</li>
         <li>Articulações na animação: joelho, cotovelo, coluna, pé (os ossos existem, a animação ainda não os usa).</li>
         <li>Número e apelido nas costas; regata e manga longa; meião.</li>
         <li>Base feminina com o mesmo esqueleto.</li>
@@ -496,7 +496,7 @@ function montarFicha() {
     ['Malhas', `${n} no arquivo, um material por malha (as cores são trocadas por código)`],
     ['Arquivo', `<code>assets/personagem/atleta.glb</code>, ${kb.toLocaleString('pt-BR')} KB`],
     ['Origem', 'Lowpoly Chibi Character, de mehreen1919, via Poly Pizza. Licença CC BY 3.0: o crédito tem que aparecer no jogo.'],
-    ['Como é gerado', '<code>preparar.py</code> (Blender por script): escala, orientação, roupas e cabelos como cascas do corpo, tênis feito do zero.'],
+    ['Como é gerado', '<code>preparar.py</code> (Blender por script): escala, orientação, tronco afinado de perfil pela linha do Savio, roupas e cabelos como cascas do corpo, tênis feito do zero.'],
     ['No navegador', '<code>atleta-glb.js</code>: <code>buildAtletaGLB(modelo, look)</code> devolve o mesmo formato do atleta de hoje (root, body, legs, arms, headPivot, face, handR), então a animação padrão funciona sem mudanças.'],
     ['Animação', 'Por código, a partir da simulação: passada, inclinação nas curvas e freadas, cabeça com mola, piscar.'],
     ['Rosto', 'Desenhado por código em cima do modelo (que já tem nariz): 5 expressões, óculos e barba.'],
