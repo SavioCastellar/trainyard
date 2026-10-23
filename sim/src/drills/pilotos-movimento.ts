@@ -102,8 +102,8 @@ export const vooPrecisao = (d: number) => { const k = 1 - (d * PRECISION.ballFri
 
 /**
  * Precisão. Nível 1: escolhe a pilha mais rápida de derrubar, vira parado e chuta com o ajuste fino.
- * Nível 2: corre até um ponto atrás da bola (na linha do painel aceso), para, vira e chuta; se o painel vai
- * apagar antes da bola chegar, espera o próximo (`tempo`). Nível 3: pega a bola, para e arremessa à frente
+ * Nível 2: corre até um ponto atrás da bola (na linha do gol que vale), para, vira e chuta; com `tempo`, se o
+ * gol vai deixar de valer antes do chute, espera o próximo. Nível 3: pega a bola, para e arremessa à frente
  * do alvo do trilho (`antecipa`).
  */
 export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, out: number[], { tempo = false, antecipa = true } = {}) {
@@ -143,13 +143,13 @@ export function pilotoPrecisao(e: PrecisionDrill, rng: Rng, habilidade: number, 
   }
   if (e.nivel === 2) {
     if (!S.existe) { vai(c.x, Math.max(c.z, 2), 0.3); return; }
-    // alvo: painel aceso (ou o do meio, esperando o próximo acender)
-    const lit = e.painel >= 0 && e.painelOn > 0, tx = lit ? P.paineis[e.painel] : 0, tz = -P.hz;
+    // alvo: o gol que vale (ou o meio, esperando o próximo)
+    const lit = e.gol >= 0 && e.golOn > 0, tx = lit ? P.gols[e.gol] : 0, tz = -P.hz + P.golFundo;
     const a = Math.atan2(tz - S.z, tx - S.x), dB = Math.hypot(tx - S.x, tz - S.z);
     // fica 0,6 atrás da bola, na linha do chute
     const px = S.x - Math.cos(a) * 0.6, pz = S.z - Math.sin(a) * 0.6;
     if (Math.hypot(px - c.x, pz - c.z) > 0.35) { vai(px, pz, 0.2); return; }
-    if (!lit || (tempo && e.painelOn < vooPrecisao(dB) + 0.6)) { out[0] = direcaoDoAngulo(a); out[1] = 0; return; }
+    if (!lit || (tempo && e.golOn < vooPrecisao(dB) + 0.6)) { out[0] = direcaoDoAngulo(a); out[1] = 0; return; }
     mira(a, dB);
     return;
   }

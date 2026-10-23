@@ -109,7 +109,7 @@
   @media (prefers-reduced-motion: reduce) { .banner { transition: none; } .diary li.new { animation: none; } }
 </style>
 
-<canvas id="c" aria-label="Estação de treino de precisão: o atleta derruba pilhas, chuta nos painéis do paredão e arremessa no alvo do trilho"></canvas>
+<canvas id="c" aria-label="Estação de treino de precisão: o atleta derruba pilhas, chuta nos minigols e arremessa no alvo do trilho"></canvas>
 <div class="loading" id="loading">Preparando a estação…</div>
 
 <div id="ui">
@@ -182,8 +182,8 @@ const DEC = PREVIA ? DRILL.DECISAO_QUADROS : (TAPE.decisao || 1);
 const TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
 const R = DRILL.PRECISION, DOM = { 1: 11, 2: 6, 3: 8 };
-const NIVEIS = { 1: 'Derrubar', 2: 'Paredão', 3: 'Alvo deslizante' };
-const NIVEL_TXT = { 1: 'Três pilhas de garrafões pelo campo. A bola cai perto do atleta: ele busca, chuta e derruba. A pilha é montada em outro lugar.', 2: 'A máquina solta a bola em qualquer lugar: o atleta busca e chuta no painel aceso da parede, antes que apague.', 3: 'Agora é com a mão: pega a bola e arremessa no alvo que corre no trilho. Tem que mirar à frente dele.' };
+const NIVEIS = { 1: 'Derrubar', 2: 'Minigols', 3: 'Alvo deslizante' };
+const NIVEL_TXT = { 1: 'Três pilhas de garrafões pelo campo. A bola cai perto do atleta: ele busca, chuta e derruba. A pilha é montada em outro lugar.', 2: 'Quatro minigols no fundo, só um vale por vez (luz acesa em cima). A máquina solta a bola em qualquer lugar: o atleta busca e chuta no gol que vale antes do tempo acabar.', 3: 'Agora é com a mão: pega a bola e arremessa no alvo que corre no trilho. Tem que mirar à frente dele.' };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmtN = n => n.toLocaleString('pt-BR');
 const fmtMin = m => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
@@ -293,15 +293,25 @@ const wall = new THREE.Mesh(new THREE.BoxGeometry(HX * 2 + 1.2, WALL_H, .5), new
 wall.position.set(0, WALL_H / 2, -HZ - .25); wall.castShadow = true; wall.receiveShadow = true; scene.add(wall);
 const wallTop = new THREE.Mesh(new THREE.BoxGeometry(HX * 2 + 1.25, .35, .52), new THREE.MeshStandardMaterial({ color: 0x1f7a4d, roughness: .7 }));
 wallTop.position.set(0, WALL_H - .17, -HZ - .25); scene.add(wallTop);
-// painéis de luz (nível 2)
-const PAN = R.paineis.map(x => {
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(R.painelMeio * 2 + .16, 1.46, .1), new THREE.MeshStandardMaterial({ color: 0x2a2d35, roughness: .6 }));
-  frame.position.set(x, 1.35, -HZ + .02); scene.add(frame);
+// minigols (nível 2): traves brancas, rede, luz em cima do gol que vale e barra no chão com o tempo que falta
+const ZG = -HZ + R.golFundo, GW = R.golMeio, GH = 1.05, GD = R.golFundo - .05;
+const redeTex = canvasTex((x, w, h) => { x.clearRect(0, 0, w, h); x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 2; for (let i = 0; i <= 8; i++) { x.beginPath(); x.moveTo(i * w / 8, 0); x.lineTo(i * w / 8, h); x.moveTo(0, i * h / 8); x.lineTo(w, i * h / 8); x.stroke(); } }, 64, 64);
+redeTex.wrapS = redeTex.wrapT = THREE.RepeatWrapping;
+const traveMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: .4 });
+const GOLS = R.gols.map(x => {
+  const g = new THREE.Group(); g.position.set(x, 0, ZG); scene.add(g);
+  const poste = (px, pz, h) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, h, 10), traveMat); m.position.set(px, h / 2, pz); m.castShadow = true; g.add(m); return m; };
+  const postes = [poste(-GW, 0, GH), poste(GW, 0, GH)]; poste(-GW, -GD, GH * .8); poste(GW, -GD, GH * .8);
+  const trav = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, GW * 2, 10), traveMat); trav.rotation.z = Math.PI / 2; trav.position.y = GH; trav.castShadow = true; g.add(trav);
+  const redeMat = new THREE.MeshBasicMaterial({ map: redeTex, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+  const fundo = new THREE.Mesh(new THREE.PlaneGeometry(GW * 2, GH * .8), redeMat); fundo.position.set(0, GH * .4, -GD); g.add(fundo);
+  const teto = new THREE.Mesh(new THREE.PlaneGeometry(GW * 2, Math.hypot(GD, GH * .2)), redeMat); teto.rotation.x = -Math.PI / 2 + Math.atan2(GH * .2, GD); teto.position.set(0, GH * .9, -GD / 2); g.add(teto);
+  for (const sx of [-1, 1]) { const lado = new THREE.Mesh(new THREE.PlaneGeometry(GD, GH * .9), redeMat); lado.rotation.y = Math.PI / 2; lado.position.set(sx * GW, GH * .45, -GD / 2); g.add(lado); }
+  // luz em cima da trave e barra do tempo no chão
   const mat = new THREE.MeshStandardMaterial({ color: 0x3a3e48, emissive: new THREE.Color(0), roughness: .4 });
-  const face = new THREE.Mesh(new THREE.BoxGeometry(R.painelMeio * 2, 1.3, .06), mat); face.position.set(x, 1.35, -HZ + .08); scene.add(face);
-  const bar = new THREE.Mesh(new THREE.PlaneGeometry(R.painelMeio * 2, .1), new THREE.MeshBasicMaterial({ color: 0xf2c230 }));
-  bar.position.set(x, .52, -HZ + .12); scene.add(bar);
-  return { x, frame, face, mat, bar, fx: 0 };
+  const luz = new THREE.Mesh(new THREE.BoxGeometry(GW * 1.2, .12, .12), mat); luz.position.set(0, GH + .14, 0); g.add(luz);
+  const bar = new THREE.Mesh(new THREE.PlaneGeometry(GW * 2, .14), new THREE.MeshBasicMaterial({ color: 0xf2c230 })); bar.rotation.x = -Math.PI / 2; bar.position.set(0, .07, .35); g.add(bar);
+  return { x, g, postes, fundo, mat, luz, bar, fx: 0, rede: 0 };
 });
 // trilho com o alvo deslizante (nível 3)
 const TRILHO = new THREE.Group(); scene.add(TRILHO);
@@ -341,7 +351,7 @@ function updateVoando(dt) {
 /* marca no chão onde a máquina soltou a bola */
 const ringBola = new THREE.Mesh(new THREE.RingGeometry(.42, .52, 32), new THREE.MeshBasicMaterial({ color: 0xf2c230, transparent: true, depthWrite: false }));
 ringBola.rotation.x = -Math.PI / 2; ringBola.position.y = .07; ringBola.visible = false; scene.add(ringBola);
-function mostrarNivel(n) { LINHA.visible = n > 1; TRILHO.visible = n === 3; for (const p of PAN) p.bar.visible = n === 2; for (const p of PILHAS) p.g.visible = n === 1; }
+function mostrarNivel(n) { LINHA.visible = n > 1; TRILHO.visible = n === 3; for (const p of GOLS) p.g.visible = n === 2; for (const p of PILHAS) p.g.visible = n === 1; }
 
 /* =========================================================
    Atleta
@@ -459,11 +469,14 @@ class Station {
         this.celebrate = .7; this.hitNow = true;
         if (this.main) {
           if (e.nivel === 1) { derrubar(ev.x, ev.z, e.ball.vx, e.ball.vz); const P = PILHAS[ev.target]; if (P) P.grow = 0; }
-          else if (e.nivel === 2) { const p = PAN[ev.target]; p.fx = 1; burst(ev.x, 1.35, -HZ + .3, 0xf2c230, 22, 3, 3); burst(ev.x, 1.35, -HZ + .3, 0xffffff, 10, 2.4, 3); }
+          else if (e.nivel === 2) { const p = GOLS[ev.target]; p.fx = 1; p.rede = 1; burst(ev.x, .6, ZG - .3, 0x22c55e, 22, 3, 3); burst(ev.x, .6, ZG - .3, 0xffffff, 10, 2.4, 3); }
           else { burst(ev.x, 1.4, -HZ + .4, 0xe23b3b, 22, 3, 3); burst(ev.x, 1.4, -HZ + .4, 0xffffff, 10, 2.4, 3); }
         }
       } else if (ev.type === 'miss') {
-        if (this.main) burst(ev.x, ev.parede ? 1 : .2, ev.z + (ev.parede ? .3 : 0), 0xb8bcc4, 8, 1.2, 1.5, 6, .5);
+        if (this.main) {
+          if (ev.gol !== undefined && GOLS[ev.gol]) { if (!ev.trave) GOLS[ev.gol].rede = .7; burst(ev.x, ev.trave ? .8 : .4, ev.z, ev.trave ? 0xffffff : 0x8a8f99, 8, 1.4, 1.5, 6, .5); }
+          else burst(ev.x, ev.parede ? 1 : .2, ev.z + (ev.parede ? .3 : 0), 0xb8bcc4, 8, 1.2, 1.5, 6, .5);
+        }
       } else if (ev.type === 'ball') { this.queda = 1; }
       else if (ev.type === 'spawn' && this.main && e.nivel === 1) { const P = PILHAS[ev.target]; if (P) P.grow = 0; }
     }
@@ -508,12 +521,14 @@ class Station {
         P.g.scale.setScalar(Math.max(.001, eb));
       });
     }
-    // painéis: o aceso brilha e a barra embaixo encolhe com o tempo que falta
-    PAN.forEach((p, i) => {
-      const aceso = e.nivel === 2 && e.painel === i && e.painelOn > 0;
-      if (p.fx > 0) { p.fx -= dt * 2; p.mat.color.set(0xfff6d6); p.mat.emissive.set(0xf2c230).multiplyScalar(p.fx * 1.4); p.face.position.z = -HZ + .08 - Math.sin(p.fx * Math.PI) * .06; }
-      else if (aceso) { const f = e.painelOn / R.lit, pulse = .75 + .25 * Math.sin(time * 9); p.mat.color.set(0x22c55e); p.mat.emissive.set(0x22c55e).multiplyScalar(.8 * pulse); p.bar.scale.x = Math.max(.01, f); p.bar.material.color.set(f < .3 ? 0xe23b3b : 0xf2c230); p.face.position.z = -HZ + .08; }
-      else { p.mat.color.set(0x3a3e48); p.mat.emissive.setScalar(0); p.bar.scale.x = .01; p.face.position.z = -HZ + .08; }
+    // minigols: o que vale acende a luz em cima e a barra no chão encolhe com o tempo; a rede estufa no gol
+    GOLS.forEach((p, i) => {
+      const vale = e.nivel === 2 && e.gol === i && e.golOn > 0;
+      if (p.rede > 0) p.rede = Math.max(0, p.rede - dt * 2.5);
+      p.fundo.position.z = -GD - Math.sin(p.rede * Math.PI) * .35;
+      if (p.fx > 0) { p.fx -= dt * 2; p.mat.color.set(0xfff6d6); p.mat.emissive.set(0x22c55e).multiplyScalar(p.fx * 1.6); p.bar.scale.x = .01; }
+      else if (vale) { const f = e.golOn / R.lit, pulse = .75 + .25 * Math.sin(time * 9); p.mat.color.set(0x22c55e); p.mat.emissive.set(0x22c55e).multiplyScalar(.9 * pulse); p.bar.scale.x = Math.max(.01, f); p.bar.material.color.set(f < .3 ? 0xe23b3b : 0xf2c230); }
+      else { p.mat.color.set(0x3a3e48); p.mat.emissive.setScalar(0); p.bar.scale.x = .01; }
     });
     if (e.nivel === 3) ALVO.position.x = e.alvo.x;
   }

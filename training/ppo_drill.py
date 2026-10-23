@@ -125,7 +125,7 @@ def main():
     ap.add_argument("--nivel", type=int, default=1, help="nível inicial (para testes; a fita oficial começa no 1)")
     ap.add_argument("--after", type=int, default=60, help="atualizações extras depois de dominar o último nível")
     ap.add_argument("--retomar", default=None, help="checkpoints.json de um treino anterior: continua da última foto, no nível dela, "
-                    "por --minutes, sem subir de nível nem parar no domínio; as fotos novas entram na mesma lista")
+                    "por --minutes; sobe de nível ao dominar (no último nível só treina mais); as fotos novas entram na mesma lista")
     ap.add_argument("--aquecer", type=int, default=30, help="ao retomar: atualizações só do crítico antes de mexer no ator "
                     "(o crítico não é guardado nas fotos e começa do zero)")
     args = ap.parse_args()
@@ -210,7 +210,8 @@ def main():
                 rate = sum(e["hits"] for e in w) / max(1, sum(e["lights"] for e in w))
             reds = float(np.mean([e.get("reds", 0) for e in w])) if w else 0.0
             row.update(nivel=nivel, rate=round(rate, 3), reds=round(reds, 2))
-            if not args.retomar and mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
+            # retomando no último nível: só treina mais (não para no domínio); nos outros, sobe de nível como sempre
+            if not (args.retomar and nivel == max(dominio)) and mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
                 print(f"domínio do nível {nivel}: {f'{rate:.1f} acertos' if thr > 1 else f'{rate:.1%} das luzes'}, {reds:.2f} vermelhas, {episodes} tentativas", flush=True)
                 row["dominio"] = nivel
                 if nivel < max(dominio):

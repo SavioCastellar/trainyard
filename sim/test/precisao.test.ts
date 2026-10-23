@@ -34,7 +34,7 @@ test('precisão: mesma semente e mesmas ações geram a mesma tentativa, nos 3 n
   }
 });
 
-test('precisão: nível 1 tem 3 pilhas; nível 2 acende um painel por vez; nível 3 move o alvo no trilho e pede a bola na mão', () => {
+test('precisão: nível 1 tem 3 pilhas; nível 2 tem um minigol valendo por vez; nível 3 move o alvo no trilho e pede a bola na mão', () => {
   const e1 = new PrecisionDrill(5, false, 1); assert.equal(e1.alvos().length, 3);
   const e2 = joga(5, 2, mira()); assert.ok(e2.events!.filter(ev => ev.type === 'on').length >= 5);
   const e3 = new PrecisionDrill(5, false, 3), x0 = e3.alvo.x;

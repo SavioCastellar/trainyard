@@ -10,22 +10,22 @@ nível é uma estação diferente, e o nível 3 é com a mão, para não ser um 
 - **Por que é divertido de assistir:**
   - Nível 1: no começo nem acha a bola; depois corre até ela, vira para a pilha e derruba os garrafões, que voam.
     (Na primeira prévia a bola saía do pé, do nada; o Savio achou que parecia um "poder" e pediu a máquina também aqui.)
-  - Nível 2: aprende a correr até a bola que a máquina solta, se ajeitar e acertar o painel aceso antes de
-    apagar (o painel acende, pisca e estoura em luz no acerto).
+  - Nível 2: aprende a correr até a bola que a máquina solta, se ajeitar e chutar no minigol que vale (luz acesa
+    em cima) antes do tempo acabar; a rede estufa no gol.
   - Nível 3: troca o pé pela mão. Aprende a pegar a bola e arremessar **à frente** do alvo que corre no trilho.
 
 ## Níveis (fita treinada uma vez, subindo de nível quando o atleta domina o atual)
 | Nível | Estação | Domínio (acertos por tentativa) |
 |---|---|---|
 | 1 · Derrubar | 3 pilhas de 6 garrafões espalhadas pelo campo. A máquina solta a bola a 1,2–2,5 m do atleta; ele busca e chuta; derrubou, a pilha é montada em outro lugar | **11** |
-| 2 · Paredão | parede no fundo com 6 painéis; só um aceso por vez, por 4 s (pausa de 0,35 s). A máquina solta a bola parada num ponto sorteado; o atleta vai até ela e chuta no painel aceso. Bola em painel apagado não conta | **6** |
+| 2 · Minigols | 4 minigols (2,5 de boca) na linha do fundo; só um vale por vez, por 4 s (o tempo para com a bola no ar). A máquina solta a bola parada num ponto sorteado; o atleta vai até ela e chuta no gol que vale. Gol nos outros não vale; na trave a bola volta | **6** |
 | 3 · Alvo deslizante | um alvo corre num trilho ao longo da parede (de −7,5 a +7,5, 2,4/s, volta nas pontas). O atleta pega a bola com a mão e **arremessa** | **8** |
 
 **Medido com o piloto escrito à mão** (`pilotoPrecisao`, 60 tentativas), acertos / lançamentos por tentativa:
 | Nível | Aleatório | Piloto sem o comportamento do nível | Piloto com |
 |---|---|---|---|
 | 1 | 0,1 / 0 | — | 13,8 / 14 |
-| 2 | 0 (nunca chega na bola) | — | 7,4 / 9 |
+| 2 | 0 (nunca chega na bola) | — | 8,3 / 9 |
 | 3 | 0 | 0,6 / 10 (mira onde o alvo está) | 9,1 / 10 (mira à frente) |
 
 Os pilotos dos níveis 1 e 2 são lentos: param atrás da bola antes de chutar. O atleta pode chutar sem parar (o chute
@@ -38,6 +38,13 @@ precisa estar virado até 60° para ela); (3) a observação dá quanto o alvo f
 que é o que o ajuste fino corrige; (4) as pilhas vêm da mais perto para a mais longe; (5) a bola cai mais
 perto (1,2–2,5 m) e o alcance do chute é 1,1. Com isso, em 5 min: 3,3 acertos e subindo, erro mediano de 17°.
 
+**Treino de 2026-10-21 (120 min, computador do Savio) e a troca por minigols (2026-10-23):** o nível 1
+foi dominado em 19 min; no nível 2 (ainda painéis na parede) o atleta ficou 100 min subindo de 2 para 4,9
+(meta 6). Ele já buscava a bola e chutava ~9 vezes, mas errava metade: ~1,3 por tentativa porque o painel
+apagava com a bola no ar e ~2,7 de mira (5–10° fora, chutando de 7 a 14 m num painel de 1,8). O Savio
+pediu minigols no lugar dos painéis; com boca de 2,5 e o tempo parando com a bola no ar, retomando o
+cérebro do nível 2 o atleta passou para 5,7 em 3 min (teste na nuvem) e dominou o nível.
+
 ## Medidas (unidades da simulação ≈ metros; fonte: `sim/src/drills/precision.ts`)
 | Coisa | Medida |
 |---|---|
@@ -48,7 +55,7 @@ perto (1,2–2,5 m) e o alcance do chute é 1,1. Com isso, em 5 min: 3,3 acertos
 | Lançar | na direção escolhida com ajuste fino de −10°, −5°, 0, +5° ou +10°; erro pequeno; só quase parado (< 1,2 m/s) e com o corpo virado até 60° para essa direção. Níveis 1 e 2: só encostado na bola (até 1,1), de 0,9 em 0,9 s. Nível 3: só com a bola na mão (pega encostando, até 0,8) |
 | Máquina | solta a próxima bola 0,6 s depois do lançamento. Nível 1: a 1,2–2,5 m do atleta, longe das pilhas. Níveis 2 e 3: em x de −7 a 7 e z de −0,5 a 6, longe do atleta |
 | Pilhas (nível 1) | raio 0,6; aparecem longe do atleta e entre si |
-| Painéis (nível 2) | centros em x = −7,5, −4,5, −1,5, 1,5, 4,5, 7,5; 1,8 de largura |
+| Minigols (nível 2) | centros em x = −6, −2, 2, 6; linha do gol a 0,8 da parede; boca de 2,5 (trave de 0,1 de cada lado) |
 | Alvo do trilho (nível 3) | raio 0,75 |
 | Decisões | `[direção 16, ritmo 3, lançar 6]` a cada 8 quadros; lançar 0 = não, 1–5 = ajuste fino |
 | Observação (106) | pode lançar, velocidade e direção do corpo, posição no campo, qual estação, bola na mão; a bola a buscar (posição relativa, distância, direção "no idioma das ações"); até 3 alvos vistos de onde a bola vai sair, do mais perto para o mais longe (aceso, posição, distância, quanto o alvo foge da direção de 22,5° mais perto, se o corpo está virado para ele, tempo aceso, velocidade, direção "no idioma das ações") |

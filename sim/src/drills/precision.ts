@@ -4,8 +4,9 @@
  *
  * 1 · Derrubar: 3 pilhas de garrafões espalhadas pelo campo. A máquina solta a bola perto do atleta (2 a 4 m);
  *     ele vai até ela, chuta e derruba a pilha; ela é montada de novo em outro lugar.
- * 2 · Paredão: uma parede no fundo do campo com 6 painéis; só um fica aceso por vez, e por pouco tempo.
- *     Uma máquina solta a bola num ponto sorteado: o atleta corre até ela e chuta no painel aceso.
+ * 2 · Minigols: 4 minigols na linha do fundo; só um vale por vez (luz acesa em cima), por pouco tempo. Uma
+ *     máquina solta a bola num ponto sorteado: o atleta corre até ela e chuta no gol que vale. Com a bola no ar,
+ *     o tempo do gol para (não troca de gol com a bola a caminho). Gol nos outros não vale.
  * 3 · Alvo deslizante: um alvo corre num trilho ao longo da parede, de uma ponta à outra. O atleta pega a bola
  *     com a mão e ARREMESSA (para não ser um treino só de futebol); é preciso mirar à frente do alvo.
  *
@@ -59,9 +60,13 @@ export const PRECISION = {
   alcance: 1.1,
   pegar: 0.8,
   respawn: 0.6,
-  /** nível 2: painéis na parede (centros em x) e meia-largura; tempo aceso e pausa até o próximo */
-  paineis: [-7.5, -4.5, -1.5, 1.5, 4.5, 7.5],
-  painelMeio: 0.9,
+  /** nível 2: minigols na linha do fundo (centros em x) e meia-boca (até a trave); tempo valendo e pausa até o
+   *  próximo. Eram 6 painéis de 1,8 na parede: o atleta errava metade, um terço porque o painel apagava com a bola no ar */
+  gols: [-6, -2, 2, 6],
+  golMeio: 1.25,
+  golFundo: 0.8,
+  /** trave: a bola que passa a menos disto do poste bate e volta */
+  trave: 0.1,
   lit: 4.0,
   dark: 0.35,
   /** nível 3: arremesso (velocidade da mão; soma o embalo do corpo) e alvo no trilho */
@@ -84,13 +89,13 @@ export const PRECISION_DOMINIO: Record<Nivel, number> = { 1: 11, 2: 6, 3: 8 };
 export type PrecisionEvent =
   | { type: 'kick'; t: number; x: number; z: number; h: number; mao: boolean }
   | { type: 'hit'; t: number; target: number; x: number; z: number }
-  | { type: 'miss'; t: number; x: number; z: number; parede: boolean }
+  | { type: 'miss'; t: number; x: number; z: number; parede: boolean; gol?: number; trave?: boolean }
   | { type: 'spawn'; t: number; target: number; x: number; z: number }
   | { type: 'ball'; t: number; x: number; z: number }
   | { type: 'pick'; t: number }
   | { type: 'on'; t: number; target: number };
 
-/** alvo genérico: pilha (nível 1), painel aceso (nível 2) ou alvo do trilho (nível 3) */
+/** alvo genérico: pilha (nível 1), gol que vale (nível 2) ou alvo do trilho (nível 3) */
 export interface Target { x: number; z: number; on: number; vx: number }
 
 export class PrecisionDrill {
@@ -111,10 +116,10 @@ export class PrecisionDrill {
   naMao = false;
   /** nível 1: as pilhas */
   pilhas: Target[] = [];
-  /** nível 2: painel aceso (−1 = nenhum), tempo aceso restante e pausa até o próximo */
-  painel = -1;
-  painelOn = 0;
-  painelOff = 0;
+  /** nível 2: gol que vale (−1 = nenhum), tempo restante e pausa até o próximo */
+  gol = -1;
+  golOn = 0;
+  golOff = 0;
   /** nível 3: posição e sentido do alvo no trilho */
   alvo = { x: 0, dir: 1 };
   events: PrecisionEvent[] | null;
@@ -172,19 +177,19 @@ export class PrecisionDrill {
   }
 
   private acender() {
-    const n = PRECISION.paineis.length;
-    let k = this.rng.int(n - (this.painel >= 0 ? 1 : 0));
-    if (this.painel >= 0 && k >= this.painel) k++;
-    this.painel = k; this.painelOn = PRECISION.lit; this.painelOff = 0;
+    const n = PRECISION.gols.length;
+    let k = this.rng.int(n - (this.gol >= 0 ? 1 : 0));
+    if (this.gol >= 0 && k >= this.gol) k++;
+    this.gol = k; this.golOn = PRECISION.lit; this.golOff = 0;
     this.events?.push({ type: 'on', t: this.t, target: k });
   }
 
-  /** alvos como o atleta os vê (até 3): pilhas, o painel aceso ou o alvo do trilho */
+  /** alvos como o atleta os vê (até 3): pilhas, o gol que vale ou o alvo do trilho */
   alvos(): Target[] {
     const P = PRECISION;
     // pilhas da mais perto para a mais longe (de onde a bola vai sair): o primeiro alvo é sempre o mais fácil
     if (this.nivel === 1) { const O = this.origem(); return [...this.pilhas].sort((p, q) => Math.hypot(p.x - O.x, p.z - O.z) - Math.hypot(q.x - O.x, q.z - O.z)); }
-    if (this.nivel === 2) return this.painel >= 0 && this.painelOn > 0 ? [{ x: P.paineis[this.painel], z: -P.hz, on: this.painelOn, vx: 0 }] : [];
+    if (this.nivel === 2) return this.gol >= 0 && this.golOn > 0 ? [{ x: P.gols[this.gol], z: -P.hz + P.golFundo, on: this.golOn, vx: 0 }] : [];
     return [{ x: this.alvo.x, z: -P.hz, on: Infinity, vx: this.alvo.dir * P.alvoVel }];
   }
 
@@ -269,10 +274,10 @@ export class PrecisionDrill {
       S.espera += dt;
       if (S.espera >= P.respawn) this.soltarBola();
     }
-    // painéis (nível 2) e alvo do trilho (nível 3)
+    // gols (nível 2; o tempo para com a bola no ar) e alvo do trilho (nível 3)
     if (this.nivel === 2) {
-      if (this.painelOn > 0) { this.painelOn -= dt; if (this.painelOn <= 0) this.painelOff = P.dark; }
-      else if ((this.painelOff -= dt) <= 0) this.acender();
+      if (this.golOn > 0) { if (!B.live) this.golOn -= dt; if (this.golOn <= 0) this.golOff = P.dark; }
+      else if ((this.golOff -= dt) <= 0) this.acender();
     } else if (this.nivel === 3) {
       const A = this.alvo; A.x += A.dir * P.alvoVel * dt;
       if (A.x > P.trilho) { A.x = 2 * P.trilho - A.x; A.dir = -1; } else if (A.x < -P.trilho) { A.x = -2 * P.trilho - A.x; A.dir = 1; }
@@ -281,7 +286,7 @@ export class PrecisionDrill {
     if (this.t >= P.maxTime) this.done = true;
   }
 
-  /** bola em movimento: rola com atrito (chute) ou voa reto (arremesso); acerta pilha, painel ou alvo do trilho */
+  /** bola em movimento: rola com atrito (chute) ou voa reto (arremesso); acerta pilha, gol ou alvo do trilho */
   private voar() {
     const P = PRECISION, dt = P.dt, B = this.ball;
     if (!B.mao) { const f = Math.exp(-P.ballFriction * dt); B.vx *= f; B.vz *= f; }
@@ -296,13 +301,21 @@ export class PrecisionDrill {
           }
         }
       }
-      if (B.z <= -P.hz + P.ballR) {
-        // chegou na parede (no nível 1 ela fica apagada no fundo)
-        B.z = -P.hz + P.ballR;
-        if (this.nivel === 2 && this.painelOn > 0 && Math.abs(B.x - P.paineis[this.painel]) < P.painelMeio + P.ballR) {
-          const k = this.painel; this.acerto(k, P.paineis[k], -P.hz);
-          this.painelOn = 0; this.painelOff = P.dark; return;
+      if (this.nivel === 2 && B.z <= -P.hz + P.golFundo + P.ballR) {
+        // chegou na linha dos minigols: na trave volta; dentro do gol que vale é gol; nos outros bate na rede e não vale
+        const zg = -P.hz + P.golFundo;
+        for (let k = 0; k < P.gols.length; k++) {
+          const dx = Math.abs(B.x - P.gols[k]);
+          if (Math.abs(dx - P.golMeio) < P.trave) { B.live = false; this.events?.push({ type: 'miss', t: this.t, x: B.x, z: zg, parede: false, gol: k, trave: true }); return; }
+          if (dx < P.golMeio - P.trave) {
+            if (k === this.gol && this.golOn > 0) { this.acerto(k, P.gols[k], zg); this.golOn = 0; this.golOff = P.dark; return; }
+            B.live = false; this.events?.push({ type: 'miss', t: this.t, x: B.x, z: zg, parede: false, gol: k }); return;
+          }
         }
+      }
+      if (B.z <= -P.hz + P.ballR) {
+        // chegou na parede
+        B.z = -P.hz + P.ballR;
         if (this.nivel === 3 && Math.abs(B.x - this.alvo.x) < P.alvoR + P.ballR) { this.acerto(0, this.alvo.x, -P.hz); return; }
         B.live = false; this.events?.push({ type: 'miss', t: this.t, x: B.x, z: B.z, parede: true }); return;
       }

@@ -85,10 +85,10 @@ const DRILLS: Record<string, DrillTape> = {
       add(at(1, e => e.kicks < picked[0].kicks * 0.9 && e.acc > 0.3), 'Parou de chutar a esmo: agora espera a mira ficar boa.');
       add(fim(1), `Domínio do nível 1: ${D[1]} pilhas derrubadas por tentativa.`);
       const l2 = at(2, () => true);
-      add(l2, 'Nível 2 · Paredão: a máquina solta a bola em qualquer lugar do campo. Tem que buscar a bola e chutar no painel aceso.', 2);
+      add(l2, 'Nível 2 · Minigols: só um dos quatro vale por vez. A máquina solta a bola em qualquer lugar do campo; tem que buscar e chutar no gol que vale.', 2);
       if (l2 >= 0) add(at(2, e => e.kicks >= picked[l2].kicks + 2), 'Aprendeu a correr até a bola.');
-      add(at(2, e => e.hits >= D[2] - 2), 'Começou a chutar no painel aceso, e não em qualquer lugar da parede.');
-      add(fim(2), `Domínio do nível 2: ${String(D[2]).replace('.', ',')} painéis por tentativa.`);
+      add(at(2, e => e.hits >= D[2] - 2), 'Começou a chutar no gol que vale, e não em qualquer um.');
+      add(fim(2), `Domínio do nível 2: ${String(D[2]).replace('.', ',')} gols por tentativa.`);
       add(at(3, () => true), 'Nível 3 · Alvo deslizante: agora é arremesso, com a mão. O alvo corre num trilho ao longo da parede.', 3);
       add(at(3, e => e.hits >= D[3] - 3), 'Começou a arremessar à frente do alvo, onde ele vai estar.');
       add(fim(3), `Domínio do nível 3: ${D[3]} acertos por tentativa no alvo em movimento.`);
