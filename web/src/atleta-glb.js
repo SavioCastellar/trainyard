@@ -62,6 +62,11 @@ function buildAtletaGLB(modelo, p, o = {}) {
   const cena = THREE_SkeletonUtils.clone(modelo.gltf.scene);
   root.add(cena);
   const cor = c => new THREE.Color(c);
+  // cabelos: cascas da cabeça (curto, volume/afro, moicano; coque e boné usam a curta) e cabelos de fora encaixados
+  // pelo preparar.py (franja, chanel); se o modelo não tiver o estilo pedido, fica o curto
+  let estilo = { curto: 'cabelo_curto', coque: 'cabelo_curto', bone: 'cabelo_curto', afro: 'cabelo_volume', moicano: 'cabelo_moicano', franja: 'cabelo_franja', chanel: 'cabelo_chanel' }[p.hair] || 'cabelo_curto';
+  let tem = false; cena.traverse(m => { if (m.isMesh && m.name.startsWith(estilo)) tem = true; });
+  if (!tem) estilo = 'cabelo_curto';
   cena.traverse(m => {
     if (!m.isMesh) return;
     m.castShadow = true; m.frustumCulled = false;
@@ -70,12 +75,13 @@ function buildAtletaGLB(modelo, p, o = {}) {
     if (/corpo/.test(m.name)) m.material.color = cor(p.skin);
     else if (/camisa/.test(m.name)) m.material.color = cor(p.team.p);
     else if (/short/.test(m.name)) m.material.color = cor(p.team.s === '#f4f1e8' ? darker(p.team.p, .55) : p.team.s);
+    else if (/sola/.test(m.name)) m.material.color = cor(darker(p.team.p, .7));
     else if (/tenis/.test(m.name)) m.material.color = cor('#f4f4f2');
     else if (/cabelo/.test(m.name)) {
-      // cabelos são cascas da cabeça (preparar.py): curto, volume (afro) e moicano; o boné usa a casca curta na cor do time
-      const estilo = { curto: 'cabelo_curto', coque: 'cabelo_curto', bone: 'cabelo_curto', afro: 'cabelo_volume', moicano: 'cabelo_moicano' }[p.hair] || 'cabelo_curto';
+      // o boné usa a casca curta na cor do time; o prendedor do chanel vai na cor principal do time
       m.visible = m.name.startsWith(estilo);
-      m.material.color = cor(p.hair === 'bone' ? p.team.s : p.hairColor); m.material.roughness = p.hair === 'bone' ? .6 : .9;
+      if (/prendedor/.test(m.name)) { m.material.color = cor(p.team.p); m.material.roughness = .5; }
+      else { m.material.color = cor(p.hair === 'bone' ? p.team.s : p.hairColor); m.material.roughness = p.hair === 'bone' ? .6 : .9; }
     }
     m.material.needsUpdate = true;
   });

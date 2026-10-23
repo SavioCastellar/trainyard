@@ -1,0 +1,537 @@
+<meta charset="utf-8">
+<title>Biblioteca do atleta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Layout: bancada de inspeção. Painel de fichas à esquerda (abas Estrutura, Guarda-roupa, Ficha), palco 3D à direita; no celular o palco vem em cima */
+  :root {
+    --bg: #eceff2; --panel: #f8f9fa; --ink: #1d2027; --muted: #5d6270; --line: #d6dbe1; --chip: #e3e7ec;
+    --accent: #1f8a4f; --accent-ink: #ffffff; --stage: #d3d9df; --floor: #b9c2cb;
+    --anim: #1f8a4f; --parado: #b86e0a; --ponta: #7d8492; --plan: #6a55b8; --peso0: #8e98a4; --peso1: #f0540c;
+    --display: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #15181d; --panel: #1d2128; --ink: #e8eaee; --muted: #9aa1ae; --line: #313743; --chip: #2a303a;
+    --accent: #3dbb76; --accent-ink: #0d1a12; --stage: #262b33; --floor: #333a44;
+    --anim: #4cc584; --parado: #e09a3a; --ponta: #8d94a2; --plan: #9d8ae6; --peso0: #5d6672; --peso1: #ff6a1f; color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --bg: #15181d; --panel: #1d2128; --ink: #e8eaee; --muted: #9aa1ae; --line: #313743; --chip: #2a303a;
+    --accent: #3dbb76; --accent-ink: #0d1a12; --stage: #262b33; --floor: #333a44;
+    --anim: #4cc584; --parado: #e09a3a; --ponta: #8d94a2; --plan: #9d8ae6; --peso0: #5d6672; --peso1: #ff6a1f; color-scheme: dark }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--display); }
+  .app { display: grid; grid-template-columns: minmax(340px, 400px) 1fr; height: 100%; }
+  .lado { background: var(--panel); border-right: 1px solid var(--line); overflow: auto; min-width: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; padding-block: 16px 24px; }
+  .palco { position: relative; min-width: 0; background: var(--stage); }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  header .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { margin: 2px 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
+  header p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; max-width: 60ch; }
+  .abas { display: flex; gap: 4px; margin: 14px 0 12px; border-bottom: 1px solid var(--line); }
+  .abas button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 10px; color: var(--muted); font-size: 13.5px; }
+  .abas button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  button { font: 600 12.5px/1 var(--display); color: var(--ink); background: var(--chip); border: 0; border-radius: 8px; padding: 7px 9px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+  button:focus-visible, .card:focus-visible, .osso:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin: 18px 0 8px; }
+  h2:first-child { margin-top: 4px; }
+  .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .resumo div { background: var(--bg); border-radius: 10px; padding: 9px 10px; }
+  .resumo b { display: block; font: 700 20px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+  .resumo span { font-size: 11.5px; color: var(--muted); }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font: 600 10.5px/1 var(--display); letter-spacing: .03em; padding: 4px 7px; border-radius: 99px; white-space: nowrap; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+  .st-anim { color: var(--anim); background: color-mix(in srgb, var(--anim) 14%, transparent); }
+  .st-parado { color: var(--parado); background: color-mix(in srgb, var(--parado) 14%, transparent); }
+  .st-ponta { color: var(--ponta); background: color-mix(in srgb, var(--ponta) 16%, transparent); }
+  .st-plan { color: var(--plan); background: color-mix(in srgb, var(--plan) 14%, transparent); }
+  .st-ok { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .legenda { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+  .arvore { display: flex; flex-direction: column; gap: 1px; }
+  .osso { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; background: none; text-align: left; font-weight: 400; }
+  .osso:hover { background: var(--bg); }
+  .osso[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); color: var(--ink); }
+  .osso .nome { font-size: 13px; font-weight: 600; min-width: 0; }
+  .osso .orig { display: block; font: 500 10.5px/1.3 var(--mono); color: var(--muted); }
+  .detalhe { background: var(--bg); border-radius: 12px; padding: 12px; margin-top: 10px; }
+  .detalhe h3 { margin: 0 0 2px; font-size: 16px; }
+  .detalhe p { margin: 4px 0 8px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .eixo { display: grid; grid-template-columns: 70px 1fr 44px; align-items: center; gap: 8px; font-size: 12px; margin-top: 6px; }
+  .eixo output { font: 500 12px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .malhas { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .malhas td { padding: 7px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+  .malhas td:last-child { text-align: right; font: 500 12px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .malhas small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .malhas input { accent-color: var(--accent); margin: 0; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; }
+  .card { background: var(--bg); border: 1px solid transparent; border-radius: 12px; padding: 6px 6px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; text-align: left; font-weight: 400; color: var(--ink); }
+  .card[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); color: var(--ink); }
+  .card .mini { aspect-ratio: 1; max-width: 100%; border-radius: 8px; background: var(--stage); display: grid; place-items: center; overflow: hidden; }
+  .card .mini img { width: 100%; height: 100%; object-fit: cover; }
+  .card .mini .cor { width: 54%; height: 54%; border-radius: 99px; }
+  .card b { font-size: 12.5px; font-weight: 600; }
+  .card.plan { cursor: default; border: 1px dashed var(--line); background: none; }
+  .card.plan .mini { background: none; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; text-align: center; padding: 6px; line-height: 1.3; }
+  .ficha { display: grid; grid-template-columns: 130px 1fr; gap: 0; font-size: 13px; margin: 0; }
+  .ficha dt, .ficha dd { padding: 8px 0; border-top: 1px solid var(--line); margin: 0; line-height: 1.4; }
+  .ficha dt { color: var(--muted); padding-right: 10px; }
+  .ficha dd { min-width: 0; overflow-wrap: anywhere; }
+  .ficha code, .pend code { font: 500 11.5px var(--mono); background: var(--chip); padding: 1px 4px; border-radius: 4px; }
+  .pend { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+  .ferramentas { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none; }
+  .grupo { display: flex; gap: 3px; background: color-mix(in srgb, var(--panel) 88%, transparent); padding: 4px; border-radius: 11px; box-shadow: 0 4px 14px rgba(0,0,0,.08); pointer-events: auto; }
+  .grupo button { background: none; }
+  .grupo button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+  .rodape { position: absolute; left: 12px; bottom: 12px; right: 12px; display: flex; justify-content: space-between; gap: 8px; align-items: end; pointer-events: none; font-size: 12px; color: var(--muted); }
+  .rodape .sel { background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--ink); padding: 7px 10px; border-radius: 10px; pointer-events: auto; }
+  .rodape .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; }
+    .palco { order: -1; height: 56vh; min-height: 340px; padding-left: max(0px, env(safe-area-inset-left, 0px)); }
+    .lado { border-right: 0; overflow: visible; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    .resumo b { font-size: 17px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <aside class="lado">
+    <header>
+      <div class="eyebrow">Personagem · atleta em GLB</div>
+      <h1>Biblioteca do atleta</h1>
+      <p>Tudo o que existe hoje no atleta: ossos e quais já se mexem, as malhas do modelo e o guarda-roupa de opções, com o que já funciona e o que ainda falta.</p>
+    </header>
+    <nav class="abas" role="tablist" aria-label="Seções">
+      <button role="tab" id="t-estrutura" aria-selected="true" data-aba="estrutura">Estrutura</button>
+      <button role="tab" id="t-guarda-roupa" aria-selected="false" data-aba="guarda-roupa">Guarda-roupa</button>
+      <button role="tab" id="t-ficha" aria-selected="false" data-aba="ficha">Ficha técnica</button>
+    </nav>
+
+    <section id="estrutura" role="tabpanel" aria-labelledby="t-estrutura">
+      <h2>Articulações</h2>
+      <div class="resumo" id="resumoOssos"></div>
+      <h2>Ossos</h2>
+      <div class="legenda">
+        <span class="chip st-anim">Animado</span><span class="chip st-parado">Existe, ainda parado</span><span class="chip st-ponta">Ponta (sem malha)</span>
+      </div>
+      <div class="arvore" id="arvore"></div>
+      <div class="detalhe" id="detalhe" hidden></div>
+      <h2>Malhas</h2>
+      <table class="malhas"><tbody id="malhas"></tbody></table>
+    </section>
+
+    <section id="guarda-roupa" role="tabpanel" aria-labelledby="t-guarda-roupa" hidden>
+      <div class="legenda"><span class="chip st-ok">Pronto</span><span class="chip st-anim">Aprovado</span><span class="chip st-plan">Planejado</span></div>
+      <div id="armario"></div>
+    </section>
+
+    <section id="ficha" role="tabpanel" aria-labelledby="t-ficha" hidden>
+      <h2>Modelo</h2>
+      <dl class="ficha" id="fichaModelo"></dl>
+      <h2>Ainda falta</h2>
+      <ul class="pend">
+        <li>Corpo visto de frente: o perfil lateral já segue a linha desenhada pelo Savio; a largura ainda é a do modelo original.</li>
+        <li>Articulações na animação: joelho, cotovelo, coluna, pé (os ossos existem, a animação ainda não os usa).</li>
+        <li>Número e apelido nas costas; regata e manga longa; meião.</li>
+        <li>Base feminina com o mesmo esqueleto.</li>
+        <li>Equipamentos: munhequeira, faixa, medalha, lesão.</li>
+        <li>Cabelo careca (existe no atleta de hoje, falta no GLB).</li>
+        <li>Mãos meio abertas (hoje ficam esticadas).</li>
+      </ul>
+    </section>
+  </aside>
+
+  <main class="palco" aria-label="Atleta em 3D">
+    <canvas id="c" aria-label="Atleta em 3D: arraste para girar, use a roda ou dois dedos para aproximar"></canvas>
+    <div class="ferramentas">
+      <div class="grupo" role="group" aria-label="Pose" id="gPose"></div>
+      <div class="grupo" role="group" aria-label="Mostrar" id="gVer"></div>
+    </div>
+    <div class="rodape">
+      <span class="sel" id="selInfo">Toque num osso (com "Ossos" ligado) ou escolha na lista.</span>
+      <span class="mono" id="tris"></span>
+    </div>
+  </main>
+</div>
+
+<script>
+/*DRILL*/
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as skClone } from 'three/addons/utils/SkeletonUtils.js';
+const THREE_SkeletonUtils = { clone: skClone };
+const GLB64 = '/*GLB*/';
+const TAU = Math.PI * 2, $ = id => document.getElementById(id);
+
+/*CABECUDO*/
+/*ANIMACAO*/
+/*ATLETA_GLB*/
+
+/* ---------- dados do atleta ---------- */
+const TEAMS = [{ nome: 'Verde', p: '#1f7a4d', s: '#f4f1e8' }, { nome: 'Vermelho', p: '#c62f2f', s: '#1f1d24' }, { nome: 'Azul', p: '#2459c9', s: '#36d0de' }, { nome: 'Roxo', p: '#5b2a86', s: '#f2c230' }];
+const SKINS = [['#f6d7c3', 'Clara'], ['#e8b896', 'Média clara'], ['#c98e66', 'Média escura'], ['#6e4527', 'Escura']];
+const HAIR_COLORS = [['#1d1a1f', 'Preto'], ['#5a3a24', 'Castanho'], ['#d8b56a', 'Loiro'], ['#a4472a', 'Ruivo']];
+const look = { nick: 'TROVÃO', num: 10, skin: SKINS[1][0], hair: 'curto', hairColor: '#1d1a1f', glasses: 'nenhum', beard: 'nenhuma', expr: 'confiante', forca: .5, vel: .5, team: TEAMS[0], gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false } };
+
+/** nome em português e o que cada osso move (Left/Right do Mixamo = esquerda/direita do próprio atleta) */
+const OSSOS = {
+  Hips: ['Quadril', 'Raiz do esqueleto: move e inclina o corpo inteiro.'],
+  Spine: ['Coluna (baixo)', 'Curva da cintura.'], Spine1: ['Coluna (meio)', 'Curva da barriga.'], Spine2: ['Peito', 'Peito e ombros; segura os braços e o pescoço.'],
+  Neck: ['Pescoço', 'Liga o peito à cabeça.'], Head: ['Cabeça', 'Cabeça, rosto, cabelo, óculos e barba vão presos aqui.'], HeadTop_End: ['Topo da cabeça', 'Ponta de referência, não deforma a malha.'],
+  Shoulder: ['Ombro', 'Clavícula: sobe e avança o ombro.'], Arm: ['Braço', 'Do ombro ao cotovelo.'], ForeArm: ['Antebraço', 'Dobra no cotovelo.'], Hand: ['Mão', 'Punho e mão (o modelo não tem dedos separados).'],
+  UpLeg: ['Coxa', 'Do quadril ao joelho.'], Leg: ['Canela', 'Dobra no joelho.'], Foot: ['Pé', 'Tornozelo: o tênis vai preso aqui.'], ToeBase: ['Dedos', 'Dobra a frente do pé ao correr.'], Toe_End: ['Ponta do pé', 'Ponta de referência, não deforma a malha.'],
+};
+function infoOsso(nome) {
+  const n = nome.replace(/^mixamorig:?/, ''), lado = n.startsWith('Left') ? ' esq.' : n.startsWith('Right') ? ' dir.' : '';
+  const base = n.replace(/^(Left|Right)/, ''); const [pt, desc] = OSSOS[base] || [base, ''];
+  return { curto: n, pt: pt + lado, desc };
+}
+/** quais ossos a animação padrão move hoje (ver GLB_OSSOS em atleta-glb.js) */
+const ANIMADOS = new Set(['quadril', 'cabeca', 'pernaD', 'pernaE', 'bracoD', 'bracoE'].map(k => GLB_OSSOS[k]));
+const statusOsso = (b, verts) => ANIMADOS.has(b.name) ? 'anim' : /_End$/.test(b.name) || verts === 0 ? 'ponta' : 'parado';
+const STATUS_TXT = { anim: 'Animado', parado: 'Parado', ponta: 'Ponta' };
+
+/** malhas do arquivo: nome, de onde vem, de onde sai a cor */
+const MALHAS = [
+  [/^corpo/, 'Corpo', 'Modelo original (Poly Pizza)', 'tom de pele'],
+  [/^camisa/, 'Camisa', 'Casca do corpo, manga curta (preparar.py)', 'cor principal da atlética'],
+  [/^short/, 'Short', 'Casca do corpo, acima do joelho (preparar.py)', 'cor secundária (a principal escurecida, se a secundária for clara)'],
+  [/^tenis_sola/, 'Sola do tênis', 'Feita do zero (preparar.py)', 'cor principal escurecida'],
+  [/^tenis/, 'Tênis', 'Feito do zero (preparar.py)', 'branco'],
+  [/^cabelo_curto/, 'Cabelo curto', 'Casca da cabeça; também base do coque e do boné', 'cor do cabelo (boné: cor secundária)'],
+  [/^cabelo_volume/, 'Cabelo volume (afro)', 'Casca da cabeça, mais afastada', 'cor do cabelo'],
+  [/^cabelo_moicano/, 'Moicano', 'Faixa central da cabeça', 'cor do cabelo'],
+  [/^cabelo_franja/, 'Cabelo franja (teste)', 'Modelo de fora (Sketchfab, H.art) encaixado na cabeça', 'cor do cabelo'],
+  [/^cabelo_chanel_prendedor/, 'Prendedor do chanel', 'Modelo de fora (Sketchfab, H.art)', 'cor principal da atlética'],
+  [/^cabelo_chanel/, 'Cabelo chanel (teste)', 'Modelo de fora (Sketchfab, H.art) encaixado na cabeça', 'cor do cabelo'],
+];
+const infoMalha = n => { const m = MALHAS.find(([re]) => re.test(n)); const lado = /Left/.test(n) ? ' (esq.)' : /Right/.test(n) ? ' (dir.)' : ''; return m ? { nome: m[1] + lado, origem: m[2], cor: m[3] } : { nome: n, origem: '', cor: '' }; };
+const tris = g => (g.index ? g.index.count : g.attributes.position.count) / 3;
+
+/* ---------- cena ---------- */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true; renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, .05, 100);
+const controls = new OrbitControls(camera, canvas); controls.enableDamping = true; controls.target.set(0, .95, 0); controls.minDistance = .6; controls.maxDistance = 9;
+camera.position.set(1.6, 1.35, 4.2);
+function luzes(sc) {
+  sc.add(new THREE.HemisphereLight(0xeef4ff, 0x8a8f99, 1.25));
+  const sun = new THREE.DirectionalLight(0xfff4e6, 2.1); sun.position.set(3, 6, 4); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2.5, bottom: -1, near: .5, far: 15 }); sc.add(sun);
+  const fill = new THREE.DirectionalLight(0xdfe8ff, .6); fill.position.set(-3, 2, -2); sc.add(fill);
+}
+luzes(scene);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(1.6, 48), new THREE.MeshStandardMaterial({ roughness: .95 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+function tema() { scene.background = new THREE.Color(css('--stage')); floor.material.color.set(css('--floor')); }
+tema();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', tema);
+new MutationObserver(tema).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- estado ---------- */
+const st = { pose: 'repouso', ossos: true, malha: false, raiox: false, pesos: false, sel: null, ocultas: new Set(), giro: {} };
+let modelo = null, rig = null, cena = null, ossos = [], repousoQ = new Map(), helper = null, marcadores = [], pesosPorOsso = new Map();
+const est = novoEstadoAnim(), fis = DRILL.fisica(DRILL.ATLETA_FITA), corpo = DRILL.novoCorpo(0, 0, Math.PI / 2);
+
+function montar() {
+  if (rig) scene.remove(rig.root);
+  if (helper) scene.remove(helper);
+  for (const m of marcadores) scene.remove(m);
+  rig = buildAtletaGLB(modelo, look);
+  cena = rig.tumble; scene.add(rig.root);
+  ossos = []; cena.traverse(o => { if (o.isBone) ossos.push(o); });
+  repousoQ = new Map(ossos.map(b => [b, b.quaternion.clone()]));
+  if (st.sel) st.sel = ossos.find(o => o.name === st.sel.name) || null;
+  cena.traverse(m => { if (m.isMesh) { m.userData.matOriginal = m.material; m.userData.visivelPeloLook = m.visible; } });
+  helper = new THREE.SkeletonHelper(cena); helper.material.depthTest = false; helper.material.transparent = true; helper.renderOrder = 10; scene.add(helper);
+  const geo = new THREE.SphereGeometry(.018, 12, 8);
+  marcadores = ossos.map(b => {
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ depthTest: false, transparent: true }));
+    m.renderOrder = 11; m.userData.osso = b; scene.add(m); return m;
+  });
+  setExpr(rig.face, look.expr);
+  aplicarVisual();
+  listarMalhas();
+}
+
+/* pesos: quanto cada vértice segue o osso escolhido (0 = nada, 1 = só ele) */
+const FRIO = new THREE.Color(), QUENTE = new THREE.Color();
+function corPesos(mesh, nomeOsso) {
+  const g = mesh.geometry, bones = mesh.skeleton.bones, i = bones.findIndex(b => b.name === nomeOsso);
+  const si = g.attributes.skinIndex, sw = g.attributes.skinWeight, n = g.attributes.position.count;
+  const cor = new Float32Array(n * 3), c = new THREE.Color();
+  for (let v = 0; v < n; v++) {
+    let w = 0; for (let k = 0; k < 4; k++) if (si.getComponent(v, k) === i) w += sw.getComponent(v, k);
+    c.copy(FRIO).lerp(QUENTE, Math.min(1, w)); cor[v * 3] = c.r; cor[v * 3 + 1] = c.g; cor[v * 3 + 2] = c.b;
+  }
+  const geo = g.clone(); geo.setAttribute('color', new THREE.BufferAttribute(cor, 3)); return geo;
+}
+function aplicarVisual() {
+  if (!rig) return;
+  FRIO.set(css('--peso0')); QUENTE.set(css('--peso1'));
+  cena.traverse(m => {
+    if (!m.isMesh) return;
+    const deCorpo = m.isSkinnedMesh;
+    m.visible = m.userData.visivelPeloLook && !st.ocultas.has(m.name);
+    if (m.userData.geoOriginal) { m.geometry.dispose(); m.geometry = m.userData.geoOriginal; delete m.userData.geoOriginal; }
+    let mat = m.userData.matOriginal;
+    if (deCorpo && st.pesos && st.sel) {
+      m.userData.geoOriginal = m.geometry; m.geometry = corPesos(m, st.sel.name);
+      mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, flatShading: true });
+    } else if (st.malha || st.raiox) mat = mat.clone();
+    if (st.malha) mat.wireframe = true;
+    if (st.raiox) { mat.transparent = true; mat.opacity = .28; mat.depthWrite = false; }
+    m.material = mat;
+  });
+  helper.visible = st.ossos;
+  for (const mk of marcadores) {
+    const b = mk.userData.osso, s = statusOsso(b, pesosPorOsso.get(b.name) || 0);
+    mk.visible = st.ossos;
+    mk.material.color.set(css(st.sel === b ? '--accent' : '--' + s));
+    mk.scale.setScalar(st.sel === b ? 1.8 : 1);
+  }
+  let t = 0; cena.traverse(m => { if (m.isMesh && m.visible) t += tris(m.geometry); });
+  $('tris').textContent = Math.round(t).toLocaleString('pt-BR') + ' triângulos';
+}
+
+/* ---------- pose por quadro ---------- */
+const qExtra = new THREE.Quaternion(), eExtra = new THREE.Euler(), vTmp = new THREE.Vector3();
+function posar(dt) {
+  for (const [b, q] of repousoQ) b.quaternion.copy(q);
+  if (st.pose === 't') { rig.root.position.set(0, 0, 0); rig.root.rotation.set(0, 0, 0); cena.updateMatrixWorld(true); }
+  else {
+    if (st.pose === 'correndo') { DRILL.moverCorpo(corpo, fis, 0, 2, dt); }
+    else { corpo.vx = corpo.vz = 0; corpo.w = corpo.aFrente = corpo.aLado = 0; corpo.h = Math.PI / 2; }
+    corpo.x = corpo.z = 0;
+    rig.root.rotation.set(0, 0, 0);
+    animarAtleta(rig, corpo, est, { dt, rdt: dt, x: 0, z: 0, y: 0, olhar: null, parado: false, velMax: fis.velMax, expr: look.expr });
+    aplicarEsqueleto(rig);
+  }
+  // giros manuais do painel, por cima da pose
+  for (const nome in st.giro) {
+    const [x, y, z] = st.giro[nome]; if (!x && !y && !z) continue;
+    const b = ossos.find(o => o.name === nome); if (!b) continue;
+    b.quaternion.multiply(qExtra.setFromEuler(eExtra.set(x * Math.PI / 180, y * Math.PI / 180, z * Math.PI / 180)));
+  }
+  rig.root.updateMatrixWorld(true);
+  for (const mk of marcadores) mk.position.copy(mk.userData.osso.getWorldPosition(vTmp));
+}
+
+/* ---------- painel: estrutura ---------- */
+function contarPesos() {
+  // vértices do corpo que seguem principalmente cada osso
+  let corpoMesh = null; modelo.gltf.scene.traverse(o => { if (o.isSkinnedMesh && /corpo/.test(o.name)) corpoMesh = o; });
+  const g = corpoMesh.geometry, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, bones = corpoMesh.skeleton.bones;
+  for (let v = 0; v < g.attributes.position.count; v++) {
+    let melhor = 0, w = -1; for (let k = 0; k < 4; k++) if (sw.getComponent(v, k) > w) { w = sw.getComponent(v, k); melhor = si.getComponent(v, k); }
+    const n = bones[melhor].name; pesosPorOsso.set(n, (pesosPorOsso.get(n) || 0) + 1);
+  }
+}
+function listarOssos() {
+  const cont = { anim: 0, parado: 0, ponta: 0 };
+  const el = $('arvore'); el.innerHTML = '';
+  const desce = (b, nivel) => {
+    const v = pesosPorOsso.get(b.name) || 0, s = statusOsso(b, v), i = infoOsso(b.name); cont[s]++;
+    const bt = document.createElement('button'); bt.className = 'osso'; bt.dataset.osso = b.name; bt.setAttribute('aria-pressed', 'false');
+    bt.style.paddingLeft = (8 + nivel * 12) + 'px';
+    bt.innerHTML = `<span class="nome">${i.pt}<span class="orig">${i.curto}${v ? ` · ${v} vértices` : ''}</span></span><span class="chip st-${s}">${STATUS_TXT[s]}</span>`;
+    bt.addEventListener('click', () => selecionar(b.name));
+    el.append(bt);
+    for (const f of b.children) if (f.isBone) desce(f, nivel + 1);
+  };
+  const raiz = ossos.find(b => !b.parent.isBone); desce(raiz, 0);
+  $('resumoOssos').innerHTML = `<div><b>${cont.anim}</b><span>animados hoje</span></div><div><b>${cont.parado}</b><span>existem, ainda parados</span></div><div><b>${ossos.length}</b><span>ossos no total</span></div>`;
+}
+function selecionar(nome) {
+  const b = ossos.find(o => o.name === nome) || null;
+  st.sel = st.sel === b ? null : b;
+  for (const x of document.querySelectorAll('.osso')) x.setAttribute('aria-pressed', String(!!st.sel && x.dataset.osso === st.sel.name));
+  const d = $('detalhe');
+  if (!st.sel) { d.hidden = true; $('selInfo').textContent = 'Toque num osso (com "Ossos" ligado) ou escolha na lista.'; aplicarVisual(); return; }
+  const i = infoOsso(nome), v = pesosPorOsso.get(nome) || 0, s = statusOsso(st.sel, v);
+  const g = st.giro[nome] || (st.giro[nome] = [0, 0, 0]);
+  d.hidden = false;
+  d.innerHTML = `<h3>${i.pt} <span class="chip st-${s}">${STATUS_TXT[s]}</span></h3>
+    <p>${i.desc} ${s === 'anim' ? 'A animação padrão já mexe neste osso.' : s === 'parado' ? 'Ainda não é usado pela animação: dá para testar a dobra aqui.' : ''} ${v ? `Comanda ${v} vértices do corpo.` : ''}</p>
+    ${s === 'ponta' ? '' : ['X', 'Y', 'Z'].map((e, k) => `<label class="eixo" for="g${e}">Girar ${e}<input type="range" id="g${e}" min="-90" max="90" step="1" value="${g[k]}"><output id="o${e}">${g[k]}°</output></label>`).join('') +
+    `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button id="zerar">Zerar giro</button><button id="verPesos" aria-pressed="${st.pesos}">Ver pesos</button></div>`}`;
+  ['X', 'Y', 'Z'].forEach((e, k) => { const r = $('g' + e); if (r) r.addEventListener('input', () => { g[k] = +r.value; $('o' + e).textContent = r.value + '°'; }); });
+  if ($('zerar')) $('zerar').addEventListener('click', () => { g.fill(0); selecionar(nome); selecionar(nome); });
+  if ($('verPesos')) $('verPesos').addEventListener('click', () => { st.pesos = !st.pesos; ferramentas(); selecionar(nome); selecionar(nome); });
+  $('selInfo').textContent = `${i.pt} · ${i.curto}`;
+  aplicarVisual();
+}
+function listarMalhas() {
+  const el = $('malhas'); el.innerHTML = '';
+  const linhas = [];
+  cena.traverse(m => { if (m.isSkinnedMesh) linhas.push(m); });
+  for (const m of linhas) {
+    const i = infoMalha(m.name), escondidaPeloLook = !m.userData.visivelPeloLook;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="checkbox" id="m-${m.name}" ${st.ocultas.has(m.name) ? '' : 'checked'} ${escondidaPeloLook ? 'disabled' : ''} aria-label="Mostrar ${i.nome}"></td>
+      <td><label for="m-${m.name}"><b>${i.nome}</b></label><small>${i.origem}${i.cor ? ' · cor: ' + i.cor : ''}${escondidaPeloLook ? ' · oculta pelo cabelo escolhido' : ''}</small></td>
+      <td>${Math.round(tris(m.geometry)).toLocaleString('pt-BR')} tri.</td>`;
+    tr.querySelector('input').addEventListener('change', e => { e.target.checked ? st.ocultas.delete(m.name) : st.ocultas.add(m.name); aplicarVisual(); });
+    el.append(tr);
+  }
+  // partes feitas por código, presas à cabeça
+  let t = 0; rig.head.parent.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && o.visible) t += tris(o.geometry); });
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td></td><td><b>Rosto e acessórios</b><small>Feitos por código (atleta-glb.js): olhos, sobrancelhas, boca das 5 expressões, óculos, barba, coque, aba do boné</small></td><td>${Math.round(t).toLocaleString('pt-BR')} tri.</td>`;
+  el.append(tr);
+}
+
+/* ---------- barra do palco ---------- */
+function ferramentas() {
+  const pose = $('gPose'); pose.innerHTML = '';
+  for (const [v, t] of [['t', 'T-pose'], ['repouso', 'Repouso'], ['correndo', 'Correndo']]) {
+    const b = document.createElement('button'); b.textContent = t; b.setAttribute('aria-pressed', String(st.pose === v));
+    b.addEventListener('click', () => { st.pose = v; ferramentas(); }); pose.append(b);
+  }
+  const ver = $('gVer'); ver.innerHTML = '';
+  for (const [k, t] of [['ossos', 'Ossos'], ['malha', 'Malha'], ['raiox', 'Raio-X'], ['pesos', 'Pesos']]) {
+    const b = document.createElement('button'); b.textContent = t; b.setAttribute('aria-pressed', String(st[k]));
+    b.addEventListener('click', () => {
+      st[k] = !st[k];
+      if (k === 'pesos' && st.pesos && !st.sel) selecionar(GLB_OSSOS.pernaE.replace('UpLeg', 'Leg'));
+      ferramentas(); aplicarVisual();
+    });
+    ver.append(b);
+  }
+}
+// tocar num marcador escolhe o osso
+const ptr = new THREE.Vector2(); let baixo = null;
+canvas.addEventListener('pointerdown', e => { baixo = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', e => {
+  if (!baixo || Math.hypot(e.clientX - baixo[0], e.clientY - baixo[1]) > 6 || !st.ossos) return;
+  const r = canvas.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+    // marcadores pequenos: escolhe o mais perto do raio na tela
+  let melhor = null, dmin = 1e9;
+  for (const m of marcadores) { const p = m.position.clone().project(camera); const d = Math.hypot(p.x - ptr.x, p.y - ptr.y); if (d < dmin) { dmin = d; melhor = m; } }
+  if (melhor && dmin < .06) { selecionar(melhor.userData.osso.name); mostrarAba('estrutura'); const bt = document.querySelector(`.osso[data-osso="${melhor.userData.osso.name}"]`); if (bt) bt.scrollIntoView({ block: 'nearest' }); }
+});
+
+/* ---------- guarda-roupa ---------- */
+const ARMARIO = [
+  { titulo: 'Uniforme da atlética', quadro: 'tronco', itens: TEAMS.map(t => ({ nome: t.nome, st: 'ok', aplica: { team: t }, ativo: () => look.team === t })).concat([
+    { nome: 'Regata', st: 'plan', nota: 'Camisa sem manga' }, { nome: 'Manga longa', st: 'plan', nota: 'Para treinos de frio' }, { nome: 'Número e apelido', st: 'plan', nota: 'Nas costas da camisa' }]) },
+  { titulo: 'Calçado', quadro: 'pes', itens: [
+    { nome: 'Tênis', st: 'aprov', aplica: {}, ativo: () => true, nota: 'Sola na cor da atlética' }, { nome: 'Meião', st: 'plan', nota: 'Meia alta acima do tênis' }] },
+  { titulo: 'Cabelo', quadro: 'cabeca', itens: [['curto', 'Curto'], ['afro', 'Afro'], ['moicano', 'Moicano'], ['coque', 'Coque'], ['bone', 'Boné']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { hair: v }, ativo: () => look.hair === v }))
+    .concat([['franja', 'Franja'], ['chanel', 'Chanel']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { hair: v }, ativo: () => look.hair === v, nota: 'Teste: modelo de fora encaixado' })))
+    .concat([{ nome: 'Careca', st: 'plan', nota: 'Existe no atleta de hoje, falta no GLB' }]) },
+  { titulo: 'Cor do cabelo', cor: true, itens: HAIR_COLORS.map(([c, n]) => ({ nome: n, st: 'ok', cor: c, aplica: { hairColor: c }, ativo: () => look.hairColor === c })) },
+  { titulo: 'Expressão', quadro: 'rosto', itens: [['confiante', 'Confiante'], ['neutro', 'Neutro'], ['bravo', 'Bravo'], ['feliz', 'Feliz'], ['triste', 'Triste']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { expr: v }, ativo: () => look.expr === v })) },
+  { titulo: 'Óculos', quadro: 'rosto', itens: [['nenhum', 'Sem óculos'], ['redondo', 'Redondo'], ['escuro', 'Escuro']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { glasses: v }, ativo: () => look.glasses === v })) },
+  { titulo: 'Barba', quadro: 'rosto', itens: [['nenhuma', 'Sem barba'], ['bigode', 'Bigode'], ['barba', 'Barba']].map(([v, n]) => ({ nome: n, st: 'ok', aplica: { beard: v }, ativo: () => look.beard === v })) },
+  { titulo: 'Pele', cor: true, itens: SKINS.map(([c, n]) => ({ nome: n, st: 'ok', cor: c, aplica: { skin: c }, ativo: () => look.skin === c })) },
+  { titulo: 'Porte', quadro: 'corpo', itens: [[.35, .7, 'Rápido'], [.5, .5, 'Médio'], [.85, .2, 'Forte']].map(([f, v, n]) => ({ nome: n, st: 'ok', aplica: { forca: f, vel: v }, ativo: () => look.forca === f })) },
+  { titulo: 'Corpo', quadro: 'corpo', itens: [{ nome: 'Base masculina', st: 'ok', aplica: {}, ativo: () => true }, { nome: 'Base feminina', st: 'plan', nota: 'Mesmo esqueleto, outra malha' }] },
+  { titulo: 'Equipamentos', itens: [['Munhequeira', 'No punho'], ['Faixa', 'Na testa'], ['Medalha', 'No peito'], ['Lesão', 'Faixa e curativo']].map(([n, nota]) => ({ nome: n, st: 'plan', nota })) },
+];
+const ST_CARD = { ok: ['st-ok', 'Pronto'], aprov: ['st-anim', 'Aprovado'], plan: ['st-plan', 'Planejado'] };
+function montarArmario() {
+  const el = $('armario'); el.innerHTML = '';
+  ARMARIO.forEach((sec, si) => {
+    const h = document.createElement('h2'); h.textContent = sec.titulo; el.append(h);
+    const g = document.createElement('div'); g.className = 'grade'; el.append(g);
+    sec.itens.forEach((it, ii) => {
+      const plan = it.st === 'plan', c = document.createElement(plan ? 'div' : 'button');
+      c.className = 'card' + (plan ? ' plan' : ''); c.dataset.k = si + '-' + ii;
+      const [cls, txt] = ST_CARD[it.st];
+      const mini = plan ? `<div class="mini">${it.nota || ''}</div>` : it.cor ? `<div class="mini"><span class="cor" style="background:${it.cor}"></span></div>` : `<div class="mini" id="mini-${si}-${ii}"></div>`;
+      c.innerHTML = `${mini}<b>${it.nome}</b><span class="chip ${cls}">${txt}</span>`;
+      if (!plan) {
+        c.setAttribute('aria-pressed', String(it.ativo()));
+        if (it.nota) c.title = it.nota;
+        c.addEventListener('click', () => { Object.assign(look, it.aplica); montar(); marcarArmario(); });
+      }
+      g.append(c);
+    });
+  });
+}
+function marcarArmario() {
+  ARMARIO.forEach((sec, si) => sec.itens.forEach((it, ii) => { if (it.st === 'plan') return; const c = document.querySelector(`.card[data-k="${si}-${ii}"]`); if (c) c.setAttribute('aria-pressed', String(it.ativo())); }));
+}
+// miniaturas: cada opção desenhada numa cena à parte, com a mesma luz
+const QUADROS = { tronco: [[0, .6, 0], [.5, .78, 1.75]], pes: [[0, .1, .02], [.75, .45, .85]], cabeca: [[0, 1.3, 0], [.9, 1.45, 1.75]], rosto: [[0, 1.22, 0], [0, 1.25, 1.25]], corpo: [[0, .9, 0], [1.3, 1.2, 3.4]] };
+async function miniaturas() {
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setSize(192, 192); r.toneMapping = THREE.ACESFilmicToneMapping; r.setClearColor(0, 0);
+  const sc = new THREE.Scene(); luzes(sc);
+  const cam = new THREE.PerspectiveCamera(32, 1, .05, 50);
+  for (const [si, sec] of ARMARIO.entries()) for (const [ii, it] of sec.itens.entries()) {
+    const alvo = $(`mini-${si}-${ii}`); if (!alvo || !sec.quadro) continue;
+    const p = { ...look, ...it.aplica }; if (sec.titulo !== 'Expressão') p.expr = 'confiante';
+    const a = buildAtletaGLB(modelo, p); sc.add(a.root); aplicarEsqueleto(a);
+    const [t, pos] = QUADROS[sec.quadro]; cam.position.set(...pos); cam.lookAt(...t);
+    r.render(sc, cam); sc.remove(a.root);
+    const img = new Image(); img.alt = it.nome; img.src = r.domElement.toDataURL('image/png'); alvo.append(img);
+    await new Promise(ok => setTimeout(ok, 0));
+  }
+  r.dispose();
+}
+
+/* ---------- ficha técnica ---------- */
+function montarFicha() {
+  let total = 0, n = 0; modelo.gltf.scene.traverse(o => { if (o.isSkinnedMesh) { n++; if (!/cabelo_(volume|moicano|franja|chanel)/.test(o.name)) total += tris(o.geometry); } });
+  const kb = Math.round(GLB64.length * 3 / 4 / 1024);
+  const linhas = [
+    ['Altura', '1,75 m (pés no chão, de frente para +Z)'],
+    ['Triângulos', `${Math.round(total).toLocaleString('pt-BR')} com cabelo curto, sem o rosto`],
+    ['Ossos', `${ossos.length}, padrão do Mixamo (esqueleto feito pelo Savio no site do Mixamo)`],
+    ['Malhas', `${n} no arquivo, um material por malha (as cores são trocadas por código)`],
+    ['Arquivo', `<code>assets/personagem/atleta.glb</code>, ${kb.toLocaleString('pt-BR')} KB`],
+    ['Origem', 'Lowpoly Chibi Character, de mehreen1919, via Poly Pizza. Licença CC BY 3.0: o crédito tem que aparecer no jogo.'],
+    ['Como é gerado', '<code>preparar.py</code> (Blender por script): escala, orientação, tronco afinado de perfil pela linha do Savio, roupas e cabelos como cascas do corpo, tênis feito do zero.'],
+    ['No navegador', '<code>atleta-glb.js</code>: <code>buildAtletaGLB(modelo, look)</code> devolve o mesmo formato do atleta de hoje (root, body, legs, arms, headPivot, face, handR), então a animação padrão funciona sem mudanças.'],
+    ['Animação', 'Por código, a partir da simulação: passada, inclinação nas curvas e freadas, cabeça com mola, piscar.'],
+    ['Rosto', 'Desenhado por código em cima do modelo (que já tem nariz): 5 expressões, óculos e barba.'],
+  ];
+  $('fichaModelo').innerHTML = linhas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+}
+
+/* ---------- abas ---------- */
+function mostrarAba(id) {
+  for (const b of document.querySelectorAll('[data-aba]')) b.setAttribute('aria-selected', String(b.dataset.aba === id));
+  for (const s of document.querySelectorAll('[role="tabpanel"]')) s.hidden = s.id !== id;
+}
+for (const b of document.querySelectorAll('[data-aba]')) b.addEventListener('click', () => mostrarAba(b.dataset.aba));
+if (['estrutura', 'guarda-roupa', 'ficha'].includes(location.hash.slice(1))) mostrarAba(location.hash.slice(1));
+
+/* ---------- laço ---------- */
+function resize() { const r = canvas.parentElement.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize);
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (rig) posar(dt);
+  controls.update(); renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+const bin = atob(GLB64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+new GLTFLoader().parse(buf.buffer, '', gltf => {
+  modelo = prepararModeloGLB(gltf);
+  contarPesos(); montar(); listarOssos(); ferramentas(); montarArmario(); montarFicha(); resize();
+  window.__pagina = { camera, controls, st, selecionar, mostrarAba };
+  requestAnimationFrame(frame);
+  setTimeout(miniaturas, 300);
+}, e => console.error(e));
+</script>
