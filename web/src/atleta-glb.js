@@ -150,3 +150,13 @@ function aplicarEsqueleto(rig) {
   // cabeça: a mola e o olhar da animação padrão
   membro('cabeca', rig.headPivot);
 }
+
+/**
+ * Carrega o modelo embutido na página (atleta.glb em base64, posto pelo build.py) e prepara para buildAtletaGLB.
+ * Uso nas páginas (módulo): const MODELO_ATLETA = await carregarModeloAtleta(GLB_BASE64, GLTFLoader);
+ */
+function carregarModeloAtleta(b64, GLTFLoader) {
+  const bin = atob(b64), buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return new Promise((ok, erro) => new GLTFLoader().parse(buf.buffer, '', g => ok(prepararModeloGLB(g)), erro));
+}

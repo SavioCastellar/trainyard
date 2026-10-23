@@ -174,6 +174,9 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as skClone } from 'three/addons/utils/SkeletonUtils.js';
+const THREE_SkeletonUtils = { clone: skClone };
 
 const TAPE = /*TAPE*/;
 /* prévia: sem fita; um piloto escrito à mão decide, para julgar o movimento antes de treinar */
@@ -358,6 +361,9 @@ function mostrarNivel(n) { LINHA.visible = n > 1; TRILHO.visible = n === 3; for 
    ========================================================= */
 /*CABECUDO*/
 /*ANIMACAO*/
+/*ATLETA_GLB*/
+/* atleta em GLB (assets/personagem/atleta.glb, embutido pelo build.py) */
+const MODELO_ATLETA = await carregarModeloAtleta('/*GLB*/', GLTFLoader);
 
 const LOOKS = [
   { nick: 'TROVÃO', num: 10, skin: '#e8b896', hair: 'curto', hairColor: '#1d1a1f', glasses: 'nenhum', beard: 'nenhuma', expr: 'confiante', forca: .35, vel: .7, team: { p: '#1f7a4d', s: '#f4f1e8' } },
@@ -427,7 +433,7 @@ class Station {
     if (this.rig) { this.g.remove(this.rig.root); this.tag && this.g.remove(this.tag); }
     const look = LOOKS[lookIdx];
     const p = { ...look, gear: { tenis: true, munhequeira: false, faixa: false, medalha: false, lesionado: false } };
-    this.rig = buildCabecudo(p); this.rig.root.scale.setScalar(.8); this.g.add(this.rig.root);
+    this.rig = buildAtletaGLB(MODELO_ATLETA, p); this.g.add(this.rig.root);
     setExpr(this.rig.face, look.expr); this.look = look;
     if (!this.main) {
       this.rig.root.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = .35; o.material.depthWrite = false; } o.castShadow = false; });
@@ -557,7 +563,8 @@ class Station {
         rig.legs[1].rotation.x = swing; rig.arms[0].rotation.x = -swing * .6;
       }
     } else if (e.naMao) { rig.arms[1].rotation.x = -1.1; rig.arms[1].rotation.z = -.15; }
-    if (this.tag) this.tag.position.set(ix, 2.5, iz);
+    aplicarEsqueleto(this.rig);   // depois de todos os ajustes de pose desta página
+    if (this.tag) this.tag.position.set(ix, 2.3, iz);
   }
 }
 

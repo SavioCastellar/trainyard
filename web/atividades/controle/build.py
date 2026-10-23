@@ -2,7 +2,7 @@
 Uso: python web/atividades/controle/build.py [fitas/controle.json]  →  web/dist/treino-controle.html
      python web/atividades/controle/build.py --previa  →  web/dist/previa-controle.html (piloto escrito à mão, sem fita)
 A página antiga das Plataformas (controle.template.html) fica até a fita nova da Bandeja ficar pronta."""
-import json, os, re, sys
+import base64, json, os, re, sys
 here = os.path.dirname(os.path.abspath(__file__))
 web = os.path.dirname(os.path.dirname(here))
 root = os.path.dirname(web)
@@ -23,6 +23,8 @@ out = (open(os.path.join(here, 'bandeja.template.html'), encoding='utf8').read()
        .replace('/*CABECUDO*/', read('web/src/cabecudo-lib.js'))
        .replace('/*CT*/', read('web/atividades/ct-provisorio.js'))
        .replace('/*ANIMACAO*/', read('web/src/animacao-atleta.js'))
+       .replace('/*ATLETA_GLB*/', read('web/src/atleta-glb.js'))
+       .replace('/*GLB*/', base64.b64encode(open(os.path.join(root, 'assets/personagem/atleta.glb'), 'rb').read()).decode())
        .replace('/*PREVIA*/', 'true' if previa else 'false')
        .replace('/*TAPE*/', tape))
 os.makedirs(os.path.join(web, 'dist'), exist_ok=True)

@@ -80,3 +80,11 @@ Mixamo, roupas geradas do corpo por script do Blender (`assets/personagem/prepar
 (`buildAtletaGLB` + `aplicarEsqueleto`). Página: `python web/personagem-glb/build.py` → `web/dist/atleta-glb.html`.
 Falta decidir com o Savio se troca; depois: número nas costas, base feminina, mais roupas e cabelos, medir
 no celular com 10 e 22 atletas, trocar nas páginas dos treinos.
+## 2026-10-23 · de Central (atividades) para Personagem · feito (avisando)
+As páginas dos treinos migrados (Velocidade, Controle/Bandeja, Precisão) passaram a usar o atleta em GLB:
+os `build.py` embutem `web/src/atleta-glb.js` e `assets/personagem/atleta.glb`; as páginas criam o atleta com
+`buildAtletaGLB(MODELO_ATLETA, look)` e chamam `aplicarEsqueleto(rig)` no fim de cada quadro, depois dos
+ajustes de pose da página (braços na bandeja, chute, arremesso). Foi acrescentada `carregarModeloAtleta(b64,
+GLTFLoader)` no fim de `atleta-glb.js`. Daqui em diante, mudanças no `atleta.glb` e no `atleta-glb.js` chegam
+aos treinos só refazendo as páginas: manter a interface do rig (root, body, legs, arms, headPivot, face, handR,
+restExpr) e o nome das peças; avisar aqui se mudar.
