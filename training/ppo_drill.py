@@ -7,6 +7,7 @@ cada foto guarda o nível em que foi tirada.
 
 Uso: python ppo_drill.py --minutes 20 --out runs/precisao
      python ppo_drill.py --drill velocidade --minutes 120 --out runs/velocidade
+     python ppo_drill.py --drill precisao --tempo-nivel 30,45,45 --max-steps 4e8 --out runs/precisao   (tempo fixo por nível)
 """
 from __future__ import annotations
 
@@ -126,6 +127,9 @@ def main():
     ap.add_argument("--after", type=int, default=60, help="atualizações extras depois de dominar o último nível")
     ap.add_argument("--retomar", default=None, help="checkpoints.json de um treino anterior: continua da última foto, no nível dela, "
                     "por --minutes; sobe de nível ao dominar (no último nível só treina mais); as fotos novas entram na mesma lista")
+    ap.add_argument("--tempo-nivel", default=None, help="minutos em cada nível, separados por vírgula (ex.: 30,45,45). "
+                    "O atleta fica exatamente esse tempo em cada nível e só então passa para o próximo (avisa se não "
+                    "dominou); o domínio continua registrado no log, mas não muda de nível antes da hora. Substitui --minutes")
     ap.add_argument("--aquecer", type=int, default=30, help="ao retomar: atualizações só do crítico antes de mexer no ator "
                     "(o crítico não é guardado nas fotos e começa do zero)")
     args = ap.parse_args()
@@ -157,7 +161,10 @@ def main():
         if nivel > 1: env.set_level(nivel)
         print(f"retomando de {args.retomar}: atualização {update}, {episodes} tentativas, nível {nivel}", flush=True)
     log = open(os.path.join(args.out, "log.jsonl"), "a" if args.retomar else "w")
-    while time.time() - t0 < args.minutes * 60 and steps < args.max_steps:
+    tempos = [float(x) * 60 for x in args.tempo_nivel.split(",")] if args.tempo_nivel else None
+    if tempos: assert dominio and len(tempos) >= max(dominio), "--tempo-nivel precisa de um tempo para cada nível"
+    t_nivel = time.time(); dominado = set()
+    while (tempos or time.time() - t0 < args.minutes * 60) and steps < args.max_steps:
         update += 1
         Bo = np.zeros((T, n, OBS), np.float32); Ba = np.zeros((T, n, len(ACTS)), np.int64)
         Bl = np.zeros((T, n), np.float32); Bv = np.zeros((T, n), np.float32); Br = np.zeros((T, n), np.float32); Bd = np.zeros((T, n), np.float32)
@@ -210,8 +217,20 @@ def main():
                 rate = sum(e["hits"] for e in w) / max(1, sum(e["lights"] for e in w))
             reds = float(np.mean([e.get("reds", 0) for e in w])) if w else 0.0
             row.update(nivel=nivel, rate=round(rate, 3), reds=round(reds, 2))
+            if tempos:
+                # tempo fixo por nível: registra o domínio quando chega, mas só troca de nível quando o tempo acaba
+                if nivel not in dominado and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
+                    dominado.add(nivel); row["dominio"] = nivel
+                    print(f"domínio do nível {nivel}: {rate:.2f} por tentativa, {episodes} tentativas ({(time.time() - t_nivel) / 60:.1f} min no nível)", flush=True)
+                if time.time() - t_nivel >= tempos[nivel - 1]:
+                    if nivel not in dominado: print(f"AVISO: o tempo do nível {nivel} acabou sem domínio ({rate:.2f}, meta {thr})", flush=True)
+                    if nivel < max(dominio):
+                        nivel += 1; level_start = update; lvl = []; env.set_level(nivel); t_nivel = time.time()
+                        print(f"nível {nivel} por {tempos[nivel - 1] / 60:.0f} min", flush=True)
+                    else:
+                        break
             # retomando no último nível: só treina mais (não para no domínio); nos outros, sobe de nível como sempre
-            if not (args.retomar and nivel == max(dominio)) and mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
+            elif not (args.retomar and nivel == max(dominio)) and mastered_at is None and len(w) >= 300 and rate >= thr and (max_reds is None or reds < max_reds):
                 print(f"domínio do nível {nivel}: {f'{rate:.1f} acertos' if thr > 1 else f'{rate:.1%} das luzes'}, {reds:.2f} vermelhas, {episodes} tentativas", flush=True)
                 row["dominio"] = nivel
                 if nivel < max(dominio):

@@ -53,3 +53,9 @@ perder o treino original:
 python ppo_drill.py --drill controle --minutes 20 --max-steps 4e8 --retomar runs/controle/checkpoints.json --out runs/controle-n3
 cd ..\sim; node dist/scripts/make-tape.js ..\training\runs\controle-n3\checkpoints.json ..\fitas\controle.json
 ```
+
+## Tempo fixo por nível
+`--tempo-nivel 30,45,45` (minutos) deixa o atleta exatamente esse tempo em cada nível e só então passa para o
+próximo; o domínio continua registrado no log (linha "domínio do nível N"), mas não troca de nível antes da
+hora, e um AVISO sai se o tempo acabar sem domínio. Substitui `--minutes`. Funciona com `--retomar` (começa
+no nível da última foto, com o tempo daquele nível).
